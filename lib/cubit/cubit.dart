@@ -1,0 +1,64 @@
+import 'dart:convert';
+import 'dart:math';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:hijri/hijri_calendar.dart';
+import 'package:moshaf/cubit/states.dart';
+import 'package:moshaf/modules/audio_quran/shiekh_screen.dart';
+import 'package:moshaf/modules/text_quran/views/all_quran_screen.dart';
+import '../modules/azkar/azkar_screen.dart';
+import '../modules/prayer_times/praye_time_screen.dart';
+import '../modules/text_quran/saved_screen.dart';
+
+class AppCubit extends Cubit<AppStates> {
+  AppCubit() : super(AppInitialState());
+  static AppCubit get(context) => BlocProvider.of(context);
+
+  int currentIndex = 0;
+
+  List<Widget> bottomScreens = [
+    QuranPage(),
+    ShiekhScreen(),
+    AzkarScreen(),
+    PrayTimeScreen(),
+    SavedScreen(),
+  ];
+  void changeBottom(int index) {
+    currentIndex = index;
+    emit(AppChangeBottomNavState());
+  }
+  String athkar = "";
+  Future<String> getRandomAthkar() async {
+    final data = await rootBundle.loadString('assets/json/athkar.json');
+    final List<dynamic> list = json.decode(data);
+    final random = Random();
+    athkar =  list[random.nextInt(list.length)];
+    emit(GetRandomAthkarState());
+    await Future.delayed(Duration(minutes: 12));
+    emit(GetNewRandomAthkarState());
+    return athkar;
+  }
+
+  Future<void> requestOverlay() async {
+    bool status = await FlutterOverlayWindow.isPermissionGranted();
+
+    if (!status) {
+      // Request the permission
+      await FlutterOverlayWindow.requestPermission();
+      return; // Stop here and ask user to retry after granting
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+}
