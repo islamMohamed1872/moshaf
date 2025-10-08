@@ -20,41 +20,59 @@ class PrayTimeScreen extends StatelessWidget {
           body: SafeArea(
             child: Skeletonizer(
               enabled: !cubit.hasData,
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Column(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Detect screen size
+                  final isSmallScreen = constraints.maxWidth < 360;
+                  final screenWidth = constraints.maxWidth;
+
+                  return Stack(
+                    alignment: Alignment.bottomCenter,
                     children: [
-                      Expanded(
-                        child: Stack(
-                          alignment: Alignment.topCenter,
-                          children: [
-                            Image.asset("assets/images/4.png",
-                                semanticLabel: 'background image'),
-                            Container(
-                              width: double.infinity,
-                              color: HexColor("#795546").withValues(alpha: 0.8),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 70.h,
-                              ),
-                              child: Column(
-                                children: [
-                                  _UpcomingPrayerHeader(cubit: cubit),
-                                  const Spacer(),
-                                  _SunInfoRow(cubit: cubit),
-                                  const Spacer(),
-                                ],
-                              ),
+                      Column(
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              alignment: Alignment.topCenter,
+                              children: [
+                                Image.asset("assets/images/4.png",
+                                    semanticLabel: 'background image'),
+                                Container(
+                                  width: double.infinity,
+                                  color: HexColor("#795546").withValues(alpha: 0.8),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isSmallScreen ? 12 : 20,
+                                    vertical: isSmallScreen ? 40.h : 70.h,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      _UpcomingPrayerHeader(
+                                        cubit: cubit,
+                                        isSmallScreen: isSmallScreen,
+                                      ),
+                                      const Spacer(),
+                                      _SunInfoRow(
+                                        cubit: cubit,
+                                        isSmallScreen: isSmallScreen,
+                                      ),
+                                      const Spacer(),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                          Expanded(child: Container(color: Colors.white)),
+                        ],
                       ),
-                      Expanded(child: Container(color: Colors.white)),
+                      _PrayerTimesCard(
+                        cubit: cubit,
+                        isSmallScreen: isSmallScreen,
+                        screenWidth: screenWidth,
+                      ),
                     ],
-                  ),
-                  _PrayerTimesCard(cubit: cubit,  ),
-                ],
+                  );
+                },
               ),
             ),
           ),
@@ -66,31 +84,38 @@ class PrayTimeScreen extends StatelessWidget {
 
 class _UpcomingPrayerHeader extends StatelessWidget {
   final PrayerTimesCubit cubit;
+  final bool isSmallScreen;
 
-  const _UpcomingPrayerHeader({required this.cubit});
+  const _UpcomingPrayerHeader({
+    required this.cubit,
+    required this.isSmallScreen,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Text(
-          cubit.pastEvent==null?"":cubit.pastEvent!['name'].toString(),
-          style: TextStyle(
-            color: HexColor("#fdeddc"),
-            fontSize: 50.sp,
+        Flexible(
+          child: Text(
+            cubit.pastEvent == null ? "" : cubit.pastEvent!['name'].toString(),
+            style: TextStyle(
+              color: HexColor("#fdeddc"),
+              fontSize: isSmallScreen ? 35.sp : 50.sp,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: isSmallScreen ? 5 : 10),
         Container(
-          width: 5,
-          height: 120.h,
+          width: isSmallScreen ? 3 : 5,
+          height: isSmallScreen ? 80.h : 120.h,
           decoration: BoxDecoration(
             color: HexColor("#fdeddc"),
             borderRadius: BorderRadius.circular(20),
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: isSmallScreen ? 5 : 10),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -98,7 +123,7 @@ class _UpcomingPrayerHeader extends StatelessWidget {
               "الصلاة القادمة",
               style: TextStyle(
                 color: HexColor("#fdeddc"),
-                fontSize: 30.sp,
+                fontSize: isSmallScreen ? 20.sp : 30.sp,
               ),
             ),
             Row(
@@ -107,15 +132,15 @@ class _UpcomingPrayerHeader extends StatelessWidget {
                   cubit.convertToArabic(cubit.upcomingPrayerTime),
                   style: TextStyle(
                     color: HexColor("#fdeddc"),
-                    fontSize: 17.sp,
+                    fontSize: isSmallScreen ? 13.sp : 17.sp,
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: isSmallScreen ? 4 : 8),
                 Text(
                   cubit.upComingPrayer,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22.sp,
+                    fontSize: isSmallScreen ? 16.sp : 22.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -125,14 +150,14 @@ class _UpcomingPrayerHeader extends StatelessWidget {
               cubit.remainingTime,
               style: TextStyle(
                 color: HexColor("#fdeddc"),
-                fontSize: 14.sp,
+                fontSize: isSmallScreen ? 11.sp : 14.sp,
               ),
             ),
             Text(
               "علي الأذان",
               style: TextStyle(
                 color: HexColor("#fdeddc"),
-                fontSize: 14.sp,
+                fontSize: isSmallScreen ? 11.sp : 14.sp,
               ),
             ),
           ],
@@ -144,7 +169,12 @@ class _UpcomingPrayerHeader extends StatelessWidget {
 
 class _SunInfoRow extends StatelessWidget {
   final PrayerTimesCubit cubit;
-  const _SunInfoRow({required this.cubit});
+  final bool isSmallScreen;
+
+  const _SunInfoRow({
+    required this.cubit,
+    required this.isSmallScreen,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -154,12 +184,14 @@ class _SunInfoRow extends StatelessWidget {
           icon: Icons.sunny_snowing,
           label: "الغروب",
           time: cubit.convertToArabic(cubit.sunsetTime),
+          isSmallScreen: isSmallScreen,
         ),
         const Spacer(),
         _SunInfoItem(
           icon: Icons.sunny,
           label: "الشروق",
           time: cubit.convertToArabic(cubit.sunriseTime),
+          isSmallScreen: isSmallScreen,
         ),
       ],
     );
@@ -170,29 +202,36 @@ class _SunInfoItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String time;
+  final bool isSmallScreen;
+
   const _SunInfoItem({
     required this.icon,
     required this.label,
     required this.time,
+    required this.isSmallScreen,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: Colors.white, size: 20.w),
+        Icon(
+          icon,
+          color: Colors.white,
+          size: isSmallScreen ? 16.w : 20.w,
+        ),
         Text(
           label,
           style: TextStyle(
             color: Colors.white,
-            fontSize: 15.sp,
+            fontSize: isSmallScreen ? 12.sp : 15.sp,
           ),
         ),
         Text(
           time,
           style: TextStyle(
             color: Colors.white,
-            fontSize: 15.sp,
+            fontSize: isSmallScreen ? 12.sp : 15.sp,
           ),
         ),
       ],
@@ -202,86 +241,126 @@ class _SunInfoItem extends StatelessWidget {
 
 class _PrayerTimesCard extends StatelessWidget {
   final PrayerTimesCubit cubit;
+  final bool isSmallScreen;
+  final double screenWidth;
 
   const _PrayerTimesCard({
     required this.cubit,
-
+    required this.isSmallScreen,
+    required this.screenWidth,
   });
 
   @override
   Widget build(BuildContext context) {
-    final times = cubit.prayerTimesList; // List<Map<String, String>> [{name, time}, ...]
+    final times = cubit.prayerTimesList;
 
     return Positioned(
-      bottom: 100.h,
+      bottom: isSmallScreen ? 60.h : 100.h,
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: EdgeInsets.symmetric(
+          horizontal: isSmallScreen ? 12 : 20,
+        ),
         child: Container(
-          width: MediaQuery.of(context).size.width-40,
-          height: 340.h,
+          width: screenWidth - (isSmallScreen ? 24 : 40),
+          constraints: BoxConstraints(
+            maxHeight: isSmallScreen ? 280.h : 340.h,
+            minHeight: 200.h,
+          ),
           decoration: BoxDecoration(
             color: HexColor("faf5ec"),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.5), blurRadius: 4, offset: const Offset(0, 5))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.5),
+                blurRadius: 4,
+                offset: const Offset(0, 5),
+              )
+            ],
           ),
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 12 : 20,
+            vertical: isSmallScreen ? 12 : 20,
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text("اليوم / ${cubit.dayName}",
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          "اليوم / ${cubit.dayName}",
                           style: TextStyle(
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.bold,
-                              color: HexColor("#4f4741"))),
-                      Text("${cubit.hijriDate} / ${cubit.date}",
-                          style: TextStyle(color: HexColor("#4f4741"),
-                              fontSize: 14.sp)
-                      ),
-                    ],
+                            fontSize: isSmallScreen ? 10.sp : 13.sp,
+                            fontWeight: FontWeight.bold,
+                            color: HexColor("#4f4741"),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          "${cubit.hijriDate} / ${cubit.date}",
+                          style: TextStyle(
+                            color: HexColor("#4f4741"),
+                            fontSize: isSmallScreen ? 10.sp : 14.sp,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.calendar_month, size: 20.w,
-                  color: HexColor("#4f4741"),
+                  SizedBox(width: isSmallScreen ? 4 : 8),
+                  Icon(
+                    Icons.calendar_month,
+                    size: isSmallScreen ? 16.w : 20.w,
+                    color: HexColor("#4f4741"),
                   ),
                 ],
               ),
-              SizedBox(height: 20),
-              ...times.map((p) => Column(
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        cubit.convertToArabic(p['time']!),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20.sp,
-                          color: HexColor("#4f4741"),
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        p['name']!,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20.sp,
-                          color: HexColor("#4f4741"),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (p != times.last)
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10),
-                      child: Container(height: 0.5, color: Colors.grey.withValues(alpha: 0.5)),
+              SizedBox(height: isSmallScreen ? 12 : 20),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: times.length,
+                  separatorBuilder: (context, index) => Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: isSmallScreen ? 6 : 10,
                     ),
-                ],
-              )),
+                    child: Container(
+                      height: 0.5,
+                      color: Colors.grey.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  itemBuilder: (context, index) {
+                    final p = times[index];
+                    return Row(
+                      children: [
+                        Text(
+                          cubit.convertToArabic(p['time']!),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 14.sp : 20.sp,
+                            color: HexColor("#4f4741"),
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          p['name']!,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isSmallScreen ? 14.sp : 20.sp,
+                            color: HexColor("#4f4741"),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),

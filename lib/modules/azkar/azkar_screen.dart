@@ -22,13 +22,15 @@ class AzkarScreen extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title:  Text('الأذكار',
-            style: TextStyle(
-              fontFamily: "hafs",
-              fontSize: 25,
-              color: mainTextColor
+              style: TextStyle(
+                  fontFamily: "hafs",
+                  fontSize: 25,
+                  color: mainTextColor
+              ),
             ),
-            ),
+
             backgroundColor: HexColor('#fdeddc'),
+            surfaceTintColor: Colors.transparent,
             elevation: 0,
             centerTitle: true,
           ),
@@ -77,9 +79,9 @@ class AzkarScreen extends StatelessWidget {
                               Text(
                                 title,
                                 style:  TextStyle(
-                                  fontFamily: "hafs",
+                                    fontFamily: "hafs",
                                     fontSize: 18, fontWeight: FontWeight.bold,
-                                color: mainTextColor
+                                    color: mainTextColor
                                 ),
                                 textAlign: TextAlign.right,
                               ),
@@ -108,12 +110,12 @@ class AzkarScreen extends StatelessWidget {
                                     minWidth: 20,
                                     height: 30,
                                     child: Text('عرض الكل',
-                                    style: TextStyle(
-                                      fontSize: 15.sp,
-                                      fontFamily:  "hafs",
-                                      color: HexColor("#fdeddc"),
-                                      fontWeight: FontWeight.bold
-                                    ),
+                                      style: TextStyle(
+                                          fontSize: 15.sp,
+                                          fontFamily:  "hafs",
+                                          color: HexColor("#fdeddc"),
+                                          fontWeight: FontWeight.bold
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -141,36 +143,36 @@ class AzkarScreen extends StatelessWidget {
         full.isNotEmpty && cubit.playingUrl == full && cubit.isPlaying;
 
     return BlocBuilder<AzkarCubit,AzkarStates>(
-      builder: (context,state) {
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item['text'] ?? '',
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(
-                    fontFamily: "hafs",
-                    fontSize: 16.sp
+        builder: (context,state) {
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item['text'] ?? '',
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(
+                        fontFamily: "hafs",
+                        fontSize: 16.sp
+                    ),
+                    textAlign: TextAlign.right,
                   ),
-                  textAlign: TextAlign.right,
                 ),
-              ),
-              IconButton(
-                icon: Icon(
-                  isPlaying ? Icons.pause_circle : Icons.play_circle,
-                  color: HexColor('#303030'),
-                ),
-                onPressed: rel.isEmpty ? null : ()async {
-                 await cubit.playAudio(rel);
-                 cubit.refresh();
-                },
-              )
-            ],
-          ),
-        );
-      }
+                IconButton(
+                  icon: Icon(
+                    isPlaying ? Icons.pause_circle : Icons.play_circle,
+                    color: HexColor('#303030'),
+                  ),
+                  onPressed: rel.isEmpty ? null : ()async {
+                    await cubit.playAudio(rel);
+                    cubit.refresh();
+                  },
+                )
+              ],
+            ),
+          );
+        }
     );
   }
 }

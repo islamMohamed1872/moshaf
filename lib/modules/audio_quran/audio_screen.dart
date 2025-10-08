@@ -12,10 +12,11 @@ import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../components/audio_service.dart';
 import '../text_quran/views/quran_page.dart';
 
 class AudioScreen extends StatelessWidget {
-   const AudioScreen({super.key});
+  const AudioScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -40,13 +41,13 @@ class AudioScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20.0),
                         ),
                         child: defaultField(
-                            controller: cubit.searchController,
-                            type: TextInputType.text,
-                            label: "بحث",
-                            validate: (String? value) {
-                              return null;
-                            },
-                            suffix: Icons.search,
+                          controller: cubit.searchController,
+                          type: TextInputType.text,
+                          label: "بحث",
+                          validate: (String? value) {
+                            return null;
+                          },
+                          suffix: Icons.search,
                           onChanged: (value) {
                             if (value.trim().isEmpty) {
                               cubit.errorSearch = false;
@@ -60,100 +61,100 @@ class AudioScreen extends StatelessWidget {
                     ),
                     if(!cubit.errorSearch)
                       ListView.separated(
-                        physics: const NeverScrollableScrollPhysics(),
-                        scrollDirection: Axis.vertical,
-                        shrinkWrap: true,
-                        itemBuilder: (context, index) {
-                          int customIndex =
-                          cubit.searchedSorahNumber.isEmpty
-                              ? index + 1
-                              : cubit.searchedSorahNumber[index];
-                          return ListTile(
-                            leading: SizedBox(
-                              width: 50.w,
-                              height: 50.w,
-                              child: Center(
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    Image.asset(
-                                      "assets/images/sora_number.png",
-                                      color: HexColor("d6bb97"),
-                                      width: 50.w,
-                                    ),
-                                    Text(
-                                      TextQuranCubit.get(context).convertToArabic(index.toString()),
-                                      style: TextStyle(
-                                        color: HexColor("333333"),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18.sp,
+                          physics: const NeverScrollableScrollPhysics(),
+                          scrollDirection: Axis.vertical,
+                          shrinkWrap: true,
+                          itemBuilder: (context, index) {
+                            int customIndex =
+                            cubit.searchedSorahNumber.isEmpty
+                                ? index + 1
+                                : cubit.searchedSorahNumber[index];
+                            return ListTile(
+                              leading: SizedBox(
+                                width: 50.w,
+                                height: 50.w,
+                                child: Center(
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Image.asset(
+                                        "assets/images/sora_number.png",
+                                        color: HexColor("d6bb97"),
+                                        width: 50.w,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            minVerticalPadding: 0,
-                            title: Text(
-                              quran.getSurahNameEnglish(customIndex),
-                              style:  TextStyle(
-                                  color: HexColor("333333"),
-                                  fontSize: 17.sp,
-                                  fontWeight: FontWeight.bold // Text color
-                              ),
-                            ),
-                            subtitle: Row(
-                              spacing: 5,
-                              children: [
-                                Text(
-                                  "${quran.getVerseCount(customIndex).toString()} ايات ",
-                                  textDirection: TextDirection.rtl,
-                                  style:  TextStyle(
-                                    color: HexColor("936f35"),
-                                    fontSize: 14.sp,
+                                      Text(
+                                        TextQuranCubit.get(context).convertToArabic((index+1).toString()),
+                                        style: TextStyle(
+                                          color: HexColor("333333"),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18.sp,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(
-                                  quran.getPlaceOfRevelation(
-                                      customIndex) ==
-                                      "Makkah"
-                                      ? "مكية |"
-                                      : "مدنية |",
-                                  textDirection: TextDirection.rtl,
-                                  style:  TextStyle(
-                                    color: HexColor("936f35"),
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: RichText(
-                              text: TextSpan(
-                                text: customIndex.toString(),
+                              ),
+                              minVerticalPadding: 0,
+                              title: Text(
+                                quran.getSurahNameEnglish(customIndex),
                                 style:  TextStyle(
-                                  fontFamily: "arsura",
-                                  fontSize: 30.sp,
-                                  color: HexColor("936f35"),
+                                    color: HexColor("333333"),
+                                    fontSize: 17.sp,
+                                    fontWeight: FontWeight.bold // Text color
                                 ),
                               ),
-                            ),
-                            onTap: () {
-                              cubit.player.stop();
-                              cubit.isPlaying = false;
-                              cubit.isPaused = true;
-                              cubit.duration = Duration.zero;
-                              cubit.position = Duration.zero;
-                              cubit.sorahNumber =cubit.searchedSorahNumber.isEmpty?
-                              index+1:cubit.searchedSorahNumber[index];
-                              navigateTo(context, QuranAudioPlayerScreen()
-                              );
-                            },
-                          );
-                        },
-                        separatorBuilder: (context, index) => seperator(),
-                        itemCount: cubit.searchedSorahNumber.isEmpty
-                            ? cubit.homeCount
-                            : cubit.searchedSorahNumber.length),
+                              subtitle: Row(
+                                spacing: 5,
+                                children: [
+                                  Text(
+                                    "${quran.getVerseCount(customIndex).toString()} ايات ",
+                                    textDirection: TextDirection.rtl,
+                                    style:  TextStyle(
+                                      color: HexColor("936f35"),
+                                      fontSize: 14.sp,
+                                    ),
+                                  ),
+                                  Text(
+                                    quran.getPlaceOfRevelation(
+                                        customIndex) ==
+                                        "Makkah"
+                                        ? "مكية |"
+                                        : "مدنية |",
+                                    textDirection: TextDirection.rtl,
+                                    style:  TextStyle(
+                                      color: HexColor("936f35"),
+                                      fontSize: 14.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              trailing: RichText(
+                                text: TextSpan(
+                                  text: customIndex.toString(),
+                                  style:  TextStyle(
+                                    fontFamily: "arsura",
+                                    fontSize: 30.sp,
+                                    color: HexColor("936f35"),
+                                  ),
+                                ),
+                              ),
+                              onTap: () {
+                                AudioServices().player.stop();
+                                cubit.isPlaying = false;
+                                cubit.isPaused = true;
+                                cubit.duration = Duration.zero;
+                                cubit.position = Duration.zero;
+                                cubit.sorahNumber =cubit.searchedSorahNumber.isEmpty?
+                                index+1:cubit.searchedSorahNumber[index];
+                                navigateTo(context, QuranAudioPlayerScreen()
+                                );
+                              },
+                            );
+                          },
+                          separatorBuilder: (context, index) => seperator(),
+                          itemCount: cubit.searchedSorahNumber.isEmpty
+                              ? cubit.homeCount
+                              : cubit.searchedSorahNumber.length),
                     if(cubit.homeCount != 114 &&
                         !cubit.validSearch &&
                         !cubit.errorSearch)
@@ -190,7 +191,7 @@ class AudioScreen extends StatelessWidget {
             ),
           ),
         );
-        },
+      },
       listener: (context,state){},
     );
   }

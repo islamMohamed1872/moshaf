@@ -15,7 +15,7 @@ if (keystorePropertiesFile.exists()) {
 }
 android {
     namespace = "com.afaqalspl.moshaf"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -35,6 +35,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
+
     }
     signingConfigs {
         create("release") {
@@ -46,9 +48,23 @@ android {
     }
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+//            signingConfig = signingConfigs.getByName("debug")
             signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
+    }
+    sourceSets {
+        getByName("main") {
+            res.srcDirs("src/main/res")
+        }
+    }
+    androidResources {
+        noCompress += listOf("mp3")
     }
 }
 
@@ -61,5 +77,10 @@ flutter {
 }
 dependencies {
     // ✅ Add this line so desugaring actually works
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    val exoplayerVersion = "2.19.1"
+    implementation("com.google.android.exoplayer:exoplayer-core:${exoplayerVersion}")
+    implementation("com.google.android.exoplayer:exoplayer-dash:${exoplayerVersion}")
+    implementation("com.google.android.exoplayer:exoplayer-hls:${exoplayerVersion}")
+    implementation("com.google.android.exoplayer:exoplayer-smoothstreaming:${exoplayerVersion}")
 }

@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../components/audio_service.dart';
 import '../../../components/cache_helper.dart';
 import 'azkar_states.dart';
 
@@ -11,7 +13,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
   static AzkarCubit get(context) => BlocProvider.of(context);
 
   final Dio _dio = Dio();
-  final AudioPlayer player = AudioPlayer();
+  final player = AudioServices().player;
 
   // Data
   List<Map<String, dynamic>> azkar = [];
@@ -100,41 +102,59 @@ class AzkarCubit extends Cubit<AzkarStates> {
     emit(AzkarPlayChangedState());
     final url = fullAudioUrl(relativePath);
     try {
+      print(1);
       // toggle if same url
       if (playingUrl == url) {
         // if currently playing -> pause; if paused -> resume
         if (player.playing) {
+          print(2);
           await player.pause();
         } else {
+          print(3);
           await player.play();
         }
         emit(AzkarPlayChangedState());
+        print(4);
         return;
       }
 
       // new audio: stop previous, set new url, play
+      print(5);
       await player.stop();
       playingUrl = url;
+      final source =  AudioSource.uri(
+        Uri.parse(url),
+        tag: MediaItem(
+          id: 'اذكار',
+          title: 'اذكار',
+          artUri: Uri.parse(
+              'http://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg'),
+        ),
+      );
 
-      await player.setUrl(url);
-      await player.play();
+      print(6);
+      await player.setAudioSource(source);
+      player.play();
+      print(7);
 
       // emit play change and listen to finished state
-      isPlaying;
-      isPaused;
       emit(AzkarPlayChangedState());
+      print(8);
 
       player.playerStateStream.listen((state) {
         // update UI on changes
         emit(AzkarPlayChangedState());
         // if completed, clear playingUrl
         if (state.processingState == ProcessingState.completed) {
+          print(9);
           playingUrl = null;
           emit(AzkarPlayChangedState());
         }
       });
     } catch (e) {
       playingUrl = null;
+      print(10);
+      print(e);
       emit(AzkarErrorState('Audio error: $e'));
     }
   }

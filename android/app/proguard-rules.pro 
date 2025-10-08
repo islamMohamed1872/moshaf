@@ -1,0 +1,58 @@
+# ===============================
+# JUST AUDIO / EXOPLAYER / NETWORK
+# ===============================
+
+# Flutter method channel & engine basics
+-keep class io.flutter.plugin.common.MethodChannel { *; }
+-keep class io.flutter.plugin.common.StandardMethodCodec { *; }
+-keep class io.flutter.plugin.common.MethodCodec { *; }
+-keep class io.flutter.plugin.common.EventChannel { *; }
+-keep class io.flutter.plugin.common.BasicMessageChannel { *; }
+-keep class io.flutter.embedding.engine.FlutterEngine { *; }
+-keep class io.flutter.embedding.engine.dart.DartExecutor { *; }
+
+# Just Audio, AudioService and background plugin
+-keep class com.ryanheise.audioservice.** { *; }
+-keep class com.ryanheise.just_audio.** { *; }
+-keep class com.ryanheise.just_audio_background.** { *; }
+
+# ExoPlayer (core + modules + factories)
+-keep class com.google.android.exoplayer2.** { *; }
+-dontwarn com.google.android.exoplayer2.**
+-keep class com.google.android.exoplayer2.upstream.** { *; }
+-keep class com.google.android.exoplayer2.source.** { *; }
+-keep class com.google.android.exoplayer2.extractor.** { *; }
+-keep class com.google.android.exoplayer2.audio.** { *; }
+-keep class com.google.android.exoplayer2.metadata.** { *; }
+-keep class com.google.android.exoplayer2.trackselection.** { *; }
+
+# Specific HTTP/OkHttp/Okio
+-keep class okhttp3.** { *; }
+-dontwarn okhttp3.**
+-keep class okio.** { *; }
+-dontwarn okio.**
+-keep class com.google.android.exoplayer2.ext.okhttp.** { *; }
+
+# Data source factories that ExoPlayer may create via reflection
+-keepclassmembers class com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory { *; }
+-keepclassmembers class com.google.android.exoplayer2.upstream.DefaultDataSourceFactory { *; }
+-keepclassmembers class com.google.android.exoplayer2.upstream.HttpDataSource$Factory { *; }
+
+# AndroidX Media
+-keep class androidx.media.** { *; }
+
+# JSON/GSON reflection
+-keep class com.google.gson.** { *; }
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# Keep raw resources like azan.mp3
+-keepclassmembers class **.R$raw { public static final int *; }
+
+# Keep annotations & signatures
+-keepattributes Signature
+-keepattributes *Annotation*
+
+# Keep networking utility classes used via reflection
+-keep class java.net.** { *; }

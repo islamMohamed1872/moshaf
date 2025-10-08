@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:moshaf/modules/audio_quran/cubit/audio_quran_states.dart';
 
+import '../../../components/audio_service.dart';
 import '../../../components/const.dart';
 
 class AudioQuranCubit extends Cubit<AudioQuranStates>{
@@ -15,7 +17,7 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
   bool validSearch = false;
   bool errorSearch = false;
   var searchController = TextEditingController();
-
+  final player = AudioServices().player;
   List searchedSorahNumber = [];
   int searchedPageNumber = 0;
   Duration duration = Duration.zero;
@@ -104,7 +106,7 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
     emit(IncreaseHomeCountSuccessState());
   }
 
-  final player = AudioPlayer();
+  // final player = AudioPlayer();
   String formatTime(Duration duration) {
     String twoDegits(int n) => n.toString().padLeft(2, "0");
     final hours = twoDegits(duration.inHours);
@@ -156,38 +158,76 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
   Future<void> play() async {
     emit(GetDataLoadingState());
     String url = getQuranApiUrl();
-
-    // Use cache manager to get file (downloads only if not cached)
-    final file = await DefaultCacheManager().getSingleFile(url);
-
-    if (!isPlaying) {
-      await player.setFilePath(file.path);
-      player.play();
-      isPlaying = true;
-      isPaused = false;
-
-      player.durationStream.listen((d) {
-        if (d != null) {
-          duration = d;
-          emit(ChangeSorahDuration());
+    try {
+      if (!isPlaying) {
+        final fileInfo = await DefaultCacheManager().getFileFromCache(url);
+        final source = fileInfo != null && fileInfo.file.existsSync()
+            ? AudioSource.uri(
+          Uri.file(fileInfo.file.path),
+          tag: MediaItem(
+            id: '$sorahNumber',
+            album: selecteShiekh,
+            title: quranMap.entries
+                .firstWhere((e) => e.value == sorahNumber)
+                .key,
+            artUri: Uri.parse(
+                'https://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg'),
+          ),
+        )
+            : AudioSource.uri(
+          Uri.parse(url),
+          tag: MediaItem(
+            id: '$sorahNumber',
+            album: selecteShiekh,
+            title: quranMap.entries
+                .firstWhere((e) => e.value == sorahNumber)
+                .key,
+            artUri: Uri.parse(
+                'https://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg'),
+          ),
+        );
+        print('URL: $url');
+        print('Is HTTP: ${url.startsWith('http:')}');
+        print('Cache file exists: ${fileInfo?.file.existsSync()}');
+        try {
+          await player.setAudioSource(source);
+          print("✅ Audio source set successfully");
+          player.play();
+          isPlaying = true;
+          isPaused = false;
+        } catch (e, s) {
+          print("❌ Player error: $e");
+          print(s);
         }
-      });
 
-      player.positionStream.listen((p) {
-        position = p;
-        emit(GetPositionState());
-      });
 
-    } else if (isPlaying && !isPaused) {
-      player.pause();
-      isPaused = true;
+        player.durationStream.listen((d) {
+          if (d != null) {
+            duration = d;
+            emit(ChangeSorahDuration());
+          }
+        });
 
-    } else if (isPaused) {
-      player.play();
-      isPaused = false;
+        player.positionStream.listen((p) {
+          position = p;
+          emit(GetPositionState());
+        });
+
+        emit(GetDataSuccessState());
+      } else if (isPlaying && !isPaused) {
+        player.pause();
+        isPaused = true;
+
+      } else if (isPaused) {
+        player.play();
+        isPaused = false;
+      }
+
+      emit(GetDataSuccessState());
+    } catch (e) {
+      print(e);
+      emit(GetDataErrorState());
     }
-
-    emit(GetDataSuccessState());
   }
   void changeSelectedShiekh(String? value){
     selecteShiekh = value!;

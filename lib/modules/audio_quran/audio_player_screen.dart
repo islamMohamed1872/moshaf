@@ -35,7 +35,9 @@ class _QuranAudioPlayerScreenState extends State<QuranAudioPlayerScreen>
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AudioQuranCubit, AudioQuranStates>(
-      listener: (_, __) {},
+      listener: (_, __) {
+        print(__);
+      },
       builder: (context, state) {
         final cubit = AudioQuranCubit.get(context);
 
@@ -57,7 +59,7 @@ class _QuranAudioPlayerScreenState extends State<QuranAudioPlayerScreen>
                 const Spacer(),
                 _buildProgressBar(cubit),
                 const SizedBox(height: 30),
-                _buildControls(cubit),
+                _buildControls(cubit,state),
                 const SizedBox(height: 50),
               ],
             ),
@@ -106,7 +108,7 @@ class _QuranAudioPlayerScreenState extends State<QuranAudioPlayerScreen>
           child: CircleAvatar(
             radius: 60,
             backgroundColor: HexColor("#f3eee7"),
-            child: Icon(Icons.library_music, size: 50, color: HexColor("#303030")),
+            child:Icon(Icons.library_music, size: 50, color: HexColor("#303030")),
           ),
         ),
         const SizedBox(height: 20),
@@ -132,28 +134,6 @@ class _QuranAudioPlayerScreenState extends State<QuranAudioPlayerScreen>
     );
   }
 
-  // Widget _buildVolumeBars(AudioQuranCubit cubit) {
-  //   return SizedBox(
-  //     height: 30,
-  //     child: Row(
-  //       mainAxisAlignment: MainAxisAlignment.center,
-  //       children: List.generate(5, (i) {
-  //         return AnimatedContainer(
-  //           duration: const Duration(milliseconds: 200),
-  //           margin: const EdgeInsets.symmetric(horizontal: 3),
-  //           width: 4,
-  //           height: cubit.isPlaying && !cubit.isPaused
-  //               ? (10 + Random().nextInt(20)).toDouble()
-  //               : 10,
-  //           decoration: BoxDecoration(
-  //             color: HexColor("#303030"),
-  //             borderRadius: BorderRadius.circular(4),
-  //           ),
-  //         );
-  //       }),
-  //     ),
-  //   );
-  // }
 
   Widget _buildProgressBar(AudioQuranCubit cubit) {
     return Column(
@@ -184,7 +164,7 @@ class _QuranAudioPlayerScreenState extends State<QuranAudioPlayerScreen>
     );
   }
 
-  Widget _buildControls(AudioQuranCubit cubit) {
+  Widget _buildControls(AudioQuranCubit cubit,AudioQuranStates state) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -195,11 +175,17 @@ class _QuranAudioPlayerScreenState extends State<QuranAudioPlayerScreen>
         ),
         const SizedBox(width: 30),
         GestureDetector(
-          onTap: cubit.play,
+          onTap: () {
+            if(state is !GetDataLoadingState) cubit.play();
+          },
           child: CircleAvatar(
             radius: 35,
             backgroundColor: HexColor("#303030"),
-            child: Icon(
+            child:state is GetDataLoadingState?
+            CircularProgressIndicator(
+              color: HexColor("#fdeddc"),
+            ):
+            Icon(
               cubit.isPlaying && !cubit.isPaused
                   ? Icons.pause
                   : Icons.play_arrow,

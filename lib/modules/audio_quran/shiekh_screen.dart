@@ -20,9 +20,9 @@ class ShiekhScreen extends StatelessWidget {
             final cubit = AudioQuranCubit.get(context);
             return Padding(
               padding: const EdgeInsetsDirectional.only(start: 20.0,
-              end: 20,
-                top: 20,
-                bottom: 100
+                  end: 20,
+                  top: 20,
+                  bottom: 100
               ),
               child: GridView.builder(
                 itemCount: cubit.shiekhList.length,
@@ -47,7 +47,7 @@ class ShiekhScreen extends StatelessWidget {
                       children: [
                         Container(
                           width: double.infinity,
-                          height: 100.h,
+                          height: 90.h,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(15),
                             color: HexColor("#fffbf7"),
