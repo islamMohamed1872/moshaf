@@ -10,7 +10,6 @@ import 'package:moshaf/modules/audio_quran/cubit/audio_quran_cubit.dart';
 import 'package:moshaf/modules/audio_quran/cubit/audio_quran_states.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:quran/quran.dart' as quran;
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../components/audio_service.dart';
 import '../text_quran/views/quran_page.dart';

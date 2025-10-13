@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:vibration/vibration.dart';
 import '../../../components/audio_service.dart';
 import '../../../components/cache_helper.dart';
+import '../../../components/const.dart';
 import 'azkar_states.dart';
 
 class AzkarCubit extends Cubit<AzkarStates> {
@@ -45,6 +48,9 @@ class AzkarCubit extends Cubit<AzkarStates> {
         // fallback: try to parse as map of categories
         throw Exception('Unexpected JSON format');
       }
+      azkar[0]['array'] = azkarSabah['array'];
+      azkar[0]['category'] = azkarSabah['category'];
+      azkar.insert(1, azkarMasaa);
 
       // optional: normalize audio fields or other cleanup here
       filteredAzkar = List.from(azkar);
@@ -63,6 +69,10 @@ class AzkarCubit extends Cubit<AzkarStates> {
     final cached = await CacheHelper.getMap(key: 'cached_azkar');
     if (cached != null && cached['data'] is List) {
       azkar = List<Map<String, dynamic>>.from(cached['data']);
+      azkar[0]['array'] = azkarSabah['array'];
+      azkar[0]['category'] = azkarSabah['category'];
+      azkar.insert(1, azkarMasaa);
+
       filteredAzkar = List.from(azkar);
       emit(AzkarLoadedState());
       return true;
@@ -169,5 +179,15 @@ class AzkarCubit extends Cubit<AzkarStates> {
   Future<void> close() {
     player.dispose();
     return super.close();
+  }
+  void decrementCount(Map<String, dynamic> item) {
+    int current = (item['count'] ?? 0) as int;
+    if (current > 0) {
+      item['count'] = current - 1;
+      emit(AzkarLoadedState());
+    }
+    if(item['count']==0&&Platform.isAndroid){
+      Vibration.vibrate(pattern: [0, 200, 100, 200]);
+    }
   }
 }

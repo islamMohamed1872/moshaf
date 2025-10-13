@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_states.dart';
+import 'package:moshaf/network/dio_helper.dart';
 import 'package:quran/quran.dart' as quran1;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../../../components/cache_helper.dart';
@@ -66,35 +67,78 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
     emit(ChangeFilteredDataState());
   }
 
-  void searchForData(){
+  void searchForData() {
     ayatFiltered = [];
 
-    ayatFiltered = quran1.searchWords(searchQuery);
-    filteredData =
-        suraJsonData.where((sura) {
-          final suraName =
-          sura['englishName'].toLowerCase();
-          // final suraNameTranslated =
-          //     sura['name']
-          //         .toString()
-          //         .toLowerCase();
-          final suraNameTranslated =
-          quran1.getSurahNameArabic(sura["number"]);
+    // Normalize Arabic letters in the search query
+    final normalizedQuery = _normalizeArabic(searchQuery);
 
-          return suraName.contains(
-            searchQuery.toLowerCase(),
-          ) ||
-              suraNameTranslated.contains(
-                searchQuery.toLowerCase(),
-              );
-        }).toList();
+    // Search ayat (verses)
+    ayatFiltered = quran1.searchWords(normalizedQuery);
+
+    // Filter suras
+    filteredData = suraJsonData.where((sura) {
+      final suraName = sura['englishName'].toLowerCase();
+      final suraNameTranslated = _normalizeArabic(quran1.getSurahNameArabic(sura["number"]));
+
+      return suraName.contains(normalizedQuery.toLowerCase()) ||
+          suraNameTranslated.contains(normalizedQuery);
+    }).toList();
+
     emit(SearchForDataState());
+  }
+  // Helper function to normalize Arabic text
+  String _normalizeArabic(String input) {
+    return input
+    // Normalize Alif variations
+        .replaceAll(RegExp(r'[أإآٱ]'), 'ا')
+
+    // Normalize Waw and Ya variations
+        .replaceAll('ؤ', 'و')
+        .replaceAll('ئ', 'ي')
+        .replaceAll('ى', 'ي')
+
+    // Normalize Taa Marbuta
+        .replaceAll('ة', 'ه')
+        .replaceAll('ۀ', 'ه')
+
+    // Remove all diacritics (Tashkeel)
+        .replaceAll(RegExp(r'[\u064B-\u065F]'), '') // All Arabic diacritics
+        .replaceAll(RegExp(r'[\u0670]'), '') // Dagger alif (ٰ)
+        .replaceAll(RegExp(r'[\u06D6-\u06ED]'), '') // Quranic annotation marks
+
+    // Remove Tatweel (kashida)
+        .replaceAll('ـ', '')
+
+    // Normalize Lam-Alif ligature
+        .replaceAll('ﻻ', 'لا')
+        .replaceAll('ﻷ', 'لا')
+        .replaceAll('ﻹ', 'لا')
+        .replaceAll('ﻵ', 'لا')
+
+    // Handle special Quranic characters
+        .replaceAll('ٱ', 'ا') // Alif Wasla
+
+    // Normalize Allah (الله)
+        .replaceAll('الرحم', 'الرحما')
+        .replaceAll('اله', 'الاه')
+        .replaceAll('ﷲ', 'الله')
+
+    // Remove zero-width characters and other invisible Unicode
+        .replaceAll(RegExp(r'[\u200B-\u200F\u202A-\u202E]'), '')
+
+    // Trim whitespace
+        .trim()
+
+    // Normalize multiple spaces to single space
+        .replaceAll(RegExp(r'\s+'), ' ');
   }
   List<Surah> surahList = [];
   var ayatFiltered;
 
   List pageNumbers = [];
   var suraJsonData;
+  int? soraNumber ;
 
   loadJsonAsset() async {
     final String jsonString =
@@ -162,12 +206,27 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
     CacheHelper.saveData(key: "page", value: page);
     CacheHelper.saveData(key: "verse", value: verse);
     CacheHelper.saveData(key: "sora", value: sora);
+    getLastRead();
   }
 
   void getLastRead()async{
     savedSora = await CacheHelper.getData(key: "sora")??0;
     savedVerse = await CacheHelper.getData(key: "verse")??0;
     savedPage = await CacheHelper.getData(key: "page")??0;
+    emit(GetLastReadState());
+  }
+
+  String verseTafseer = "";
+  Future<void> getVerseTafseer({required int sora, required int verse})async{
+    emit(GetVerseTafseerLoadingState());
+    DioHelper.getData(url: "http://api.quran-tafseer.com/tafseer/8/$sora/$verse").then((onValue){
+      verseTafseer = onValue.data["text"];
+      print(verseTafseer);
+      emit(GetVerseTafseerSuccessState());
+    }).catchError((onError){
+      print(onError);
+      emit(GetVerseTafseerErrorState());
+    });
   }
 
 

@@ -239,9 +239,10 @@ class SavedScreen extends StatelessWidget {
                                         :
                                     GestureDetector(
                                       onTap: () {
+                                        TextQuranCubit.get(context).soraNumber = cubit.savedSora;
                                         navigateTo(context, QuranViewPage(
                                           shouldHighlightText: false,
-                                          highlightVerse: "",
+                                          highlightVerse: cubit.savedVerse.toString(),
                                           jsonData: cubit.suraJsonData,
                                           pageNumber: quran.getPageNumber(
                                             cubit.savedSora,

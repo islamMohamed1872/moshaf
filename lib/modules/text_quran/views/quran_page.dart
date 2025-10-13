@@ -50,7 +50,10 @@ class _QuranViewPageState extends State<QuranViewPage>
     super.initState();
     index = widget.pageNumber;
     _pageController = PageController(initialPage: index);
-    highlightVerseNotifier = ValueNotifier(widget.highlightVerse);
+    highlightVerseNotifier = ValueNotifier<int?>(
+      int.tryParse(widget.highlightVerse ?? ''),
+    );
+  print(highlightVerseNotifier.value);
 
     // Only cache the starting page + ahead
     // load only the first visible font
@@ -78,16 +81,20 @@ class _QuranViewPageState extends State<QuranViewPage>
         timer.cancel();
         return;
       }
+
+      final int? verseAsInt = int.tryParse(widget.highlightVerse?.toString() ?? '');
+
       highlightVerseNotifier.value = highlightVerseNotifier.value == null
-          ? widget.highlightVerse
+          ? verseAsInt
           : null;
 
-      if (timer.tick >= 4) {
+      if (timer.tick >= 7) {
         highlightVerseNotifier.value = null;
         timer.cancel();
       }
     });
   }
+
 
   /// Lazy cache: only build pages if they’re missing
   void _tryCacheAhead(int currentPage) {
@@ -111,77 +118,194 @@ class _QuranViewPageState extends State<QuranViewPage>
     }
 
     final pageData = getPageData(pageIndex);
-    final spans = <InlineSpan>[];
 
-    for (var e in pageData) {
-      for (var i = e["start"]; i <= e["end"]; i++) {
-        if (i == 1) {
-          spans.add(WidgetSpan(
-            child: HeaderWidget(e: e, jsonData: widget.jsonData),
-          ));
-          if (pageIndex != 187 && pageIndex != 1) {
-            spans.add(WidgetSpan(child: Basmallah(index: 0)));
-          }
-          if (pageIndex == 187) {
-            spans.add(WidgetSpan(child: SizedBox(height: 10.h)));
-          }
-        }
+    final widget2 = BlocBuilder<TextQuranCubit,TextQuranStates>(
+      builder:  (context, state) {
+        final cubit = TextQuranCubit.get(context);
+        return ValueListenableBuilder(
+          valueListenable: highlightVerseNotifier,
+          builder: (context, dynamic highlighted, _) {
+            final spans = <InlineSpan>[];
 
-        spans.add(TextSpan(
-          recognizer: MultiTapGestureRecognizer()
-            ..onTap = (_) {
-              TextQuranCubit.get(context).saveLastRead(
-                page: pageIndex,
-                verse: i,
-                sora: widget.jsonData[getPageData(pageIndex)[0]["surah"] - 1]
-                ["number"],
-              );
-              Fluttertoast.showToast(
-                msg: "تم حفظ تقدمك بنجاح",
-                toastLength: Toast.LENGTH_SHORT,
-                backgroundColor: HexColor("d6bb97"),
-                textColor: mainTextColor,
-                gravity: ToastGravity.BOTTOM,
-                fontSize: 16.0,
-              );
-            },
-          text: i == e["start"]
-              ? "${getVerseQCF(e["surah"], i).replaceAll(" ", "").substring(0, 1)}\u200A${getVerseQCF(e["surah"], i).replaceAll(" ", "").substring(1)}"
-              : getVerseQCF(e["surah"], i).replaceAll(' ', ''),
-          style: TextStyle(
-            color: Colors.black,
-            height: (pageIndex == 1 || pageIndex == 2) ? 2.h : 1.95.h,
-            fontFamily: "QCF_P${pageIndex.toString().padLeft(3, "0")}",
-            fontSize: (pageIndex == 1 || pageIndex == 2)
-                ? 28.sp
-                : (pageIndex == 145 ||
-                pageIndex == 201 ||
-                pageIndex == 532 ||
-                pageIndex == 533)
-                ? 22.4.sp
-                : 23.1.sp,
-            backgroundColor: Colors.transparent,
-          ),
-        ));
-      }
-    }
+            for (var e in pageData) {
+              for (var i = e["start"]; i <= e["end"]; i++) {
+                if (i == 1) {
+                  spans.add(WidgetSpan(
+                    child: HeaderWidget(e: e, jsonData: widget.jsonData),
+                  ));
+                  if (pageIndex != 187 && pageIndex != 1) {
+                    spans.add(WidgetSpan(child: Basmallah(index: 0)));
+                  }
+                  if (pageIndex == 187) {
+                    spans.add(WidgetSpan(child: SizedBox(height: 10.h)));
+                  }
+                }
 
-    final richText = RichText(
-      textDirection: m.TextDirection.rtl,
-      textAlign: TextAlign.center,
-      softWrap: true,
-      locale: const Locale("ar"),
-      text: TextSpan(
-        style: TextStyle(
-          color: m.Colors.black,
-          fontSize: 23.sp.toDouble(),
-        ),
-        children: spans,
-      ),
+                spans.add(
+                  TextSpan(
+                    recognizer: TapGestureRecognizer()
+                      ..onTapDown = (TapDownDetails details) async {
+                        highlightVerseNotifier.value = i;
+                        final cubit = TextQuranCubit.get(context);
+
+                        // Get the tap position relative to the overlay
+                        final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+                        final Offset tapPosition = details.globalPosition;
+
+                        // 🔹 Show popup menu at the tap position
+                        final result = await showMenu<String>(
+                          context: context,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(20)),
+                          ),
+                          color: mainBackgroundColor,
+                          position: RelativeRect.fromLTRB(
+                            tapPosition.dx,
+                            tapPosition.dy,
+                            overlay.size.width - tapPosition.dx,
+                            overlay.size.height - tapPosition.dy,
+                          ),
+                          items: [
+                            PopupMenuItem<String>(
+                              value: 'save',
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.bookmark_border),
+                                  SizedBox(width: 6.w),
+                                  Text(
+                                    'حفظ التقدم',
+                                    textDirection: TextDirection.rtl,
+                                    style: TextStyle(
+                                      fontFamily: "nabi",
+                                      fontSize: 15.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'tafseer',
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.menu_book_outlined),
+                                  SizedBox(width: 6.w),
+                                  Text(
+                                    'عرض التفسير',
+                                    textDirection: TextDirection.rtl,
+                                    style: TextStyle(
+                                      fontFamily: "nabi",
+                                      fontSize: 15.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+
+                        // 🔹 Handle menu selection
+                        if (result == 'save') {
+                          cubit.saveLastRead(
+                            page: pageIndex,
+                            verse: i,
+                            sora: widget.jsonData[getPageData(pageIndex)[0]["surah"] - 1]["number"],
+                          );
+
+                          Fluttertoast.showToast(
+                            msg: " تم حفظ تقدمك بنجاح",
+                            toastLength: Toast.LENGTH_SHORT,
+                            backgroundColor: HexColor("d6bb97"),
+                            textColor: mainTextColor,
+                            gravity: ToastGravity.BOTTOM,
+                            fontSize: 16.0,
+                          );
+                        } else if (result == 'tafseer') {
+                           await cubit.getVerseTafseer(
+                            sora: cubit.soraNumber!,
+                            verse: i,
+                          );
+
+                          if (context.mounted) {
+                            showModalBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.white,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                              ),
+                              enableDrag: true,
+                              builder: (context) {
+                                return Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          width: 50,
+                                          height: 5,
+                                          margin: const EdgeInsets.only(bottom: 12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[400],
+                                            borderRadius: BorderRadius.circular(2.5),
+                                          ),
+                                        ),
+                                        Text(
+                                          getVerseQCF(e["surah"], i).replaceAll(' ', ''),
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontFamily:
+                                            "QCF_P${pageIndex.toString().padLeft(3, "0")}",
+                                          ),
+                                          textDirection: TextDirection.rtl,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          cubit.verseTafseer,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            height: 1.6,
+                                            color: Colors.black87,
+                                          ),
+                                          textAlign: TextAlign.justify,
+                                          textDirection: TextDirection.rtl,
+                                        ),
+                                        const SizedBox(height: 20),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                        }
+                      },
+
+                    text: getVerseQCF(e["surah"], i).replaceAll(' ', ''),
+                    style: TextStyle(
+                      color: Colors.black,
+                      backgroundColor: highlighted == i ? HexColor("d6bb97") : Colors.transparent,
+                      fontFamily: "QCF_P${pageIndex.toString().padLeft(3, "0")}",
+                      fontSize: 23.sp,
+                      height: 1.95.h,
+                    ),
+                  ),
+                );
+              }
+            }
+
+            return RichText(
+              textDirection: m.TextDirection.rtl,
+              textAlign: TextAlign.center,
+              text: TextSpan(children: spans),
+            );
+          },
+        );
+      },
     );
 
-    _pageWidgetCache[pageIndex] = richText;
-    return richText;
+    _pageWidgetCache[pageIndex] = widget2;
+    return widget2;
   }
 
   @override
@@ -258,7 +382,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                     ),
                     if (pageIndex == 1 || pageIndex == 2)
                       SizedBox(height: screenSize.height * .15),
-                    const SizedBox(height: 30),
+                    // SizedBox(height: 15.h),
                     Directionality(
                       textDirection: m.TextDirection.rtl,
                       child: SizedBox(

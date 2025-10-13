@@ -94,24 +94,60 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
   // --- Location helper (unchanged behaviour) ---
   Future<Position> _determinePosition() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) throw Exception('Location services are disabled.');
+    try {
+        // Try using cached location if available
+        final cachedLat =await CacheHelper.getData(key: 'cached_latitude');
+        final cachedLon = await CacheHelper.getData(key: 'cached_longitude');
+        if (cachedLat != null && cachedLon != null) {
+          return Position(
+            latitude: cachedLat,
+            longitude: cachedLon,
+            timestamp: DateTime.now(),
+            accuracy: 0.0,
+            altitude: 0.0,
+            heading: 0.0,
+            speed: 0.0,
+            speedAccuracy: 0.0,
+            altitudeAccuracy: 0.0,
+            headingAccuracy: 0.0,
+          );
+        }
+        // throw Exception('Location unavailable and no cached data found.');
+        return Position(
+          latitude: 0,
+          longitude: 0,
+          timestamp: DateTime.now(),
+          accuracy: 0.0,
+          altitude: 0.0,
+          heading: 0.0,
+          speed: 0.0,
+          speedAccuracy: 0.0,
+          altitudeAccuracy: 0.0,
+          headingAccuracy: 0.0,
+        );
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied');
+    } catch (e) {
+      // On any error, fallback to cached location
+      final cachedLat =await CacheHelper.getData(key: 'cached_latitude');
+      final cachedLon =await CacheHelper.getData(key: 'cached_longitude');
+      if (cachedLat != null && cachedLon != null) {
+        return Position(
+          latitude: cachedLat,
+          longitude: cachedLon,
+          timestamp: DateTime.now(),
+          accuracy: 0.0,
+          altitude: 0.0,
+          heading: 0.0,
+          speed: 0.0,
+          speedAccuracy: 0.0,
+          altitudeAccuracy: 0.0,
+          headingAccuracy: 0.0,
+        );
       }
+      rethrow;
     }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-          'Location permissions are permanently denied, we cannot request permissions.');
-    }
-
-    return await Geolocator.getCurrentPosition();
   }
+
 
   // --- API and parsing ---
   DateTime _parseApiTimeToToday(String hhmm24) {
@@ -160,11 +196,16 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           key: 'cached_prayer_upcoming',
           myMap: {'upComingPrayer': upComingPrayer},
         );
-        // await scheduleNextPrayer(
-        //   _prayerTimes.map((k, v) => MapEntry(k, v.toIso8601String())),
-        // );
 
         await _scheduleAllPrayerNotifications(_prayerTimes);
+        // final now = DateTime.now();
+        // await _scheduleAllPrayerNotifications({
+        //   'Fajr': now.add(const Duration(minutes: 1)),
+        //   'Dhuhr': now.add(const Duration(minutes: 2)),
+        //   'Asr': now.add(const Duration(minutes: 3)),
+        //   'Maghrib': now.add(const Duration(minutes: 4)),
+        //   'Isha': now.add(const Duration(minutes: 5)),
+        // });
 
         emit(GetPrayerTimesSuccessState());
       } else {
@@ -172,6 +213,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         emit(GetPrayerTimesErrorState());
       }
     } catch (e) {
+      print(e);
       loadCachedPrayerTimes();
       emit(GetPrayerTimesErrorState());
     }
@@ -378,6 +420,10 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   Future<void> _scheduleAllPrayerNotifications(Map<String, DateTime> times) async {
     print("📅 Scheduling prayer notifications...");
 
+    // 🔹 Cancel any existing scheduled notifications first
+    await flutterLocalNotificationsPlugin.cancelAll();
+    print("🗑️ Cleared all previously scheduled notifications.");
+
     final now = DateTime.now();
     int scheduledCount = 0;
 
@@ -447,7 +493,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       return true; // New day, fetch new times
     }
 
-    return false; // Same day, use cache
+    return true; // Same day, use cache
   }
 
   Future<void> _scheduleTomorrowsPrayers() async {
@@ -463,7 +509,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
       if (res.statusCode == 200) {
         final data = Map<String, dynamic>.from(res.data['data']['timings']);
-
         final tomorrowPrayers = <String, DateTime>{};
         tomorrowPrayers['الفجر'] = _parseApiTimeToTomorrow(data['Fajr'] ?? '00:00');
         tomorrowPrayers['الظهر'] = _parseApiTimeToTomorrow(data['Dhuhr'] ?? '00:00');

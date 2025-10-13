@@ -44,7 +44,7 @@ class AzkarScreen extends StatelessWidget {
                   child: TextField(
                     textAlign: TextAlign.right,
                     decoration: InputDecoration(
-                      hintText: 'بحث عن ذكر...',
+                      hintText: 'بحث عن ذكر',
                       prefixIcon: const Icon(Icons.search),
                       filled: true,
                       fillColor: Colors.white,
@@ -67,62 +67,67 @@ class AzkarScreen extends StatelessWidget {
                       final items = (cat['array'] as List).cast<Map<String, dynamic>>();
                       final preview = items.take(2).toList();
 
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        color: HexColor('#fffbf7'),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                title,
-                                style:  TextStyle(
-                                    fontFamily: "hafs",
-                                    fontSize: 18, fontWeight: FontWeight.bold,
-                                    color: mainTextColor
-                                ),
-                                textAlign: TextAlign.right,
-                              ),
-                              const SizedBox(height: 10),
-                              ...preview
-                                  .map((it) => _buildPreviewRow(context, it, cubit))
-                                  .toList(),
-                              const SizedBox(height: 8),
-                              Row(
+                      return Column(
+                        children: [
+                          Card(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            color: HexColor('#fffbf7'),
+                            child: Padding(
+                              padding: const EdgeInsets.all(14.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  const Spacer(),
-                                  MaterialButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => AzkarDetailScreen(
-                                            title: title,
-                                            items: items,
-                                            azkarCubit: cubit,
+                                  Text(
+                                    title,
+                                    style:  TextStyle(
+                                        fontFamily: "hafs",
+                                        fontSize: 18, fontWeight: FontWeight.bold,
+                                        color: mainTextColor
+                                    ),
+                                    textAlign: TextAlign.right,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ...preview
+                                      .map((it) => _buildPreviewRow(context, it, cubit))
+                                      .toList(),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      const Spacer(),
+                                      MaterialButton(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => AzkarDetailScreen(
+                                                title: title,
+                                                items: items,
+                                                azkarCubit: cubit,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        color: HexColor("#795546"),
+                                        minWidth: 20,
+                                        height: 30,
+                                        child: Text('عرض الكل',
+                                          style: TextStyle(
+                                              fontSize: 15.sp,
+                                              fontFamily:  "hafs",
+                                              color: HexColor("#fdeddc"),
+                                              fontWeight: FontWeight.bold
                                           ),
                                         ),
-                                      );
-                                    },
-                                    color: HexColor("#795546"),
-                                    minWidth: 20,
-                                    height: 30,
-                                    child: Text('عرض الكل',
-                                      style: TextStyle(
-                                          fontSize: 15.sp,
-                                          fontFamily:  "hafs",
-                                          color: HexColor("#fdeddc"),
-                                          fontWeight: FontWeight.bold
                                       ),
-                                    ),
-                                  ),
+                                    ],
+                                  )
                                 ],
-                              )
-                            ],
+                              ),
+                            ),
                           ),
-                        ),
+
+                        ],
                       );
                     },
                   ),
@@ -144,33 +149,44 @@ class AzkarScreen extends StatelessWidget {
 
     return BlocBuilder<AzkarCubit,AzkarStates>(
         builder: (context,state) {
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    item['text'] ?? '',
-                    textDirection: TextDirection.rtl,
-                    style: TextStyle(
-                        fontFamily: "hafs",
-                        fontSize: 16.sp
+          return Column(
+            children: [
+              Container(
+                margin: const EdgeInsetsDirectional.only(top: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item['text'] ?? '',
+                        textDirection: TextDirection.rtl,
+                        style: TextStyle(
+                            fontFamily: "arsura",
+                            fontSize: 16.sp
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
                     ),
-                    textAlign: TextAlign.right,
-                  ),
+                    if(item['audio']!=null)
+                    IconButton(
+                      icon: Icon(
+                        isPlaying ? Icons.pause_circle : Icons.play_circle,
+                        color: HexColor('#303030'),
+                      ),
+                      onPressed: rel.isEmpty ? null : ()async {
+                        await cubit.playAudio(rel);
+                        cubit.refresh();
+                      },
+                    )
+                  ],
                 ),
-                IconButton(
-                  icon: Icon(
-                    isPlaying ? Icons.pause_circle : Icons.play_circle,
-                    color: HexColor('#303030'),
-                  ),
-                  onPressed: rel.isEmpty ? null : ()async {
-                    await cubit.playAudio(rel);
-                    cubit.refresh();
-                  },
-                )
-              ],
-            ),
+              ),
+              Container(
+                height: 1,
+                margin: EdgeInsetsDirectional.symmetric(vertical: 12),
+                width: double.infinity,
+                color: Colors.grey.withValues(alpha: 0.2),
+              )
+            ],
           );
         }
     );

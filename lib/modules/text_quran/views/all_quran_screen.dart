@@ -89,42 +89,6 @@ class QuranPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // ListView.separated(
-                  //     reverse: true,
-                  //     itemBuilder: (ctx, index) {
-                  //       return Padding(
-                  //         padding: const EdgeInsets.all(5.0),
-                  //         child:GestureDetector(
-                  //           onTap: () {
-                  //             // Your onTap logic here
-                  //           },
-                  //           child: Container(
-                  //             padding: const EdgeInsets.all(8.0),
-                  //             decoration: BoxDecoration(
-                  //               color: Colors.transparent, // or any background color you want
-                  //               borderRadius: BorderRadius.circular(0), // adjust if needed
-                  //             ),
-                  //             child: Row(
-                  //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  //               children: [
-                  //                 Text(pageNumbers[index].toString()),
-                  //                 Text(getSurahName(getPageData(pageNumbers[index])[0]["surah"])),
-                  //               ],
-                  //             ),
-                  //           ),
-                  //         )
-                  //
-                  //       );
-                  //     },
-                  //     shrinkWrap: true,
-                  //     physics: const NeverScrollableScrollPhysics(),
-                  //     separatorBuilder: (context, index) => Padding(
-                  //           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  //           child: Divider(
-                  //             color: Colors.grey.withOpacity(.5),
-                  //           ),
-                  //         ),
-                  //     itemCount: pageNumbers.length),
                   ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -223,6 +187,7 @@ class QuranPage extends StatelessWidget {
                               ),
                             ),
                             onTap: () {
+                              cubit.soraNumber = suraNumberInQuran;
                               navigateTo(context, QuranViewPage(
                                 shouldHighlightText: false,
                                 highlightVerse: "",

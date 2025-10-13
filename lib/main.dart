@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -14,8 +16,9 @@ import 'package:moshaf/modules/audio_quran/cubit/audio_quran_cubit.dart';
 import 'package:moshaf/modules/azkar/cubit/azkar_cubit.dart';
 import 'package:moshaf/modules/prayer_times/cubit/prayer_times_cubit.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
+import 'package:moshaf/network/dio_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:workmanager/workmanager.dart';
+import 'package:vibration/vibration.dart';
 import 'components/audio_service.dart';
 import 'components/overaly.dart';
 import 'cubit/cubit.dart';
@@ -23,50 +26,47 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'layout/app_layout.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:package_info_plus/package_info_plus.dart';
+
+
+
+@pragma('vm:entry-point')
+void fetchPrayerTimesAlarm() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try{
+    await initializeDateFormatting('ar', null);
+    DioHelper.init();
+    tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation(tz.local.name));
+    final cubit = PrayerTimesCubit();
+    await cubit.fetchPrayerTimes();
+    await cubit.close();
+  }
+  catch(e){
+    print(e);
+  }
+
+}
 
 /// Local notifications plugin instance (global)
 final ln.FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 ln.FlutterLocalNotificationsPlugin();
 
-/// ================================================
-/// BACKGROUND TASK CALLBACK (runs in separate isolate)
-/// ================================================
-@pragma('vm:entry-point')
-void callbackDispatcher() {
-  WidgetsFlutterBinding.ensureInitialized(); // Needed for async code in background
-
-  Workmanager().executeTask((task, inputData) async {
-    try {
-      // Handle only tasks registered with these names
-      if (task == "fetchPrayerTimes" || task == "dailyPrayerTimesTask") {
-        await initializeDateFormatting('ar', null);
-
-        // Ensure timezone database is ready
-        tz.initializeTimeZones();
-        tz.setLocalLocation(tz.getLocation(tz.local.name));
-
-        // Create a new Cubit instance to fetch updated times
-        final cubit = PrayerTimesCubit();
-        await cubit.fetchPrayerTimes(); // Fetch and save to SharedPreferences
-        await cubit.close();
-
-        return Future.value(true); // Signal task success
-      }
-
-      return Future.value(true);
-    } catch (e) {
-      print('Workmanager error: $e');
-      return Future.value(false);
-    }
-  });
-}
 
 /// ================================================
 /// MAIN ENTRY POINT
 /// ================================================
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+if(Platform.isAndroid){
+  await AndroidAlarmManager.initialize();
 
+  final now = DateTime.now();
+  final next = DateTime(now.year, now.month, now.day, 0, 1).add(const Duration(days: 1));
+  await AndroidAlarmManager.oneShotAt(next, 0, fetchPrayerTimesAlarm, exact: true, wakeup: true,);
+  await AndroidAlarmManager.periodic(const Duration(days: 1), 1, fetchPrayerTimesAlarm, exact: true, wakeup: true,rescheduleOnReboot: true);
+}
+  DioHelper.init();
   // Setup timezone info
   tz.initializeTimeZones();
   final String localTimeZone = tz.local.name;
@@ -82,27 +82,6 @@ Future<void> main() async {
   // Initialize the background service for overlay logic
   await initializeService();
 
-  // Initialize WorkManager (used for daily automatic fetch of prayer times)
-  await Workmanager().initialize(
-    callbackDispatcher,
-    isInDebugMode: false,
-  );
-
-  // Clear old background jobs to avoid duplicates
-  await Workmanager().cancelAll();
-
-  // Register a periodic background task every 6 hours
-  await Workmanager().registerPeriodicTask(
-    "dailyPrayerTimesTask",
-    "fetchPrayerTimes",
-    frequency: const Duration(hours: 6), // Android’s min reliable interval
-    constraints: Constraints(
-      networkType: NetworkType.connected, // Only fetch if network is available
-    ),
-    existingWorkPolicy: ExistingWorkPolicy.replace,
-  );
-
-  // Setup local notifications (for showing prayer reminders)
   const androidInit = ln.AndroidInitializationSettings('@mipmap/ic_launcher');
   const iOSInit = ln.DarwinInitializationSettings(
     requestSoundPermission: true,
@@ -228,6 +207,7 @@ void onStart(ServiceInstance service) async {
       print('Overlay show error: $e');
     }
   });
+
 }
 
 /// ================================================
@@ -244,16 +224,10 @@ class MyApp extends StatelessWidget {
         providers: [
           // PrayerTimesCubit – responsible for fetching and caching prayer times
           BlocProvider(
-            create: (context) {
-              final cubit = PrayerTimesCubit();
-              _initializePrayerTimes(cubit);
-              return cubit;
-            },
-            lazy: false, // Fetch immediately on app start
-          ),
+            create: (context) => PrayerTimesCubit()..fetchPrayerTimes(),),
 
           // Other cubits
-          BlocProvider(create: (context) => AppCubit()..requestOverlay()),
+          BlocProvider(create: (context) => AppCubit()..requestLocationPermissions()..requestOverlay()),
           BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()),
           BlocProvider(create: (context) => AzkarCubit()),
           BlocProvider(create: (context) => AudioQuranCubit()),
