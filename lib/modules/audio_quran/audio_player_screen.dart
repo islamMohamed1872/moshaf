@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hexcolor/hexcolor.dart';
+import 'package:moshaf/components/audio_service.dart';
 import 'package:moshaf/modules/audio_quran/cubit/audio_quran_cubit.dart';
 import 'package:moshaf/modules/audio_quran/cubit/audio_quran_states.dart';
 import 'package:quran/quran.dart' as quran;
@@ -181,7 +182,7 @@ class _QuranAudioPlayerScreenState extends State<QuranAudioPlayerScreen>
           child: CircleAvatar(
             radius: 35,
             backgroundColor: HexColor("#303030"),
-            child:state is GetDataLoadingState?
+            child:state is GetDataLoadingState||AudioServices().player.position==Duration(seconds: 0)?
             CircularProgressIndicator(
               color: HexColor("#fdeddc"),
             ):

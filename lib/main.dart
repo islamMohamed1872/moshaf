@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -12,11 +13,15 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hexcolor/hexcolor.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:moshaf/constants/app_colors.dart';
+import 'package:moshaf/controllers/theme/theme_cubit.dart';
 import 'package:moshaf/modules/audio_quran/cubit/audio_quran_cubit.dart';
 import 'package:moshaf/modules/azkar/cubit/azkar_cubit.dart';
 import 'package:moshaf/modules/prayer_times/cubit/prayer_times_cubit.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:moshaf/network/dio_helper.dart';
+import 'package:moshaf/views/landing/landing_screen.dart';
+import 'package:moshaf/views/prayer_times/prayer_times_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
 import 'components/audio_service.dart';
@@ -117,7 +122,14 @@ if(Platform.isAndroid){
   initializeDateFormatting('ar', null);
 
   // Start the app
-  runApp(const MyApp());
+  runApp(EasyLocalization(
+    supportedLocales: [Locale('en'), Locale('ar')],
+    path: 'assets/langs',
+    fallbackLocale: Locale('ar'),
+    startLocale: Locale('ar'),
+    child: MyApp(),
+  ),
+  );
 }
 
 /// ================================================
@@ -225,29 +237,50 @@ class MyApp extends StatelessWidget {
           // PrayerTimesCubit – responsible for fetching and caching prayer times
           BlocProvider(
             create: (context) => PrayerTimesCubit()..fetchPrayerTimes(),),
-
           // Other cubits
           BlocProvider(create: (context) => AppCubit()..requestLocationPermissions()..requestOverlay()),
           BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()),
+          BlocProvider(create: (context) => ThemeCubit()),
           BlocProvider(create: (context) => AzkarCubit()),
           BlocProvider(create: (context) => AudioQuranCubit()),
         ],
-        child: MaterialApp(
-          title: 'Mostakeem',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            primarySwatch: Colors.blue,
-            scaffoldBackgroundColor: HexColor("fffaf5"),
-            bottomNavigationBarTheme: BottomNavigationBarThemeData(
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: HexColor("fffaf5"),
-              elevation: 20.0,
-              selectedItemColor: HexColor("936f35"),
-              unselectedItemColor: HexColor("d6bb97"),
-              showUnselectedLabels: false,
-            ),
-          ),
-          home: const AppLayout(),
+        child: BlocBuilder<ThemeCubit,ThemeMode>(
+           builder: (context, themeMode) => MaterialApp(
+             locale: context.locale,
+             supportedLocales: context.supportedLocales,
+             localizationsDelegates: context.localizationDelegates,
+             title: 'Mostakeem',
+             debugShowCheckedModeBanner: false,
+             themeMode: themeMode,
+             theme: ThemeData(
+               brightness: Brightness.light,
+               primarySwatch: Colors.blue,
+               scaffoldBackgroundColor: HexColor("fffaf5"),
+               bottomNavigationBarTheme: BottomNavigationBarThemeData(
+                 type: BottomNavigationBarType.fixed,
+                 backgroundColor: HexColor("fffaf5"),
+                 elevation: 20.0,
+                 selectedItemColor: HexColor("936f35"),
+                 unselectedItemColor: HexColor("d6bb97"),
+                 showUnselectedLabels: false,
+               ),
+             ),
+             darkTheme: ThemeData(
+               brightness: Brightness.dark,
+               primarySwatch: Colors.blue,
+               scaffoldBackgroundColor: Color(AppColors.scaffoldBg),
+               bottomNavigationBarTheme: BottomNavigationBarThemeData(
+                 type: BottomNavigationBarType.fixed,
+                 backgroundColor: HexColor("1a1a1a"),
+                 elevation: 20.0,
+                 selectedItemColor: HexColor("ffd700"),
+                 unselectedItemColor: HexColor("aaaaaa"),
+                 showUnselectedLabels: false,
+               ),
+             ),
+             // home: const AppLayout(),
+             home: PrayerTimesScreen(),
+           ),
         ),
       ),
     );

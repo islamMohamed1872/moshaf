@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +15,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../../components/audio_service.dart';
 import '../../../components/cache_helper.dart';
+import '../../../constants/app_const.dart';
 
 class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   PrayerTimesCubit() : super(PrayerTimesInitialStates());
@@ -47,16 +50,44 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   /// formatted sunset (المغرب)
   String get sunsetTime => _formatPrayerTime('المغرب');
 
-  /// list used by the refactored UI to iterate rows in fixed order
   List<Map<String, String>> get prayerTimesList {
-    final order = ["الفجر", "الظهر", "العصر", "المغرب", "العشاء"];
+    final order = [
+      "الفجر",
+      "الشروق",
+      "الظهر",
+      "العصر",
+      "المغرب",
+      "العشاء",
+      "منتصف الليل",
+      "الثلث الاخير"
+    ];
+
+    // Define iqama offsets in minutes (can be customized)
+    final Map<String, int> iqamaOffsets = {
+      "الفجر": 25,
+      "الشروق" : 20,
+      "الظهر": 20,
+      "العصر": 20,
+      "المغرب": 5,
+      "العشاء": 20,
+    };
+
     final List<Map<String, String>> list = [];
+
     for (final name in order) {
       final dt = _prayerTimes[name];
       if (dt != null) {
-        list.add({'name': name, 'time': DateFormat('hh:mm a').format(dt)});
+        final iqamaOffset = iqamaOffsets[name] ?? 0;
+        final iqamaTime = dt.add(Duration(minutes: iqamaOffset));
+
+        list.add({
+          'name': name,
+          'time': DateFormat('hh:mm a').format(dt),
+          'iqama': iqamaOffset == 0 ? '-' : DateFormat('hh:mm a').format(iqamaTime),
+        });
       }
     }
+
     return list;
   }
 
@@ -72,8 +103,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   /// Example input: "04:43 AM" -> returns Arabic digits + صباحاً/مساءً
   String convertToArabic(String input) {
     if (input.isEmpty) return input;
-    input = input.replaceAll(RegExp(r'\bAM\b', caseSensitive: false), "صباحًا");
-    input = input.replaceAll(RegExp(r'\bPM\b', caseSensitive: false), 'مساءً');
+    input = input.replaceAll(RegExp(r'\bAM\b', caseSensitive: false), "ص");
+    input = input.replaceAll(RegExp(r'\bPM\b', caseSensitive: false), 'م');
 
     const map = {
       '0': '٠',
@@ -93,45 +124,23 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   }
 
   // --- Location helper (unchanged behaviour) ---
+  String city = "";
+  String country = "";
+
+  String translateToArabic(String name) {
+    return arabicLocationNames[name] ?? name;
+  }
+
   Future<Position> _determinePosition() async {
     try {
-        // Try using cached location if available
-        final cachedLat =await CacheHelper.getData(key: 'cached_latitude');
-        final cachedLon = await CacheHelper.getData(key: 'cached_longitude');
-        if (cachedLat != null && cachedLon != null) {
-          return Position(
-            latitude: cachedLat,
-            longitude: cachedLon,
-            timestamp: DateTime.now(),
-            accuracy: 0.0,
-            altitude: 0.0,
-            heading: 0.0,
-            speed: 0.0,
-            speedAccuracy: 0.0,
-            altitudeAccuracy: 0.0,
-            headingAccuracy: 0.0,
-          );
-        }
-        // throw Exception('Location unavailable and no cached data found.');
-        return Position(
-          latitude: 0,
-          longitude: 0,
-          timestamp: DateTime.now(),
-          accuracy: 0.0,
-          altitude: 0.0,
-          heading: 0.0,
-          speed: 0.0,
-          speedAccuracy: 0.0,
-          altitudeAccuracy: 0.0,
-          headingAccuracy: 0.0,
-        );
+      // Try cached coordinates first
+      final cachedLat = await CacheHelper.getData(key: 'cached_latitude');
+      final cachedLon = await CacheHelper.getData(key: 'cached_longitude');
 
-    } catch (e) {
-      // On any error, fallback to cached location
-      final cachedLat =await CacheHelper.getData(key: 'cached_latitude');
-      final cachedLon =await CacheHelper.getData(key: 'cached_longitude');
+      Position position;
+
       if (cachedLat != null && cachedLon != null) {
-        return Position(
+        position = Position(
           latitude: cachedLat,
           longitude: cachedLon,
           timestamp: DateTime.now(),
@@ -143,8 +152,101 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           altitudeAccuracy: 0.0,
           headingAccuracy: 0.0,
         );
+        debugPrint("✅ Using cached location: ($cachedLat, $cachedLon)");
+      } else
+      {
+        // Request permission
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+          if (permission == LocationPermission.denied) {
+            throw Exception("Location permission denied.");
+          }
+        }
+
+        if (permission == LocationPermission.deniedForever) {
+          throw Exception("Location permissions are permanently denied.");
+        }
+
+        // Get current position
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+
+        // Cache it for future use
+        await CacheHelper.saveData(key: 'cached_latitude', value: position.latitude);
+        await CacheHelper.saveData(key: 'cached_longitude', value: position.longitude);
+
+        debugPrint("📍 Got live location: (${position.latitude}, ${position.longitude})");
       }
-      rethrow;
+
+      // 🌍 Get city and country using reverse geocoding
+      try {
+        final placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+
+        if (placemarks.isNotEmpty) {
+          final place = placemarks.first;
+          city = place.locality ?? place.subAdministrativeArea ?? "";
+          country = place.country ?? "";
+          debugPrint("🏙️ City: $city — 🇺🇳 Country: $country");
+        }
+      } catch (geoError) {
+        debugPrint("⚠️ Error during reverse geocoding: $geoError");
+      }
+
+      return position;
+    } catch (e, s)
+    {
+      debugPrint("❌ Error determining position: $e\n$s");
+
+      // Fallback to cache
+      final cachedLat = await CacheHelper.getData(key: 'cached_latitude');
+      final cachedLon = await CacheHelper.getData(key: 'cached_longitude');
+      if (cachedLat != null && cachedLon != null) {
+        final fallback = Position(
+          latitude: cachedLat,
+          longitude: cachedLon,
+          timestamp: DateTime.now(),
+          accuracy: 0.0,
+          altitude: 0.0,
+          heading: 0.0,
+          speed: 0.0,
+          speedAccuracy: 0.0,
+          altitudeAccuracy: 0.0,
+          headingAccuracy: 0.0,
+        );
+
+        // Try reverse geocoding fallback
+        try {
+          final placemarks = await placemarkFromCoordinates(cachedLat, cachedLon);
+          if (placemarks.isNotEmpty) {
+            final place = placemarks.first;
+            city = place.locality ?? place.subAdministrativeArea ?? "";
+            country = place.country ?? "";
+          }
+        } catch (_) {}
+
+        return fallback;
+      }
+
+      // Final fallback if no location at all
+      city = "";
+      country = "";
+      return Position(
+        latitude: 0.0,
+        longitude: 0.0,
+        timestamp: DateTime.now(),
+        accuracy: 0.0,
+        altitude: 0.0,
+        heading: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+        altitudeAccuracy: 0.0,
+        headingAccuracy: 0.0,
+      );
     }
   }
 
@@ -169,6 +271,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       if (res.statusCode == 200) {
 
         final data = Map<String, dynamic>.from(res.data['data']['timings']);
+        print(res.data['data']);
         // store as DateTime objects keyed by Arabic names
         _prayerTimes.clear();
         _prayerTimes['الفجر'] = _parseApiTimeToToday(data['Fajr'] ?? '00:00');
@@ -177,6 +280,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         _prayerTimes['العصر'] = _parseApiTimeToToday(data['Asr'] ?? '00:00');
         _prayerTimes['المغرب'] = _parseApiTimeToToday(data['Maghrib'] ?? '00:00');
         _prayerTimes['العشاء'] = _parseApiTimeToToday(data['Isha'] ?? '00:00');
+        _prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
+        _prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
+
 
         // dates
         _setDates();
@@ -282,12 +388,17 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
     final hours = diff.inHours;
     final minutes = diff.inMinutes % 60;
+    final seconds = diff.inSeconds % 60;
 
+    // Format to HH : MM : SS with Arabic digits
     remainingTime =
-    "${_toArabicDigits(hours.toString().padLeft(2, '0'))} ساعه ${_toArabicDigits(minutes.toString().padLeft(2, '0'))} دقيقه";
+    "${_toArabicDigits(seconds.toString().padLeft(2, '0'))} : "
+        "${_toArabicDigits(minutes.toString().padLeft(2, '0'))} : "
+            "${_toArabicDigits(hours.toString().padLeft(2, '0'))}";
+
     final player = AudioServices().player;
 
-    // Only play when app is open and countdown reaches 0
+    // Only play when countdown reaches 0
     if (diff.inSeconds == 0) {
       try {
         await player.setAudioSource(
@@ -326,20 +437,30 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     return s;
   }
   static const _arabicHijriMonths = [
-    "محرم",
-    "صفر",
-    "ربيع الأول",
-    "ربيع الآخر",
-    "جمادى الأولى",
-    "جمادى الآخرة",
-    "رجب",
-    "شعبان",
-    "رمضان",
-    "شوال",
-    "ذو القعدة",
-    "ذو الحجة"
+    "مُحَرَّم",
+    "صَفَر",
+    "رَبيعُ الأوَّل",
+    "رَبيعُ الآخِر",
+    "جُمادى الأُولَى",
+    "جُمادى الآخِرَة",
+    "رَجَب",
+    "شَعْبان",
+    "رَمَضان",
+    "شَوَّال",
+    "ذُو القَعْدَةِ",
+    "ذُو الحِجَّة",
   ];
   // --- Dates ---
+  String getHijriMonth(){
+    final hijri = HijriCalendar.now();
+    return _arabicHijriMonths[hijri.hMonth];
+  }
+
+  String getDayName(){
+    dayName = DateFormat('EEEE', 'ar').format(DateTime.now());
+    return dayName;
+  }
+
   void _setDates() {
     dayName = DateFormat('EEEE', 'ar').format(DateTime.now());
     date = DateFormat.yMMMMd('ar').format(DateTime.now());
@@ -347,6 +468,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final hijri = HijriCalendar.now();
     final monthName = _arabicHijriMonths[hijri.hMonth - 1];
     hijriDate = "${_toArabicDigits(hijri.hDay.toString())} $monthName ${_toArabicDigits(hijri.hYear.toString())}";
+    print(hijriDate);
     // if you want Arabic digits inside hijriDate, wrap numbers using _toArabicDigits
   }
 
@@ -430,7 +552,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     for (final entry in times.entries) {
       final prayerName = entry.key;
       final time = entry.value;
-      if(prayerName == "الشروق") continue;
+      if(prayerName == "الشروق"||prayerName == "منتصف الليل"||prayerName == "الثلث الاخير") continue;
       // Skip prayers that already passed today
       if (time.isBefore(now)) {
         print("⏭️ Skipping $prayerName - already passed");
@@ -469,11 +591,11 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
     print("📅 Scheduled $scheduledCount prayer notifications");
 
-    // If no prayers left today, schedule tomorrow's prayers
-    if (scheduledCount == 0) {
-      print("⚠️ No prayers left today, will fetch tomorrow's prayers");
-      await _scheduleTomorrowsPrayers();
-    }
+    // // If no prayers left today, schedule tomorrow's prayers
+    // if (scheduledCount == 0) {
+    //   print("⚠️ No prayers left today, will fetch tomorrow's prayers");
+    //   await _scheduleTomorrowsPrayers();
+    // }
   }
 
   Future<bool> shouldFetchNewTimes() async {
