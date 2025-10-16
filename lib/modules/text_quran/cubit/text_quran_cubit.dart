@@ -2,14 +2,19 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_states.dart';
 import 'package:moshaf/network/dio_helper.dart';
 import 'package:quran/quran.dart' as quran1;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:quran/quran.dart' as quran;
+import '../../../components/audio_service.dart';
 import '../../../components/cache_helper.dart';
 import '../../../components/const.dart';
 import '../models/sura.dart';
@@ -167,7 +172,7 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
     pageNumber--;
     emit(PreviousPageSuccessState());
   }
-  Timer? _searchDebounce;
+  // Timer? _searchDebounce;
 
 
   void loadMore() {
@@ -197,6 +202,8 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
   int savedSora = 0;
   int savedPage = 0;
   int savedVerse = 0;
+  String placeOfRevelation = "";
+  String savedVerseContent = "";
 
   void saveLastRead({
     required int page,
@@ -210,16 +217,30 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
   }
 
   void getLastRead()async{
-    savedSora = await CacheHelper.getData(key: "sora")??0;
-    savedVerse = await CacheHelper.getData(key: "verse")??0;
-    savedPage = await CacheHelper.getData(key: "page")??0;
+    savedSora = await CacheHelper.getData(key: "sora")??1;
+    savedVerse = await CacheHelper.getData(key: "verse")??1;
+    savedPage = await CacheHelper.getData(key: "page")??1;
+    getPlaceOfRevelationAndVerseContent();
+    print(savedSora);
+    print(savedVerse);
+    print("savedPage $savedPage");
     emit(GetLastReadState());
+  }
+
+  void getPlaceOfRevelationAndVerseContent(){
+   placeOfRevelation = quran.getPlaceOfRevelation(
+        savedSora) ==
+        "Makkah"
+        ? "مكية"
+        : "مدنية";
+   savedVerseContent = quran.getVerse(savedSora, savedVerse);
+   emit(GetPlaceOfRevelationState());
   }
 
   String verseTafseer = "";
   Future<void> getVerseTafseer({required int sora, required int verse})async{
     emit(GetVerseTafseerLoadingState());
-    DioHelper.getData(url: "http://api.quran-tafseer.com/tafseer/8/$sora/$verse").then((onValue){
+    DioHelper.getData(url: "http://api.quran-tafseer.com/tafseer/8/${sora+1}/$verse").then((onValue){
       verseTafseer = onValue.data["text"];
       print(verseTafseer);
       emit(GetVerseTafseerSuccessState());
@@ -229,6 +250,129 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
     });
   }
 
+  final player = AudioServices().player;
+  bool isPlaying = false;
+  bool isPaused = false;
+
+  Future<void> playSurahVerseByVerse({required int surahId}) async {
+    try {
+      emit(TextQuranLoadingState());
+      final dio = Dio();
+      final response = await dio.get(
+        'https://api.quran.com/api/v4/verses/by_chapter/$surahId?language=ar',
+      );
+
+      if (response.statusCode != 200) {
+        emit(TextQuranErrorState("Failed to fetch verses"));
+        return;
+      }
+
+      final verses = response.data['verses'] as List;
+
+      isPlaying = true;
+      isPaused = false;
+      savedSora = surahId;
+      placeOfRevelation = quran.getPlaceOfRevelation(surahId) == "Makkah"
+          ? "مكية"
+          : "مدنية";
+
+      emit(TextQuranPlayingState());
+
+      int startIndex = 0;
+      if ( savedVerse > 1) {
+        startIndex = verses.indexWhere(
+              (v) => v['verse_number'] == savedVerse,
+        );
+        if (startIndex == -1) startIndex = 0;
+      }
+
+      for  (var i = startIndex; i < verses.length; i++) {
+        if (!isPlaying) break;
+        if (isPaused) break;
+
+        final verse = verses[i];
+        print(verse);
+        final verseKey = verse['verse_number'];
+        final verseText = quran.getVerse(savedSora, verseKey);
+        saveLastRead(page: verse['page_number'], verse: verseKey, sora: surahId);
+
+        savedVerseContent = verseText;
+        emit(TextQuranVerseChangedState(verseText));
 
 
+        final audioUrl =
+        quran.getAudioURLByVerse(surahId, verseKey, "ar.abdulbasitmurattal");
+
+        await player.setAudioSource(
+          AudioSource.uri(
+            Uri.parse(audioUrl),
+            tag: MediaItem(
+              id: '$surahId:$verseText',
+              album: 'Quran',
+              title: 'سورة ${quran.getSurahNameArabic(surahId)} - آية $verseText',
+              artist: 'عبد الباسط عبد الصمد',
+            ),
+          ),
+        );
+        await player.play();
+
+        await player.processingStateStream.firstWhere(
+              (state) =>
+          state == ProcessingState.completed ||
+              isPaused == true ||
+              isPlaying == false,
+        );
+
+        if (isPaused) {
+          await player.pause();
+          break;
+        }
+      }
+      if (isPlaying && !isPaused) {
+        // ✅ Finished current surah — go to next automatically
+        if (surahId < 114) {
+          print('➡️ Finished Surah $surahId — starting next...');
+          saveLastRead(page: 1, verse: 1, sora: surahId+1);
+          await playSurahVerseByVerse(surahId: surahId + 1);
+        } else {
+          print('✅ Finished the full Quran!');
+          isPlaying = false;
+          emit(TextQuranStoppedState());
+        }
+      } else {
+        isPlaying = false;
+        emit(TextQuranStoppedState());
+      }
+    } catch (e) {
+      print(e);
+      emit(TextQuranErrorState(e.toString()));
+    }
+  }
+
+  void togglePlayPause(int surahId) async {
+    if (!isPlaying && !isPaused) {
+      // Start playing
+      isPlaying = true;
+      playSurahVerseByVerse(surahId: surahId);
+    } else if (isPlaying) {
+      // Pause
+      isPaused = true;
+      isPlaying = false;
+      player.pause();
+      emit(TextQuranPausedState());
+    } else if (isPaused) {
+      // Resume
+      isPaused = false;
+      isPlaying = true;
+      player.play();
+      emit(TextQuranPlayingState());
+    }
+  }
+
+  void stop() async {
+    isPlaying = false;
+    isPaused = false;
+    await player.stop();
+    emit(TextQuranStoppedState());
+  }
 }

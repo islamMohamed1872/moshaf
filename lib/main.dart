@@ -22,6 +22,7 @@ import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:moshaf/network/dio_helper.dart';
 import 'package:moshaf/views/landing/landing_screen.dart';
 import 'package:moshaf/views/prayer_times/prayer_times_screen.dart';
+import 'package:moshaf/views/quran/all_quran_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
 import 'components/audio_service.dart';
@@ -239,7 +240,7 @@ class MyApp extends StatelessWidget {
             create: (context) => PrayerTimesCubit()..fetchPrayerTimes(),),
           // Other cubits
           BlocProvider(create: (context) => AppCubit()..requestLocationPermissions()..requestOverlay()),
-          BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()),
+          BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()),
           BlocProvider(create: (context) => ThemeCubit()),
           BlocProvider(create: (context) => AzkarCubit()),
           BlocProvider(create: (context) => AudioQuranCubit()),
@@ -279,7 +280,7 @@ class MyApp extends StatelessWidget {
                ),
              ),
              // home: const AppLayout(),
-             home: PrayerTimesScreen(),
+             home: AllQuranScreen(),
            ),
         ),
       ),

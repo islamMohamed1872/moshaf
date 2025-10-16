@@ -271,7 +271,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       if (res.statusCode == 200) {
 
         final data = Map<String, dynamic>.from(res.data['data']['timings']);
-        print(res.data['data']);
+        // print(res.data['data']);
         // store as DateTime objects keyed by Arabic names
         _prayerTimes.clear();
         _prayerTimes['الفجر'] = _parseApiTimeToToday(data['Fajr'] ?? '00:00');
@@ -468,7 +468,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final hijri = HijriCalendar.now();
     final monthName = _arabicHijriMonths[hijri.hMonth - 1];
     hijriDate = "${_toArabicDigits(hijri.hDay.toString())} $monthName ${_toArabicDigits(hijri.hYear.toString())}";
-    print(hijriDate);
     // if you want Arabic digits inside hijriDate, wrap numbers using _toArabicDigits
   }
 

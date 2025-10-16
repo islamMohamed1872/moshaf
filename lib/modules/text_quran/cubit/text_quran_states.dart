@@ -23,3 +23,21 @@ class GetFontErrorState extends TextQuranStates{}
 class GetVerseTafseerLoadingState extends TextQuranStates{}
 class GetVerseTafseerSuccessState extends TextQuranStates{}
 class GetVerseTafseerErrorState extends TextQuranStates{}
+class GetPlaceOfRevelationState extends TextQuranStates{}
+class TextQuranLoadingState extends TextQuranStates {}
+
+class TextQuranPlayingState extends TextQuranStates {}
+
+class TextQuranPausedState extends TextQuranStates {}
+
+class TextQuranStoppedState extends TextQuranStates {}
+
+class TextQuranVerseChangedState extends TextQuranStates {
+  final String verseText;
+  TextQuranVerseChangedState(this.verseText);
+}
+
+class TextQuranErrorState extends TextQuranStates {
+  final String error;
+  TextQuranErrorState(this.error);
+}

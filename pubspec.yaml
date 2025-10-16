@@ -68,6 +68,7 @@ dependencies:
   android_alarm_manager_plus: ^5.0.0
   easy_localization: ^3.0.8
   geocoding: ^4.0.0
+  font_awesome_flutter: ^10.10.0
 
 flutter_icons:
   android: true
