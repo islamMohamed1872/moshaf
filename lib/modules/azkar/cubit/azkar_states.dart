@@ -8,3 +8,7 @@ class AzkarErrorState extends AzkarStates {
   AzkarErrorState(this.message);
 }
 class AzkarPlayChangedState extends AzkarStates {}
+class GetZekrBasedOnTimeState extends AzkarStates {}
+class AzkarScreenLoaded extends AzkarStates {}
+class GetRandomDuaa extends AzkarStates {}
+

@@ -50,7 +50,7 @@ dependencies:
   intl: ^0.20.2
   hijri: ^3.0.0
   just_audio: ^0.10.5
-  geolocator: ^14.0.2
+  geolocator: ^13.0.2
   flutter_screenutil: ^5.9.3
   skeletonizer: ^2.1.0+1
   auto_size_text: ^3.0.0
@@ -69,6 +69,8 @@ dependencies:
   easy_localization: ^3.0.8
   geocoding: ^4.0.0
   font_awesome_flutter: ^10.10.0
+  flutter_qiblah: ^3.1.0+1
+  permission_handler: ^12.0.1
 
 flutter_icons:
   android: true

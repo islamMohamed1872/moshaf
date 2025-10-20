@@ -20,6 +20,12 @@ class AppTextStyles {
     color: color ?? _getTextColor(context),
   );
 
+  static TextStyle madReg16(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "madReg",
+    fontSize: 16.sp,
+    color: color ?? _getTextColor(context),
+  );
+
   static TextStyle madReg14(BuildContext context, {Color? color}) => TextStyle(
     fontFamily: "madReg",
     fontSize: 14.sp,
@@ -75,6 +81,23 @@ class AppTextStyles {
     color: color ?? _getTextColor(context),
   );
 
+  static TextStyle madB34(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "madB",
+    fontSize: 34.sp,
+    color: color ?? _getTextColor(context),
+  );
+
+  static TextStyle madB14(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "madB",
+    fontSize: 14.sp,
+    color: color ?? _getTextColor(context),
+  );
+  static TextStyle madB20(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "madB",
+    fontSize: 20.sp,
+    color: color ?? _getTextColor(context),
+  );
+
   static TextStyle kufi24(BuildContext context, {Color? color}) => TextStyle(
     fontFamily: "kufi",
     fontSize: 24.sp,
@@ -84,6 +107,18 @@ class AppTextStyles {
   static TextStyle arsura24(BuildContext context, {Color? color}) => TextStyle(
     fontFamily: "arsura",
     fontSize: 24.sp,
+    color: color ?? _getTextColor(context),
+  );
+
+  static TextStyle arsura17(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "arsura",
+    fontSize: 20.sp,
+    color: color ?? _getTextColor(context),
+  );
+
+  static TextStyle arsura40(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "arsura",
+    fontSize: 40.sp,
     color: color ?? _getTextColor(context),
   );
 

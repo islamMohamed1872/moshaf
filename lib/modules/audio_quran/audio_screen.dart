@@ -139,8 +139,6 @@ class AudioScreen extends StatelessWidget {
                               ),
                               onTap: () {
                                 AudioServices().player.stop();
-                                cubit.isPlaying = false;
-                                cubit.isPaused = true;
                                 cubit.duration = Duration.zero;
                                 cubit.position = Duration.zero;
                                 cubit.sorahNumber =cubit.searchedSorahNumber.isEmpty?

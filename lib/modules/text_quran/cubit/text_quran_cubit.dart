@@ -221,9 +221,6 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
     savedVerse = await CacheHelper.getData(key: "verse")??1;
     savedPage = await CacheHelper.getData(key: "page")??1;
     getPlaceOfRevelationAndVerseContent();
-    print(savedSora);
-    print(savedVerse);
-    print("savedPage $savedPage");
     emit(GetLastReadState());
   }
 
@@ -240,9 +237,10 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
   String verseTafseer = "";
   Future<void> getVerseTafseer({required int sora, required int verse})async{
     emit(GetVerseTafseerLoadingState());
-    DioHelper.getData(url: "http://api.quran-tafseer.com/tafseer/8/${sora+1}/$verse").then((onValue){
+    print("sora  $sora");
+    print("verse  $verse");
+    DioHelper.getData(url: "http://api.quran-tafseer.com/tafseer/8/${sora}/$verse").then((onValue){
       verseTafseer = onValue.data["text"];
-      print(verseTafseer);
       emit(GetVerseTafseerSuccessState());
     }).catchError((onError){
       print(onError);
@@ -371,7 +369,7 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
 
   void stop() async {
     isPlaying = false;
-    isPaused = false;
+    isPaused = true;
     await player.stop();
     emit(TextQuranStoppedState());
   }

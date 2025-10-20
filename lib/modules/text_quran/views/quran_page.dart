@@ -10,10 +10,12 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hexcolor/hexcolor.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:moshaf/components/audio_service.dart';
+import 'package:moshaf/components/components.dart';
 import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_states.dart';
+import 'package:moshaf/views/quran/tafseer_screen.dart';
 import 'package:quran/quran.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:skeletonizer/skeletonizer.dart';
@@ -339,76 +341,96 @@ class _QuranViewPageState extends State<QuranViewPage>
                             } else if (result == 'tafseer')
                             {
                               cubit.getVerseTafseer(
-                                sora: cubit.soraNumber!,
+                                sora:  widget.jsonData[getPageData(
+                                  pageIndex,
+                                )[0]["surah"] -
+                                    1]["number"],
                                 verse: i,
                               );
                               final tafseer = await cubit.stream
                                   .where((state) => state is GetVerseTafseerSuccessState)
                                   .map((state) => cubit.verseTafseer)
                                   .first;
-
                               if (context.mounted) {
-                                showModalBottomSheet(
-                                  context: context,
-                                  backgroundColor: Colors.white,
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(20),
-                                    ),
-                                  ),
-                                  enableDrag: true,
-                                  builder: (context) {
-                                    return Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: SingleChildScrollView(
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Container(
-                                              width: 50,
-                                              height: 5,
-                                              margin: const EdgeInsets.only(
-                                                bottom: 12,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey[400],
-                                                borderRadius:
-                                                    BorderRadius.circular(2.5),
-                                              ),
-                                            ),
-                                            Text(
-                                              getVerseQCF(
-                                                e["surah"],
-                                                i,
-                                              ).replaceAll(' ', ''),
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                color: Colors.black,
-                                                fontFamily:
-                                                    "QCF_P${pageIndex.toString().padLeft(3, "0")}",
-                                              ),
-                                              textDirection: TextDirection.rtl,
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Text(
-                                              tafseer,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                height: 1.6,
-                                                color: Colors.black87,
-                                              ),
-                                              textAlign: TextAlign.justify,
-                                              textDirection: TextDirection.rtl,
-                                            ),
-                                            const SizedBox(height: 20),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
+                                navigateTo(context, TafseerScreen(ayah: i, tafseer: tafseer,sorah:  widget.jsonData[getPageData(
+                                  pageIndex,
+                                )[0]["surah"] -
+                                    1]["number"],));
+                                // navigateTo(context, TafseerScreen(ayah: Text(
+                                //   getVerseQCF(
+                                //     e["surah"],
+                                //     i,
+                                //   ).replaceAll(' ', ''),
+                                //   style: TextStyle(
+                                //     fontSize: 20,
+                                //     color: Color(AppColors.mainGreen),
+                                //     fontFamily:
+                                //     "QCF_P${pageIndex.toString().padLeft(3, "0")}",
+                                //   ),
+                                //   textDirection: TextDirection.rtl,
+                                // )
+                                //     , tafseer: tafseer));
+                                // showModalBottomSheet(
+                                //   context: context,
+                                //   backgroundColor: Colors.white,
+                                //   shape: const RoundedRectangleBorder(
+                                //     borderRadius: BorderRadius.vertical(
+                                //       top: Radius.circular(20),
+                                //     ),
+                                //   ),
+                                //   enableDrag: true,
+                                //   builder: (context) {
+                                //     return Padding(
+                                //       padding: const EdgeInsets.all(16.0),
+                                //       child: SingleChildScrollView(
+                                //         child: Column(
+                                //           mainAxisSize: MainAxisSize.min,
+                                //           crossAxisAlignment:
+                                //               CrossAxisAlignment.center,
+                                //           children: [
+                                //             Container(
+                                //               width: 50,
+                                //               height: 5,
+                                //               margin: const EdgeInsets.only(
+                                //                 bottom: 12,
+                                //               ),
+                                //               decoration: BoxDecoration(
+                                //                 color: Colors.grey[400],
+                                //                 borderRadius:
+                                //                     BorderRadius.circular(2.5),
+                                //               ),
+                                //             ),
+                                //             Text(
+                                //               getVerseQCF(
+                                //                 e["surah"],
+                                //                 i,
+                                //               ).replaceAll(' ', ''),
+                                //               style: TextStyle(
+                                //                 fontSize: 18,
+                                //                 color: Colors.black,
+                                //                 fontFamily:
+                                //                     "QCF_P${pageIndex.toString().padLeft(3, "0")}",
+                                //               ),
+                                //               textDirection: TextDirection.rtl,
+                                //             ),
+                                //             const SizedBox(height: 12),
+                                //             Text(
+                                //               tafseer,
+                                //               style: const TextStyle(
+                                //                 fontSize: 16,
+                                //                 height: 1.6,
+                                //                 color: Colors.black87,
+                                //               ),
+                                //               textAlign: TextAlign.justify,
+                                //               textDirection: TextDirection.rtl,
+                                //             ),
+                                //             const SizedBox(height: 20),
+                                //           ],
+                                //         ),
+                                //       ),
+                                //     );
+                                //   },
+                                // );
                               }
                             }
                             else if(result =="play"){
@@ -487,6 +509,12 @@ class _QuranViewPageState extends State<QuranViewPage>
             scrollDirection: Axis.horizontal,
             allowImplicitScrolling: true,
             onPageChanged: (a) async{
+              // TextQuranCubit.get(context).soraNumber = widget.jsonData[getPageData(
+              //   a,
+              // )[0]["surah"]]['number'];
+              // print(widget.jsonData[getPageData(
+              //   a-1,
+              // )[0]["surah"]]);
               selectedSpan = "";
               index = a;
               if (index <= 0) return;

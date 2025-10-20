@@ -25,7 +25,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   Timer? _remainingTimeTimer;
 
   // Internal state
-  final Map<String, DateTime> _prayerTimes = {}; // keys: Arabic names like "الفجر"
+  final Map<String, DateTime> prayerTimes = {}; // keys: Arabic names like "الفجر"
   String upComingPrayer = ""; // name of next prayer (Arabic), kept public by your UI
   String remainingTime = ""; // Arabic string like "٠٢ ساعه ١٠ دقيقه"
   String hijriDate = "";
@@ -35,11 +35,11 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   // --- Public convenience getters used by the UI ---
 
   /// UI: check whether we have data to render
-  bool get hasData => _prayerTimes.isNotEmpty && upComingPrayer.isNotEmpty;
+  bool get hasData => prayerTimes.isNotEmpty && upComingPrayer.isNotEmpty;
 
   /// returns "hh:mm a" for the upcoming prayer (English numerals + AM/PM)
   String get upcomingPrayerTime {
-    final dt = _prayerTimes[upComingPrayer];
+    final dt = prayerTimes[upComingPrayer];
     if (dt == null) return "";
     return DateFormat('hh:mm a').format(dt);
   }
@@ -75,7 +75,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final List<Map<String, String>> list = [];
 
     for (final name in order) {
-      final dt = _prayerTimes[name];
+      final dt = prayerTimes[name];
       if (dt != null) {
         final iqamaOffset = iqamaOffsets[name] ?? 0;
         final iqamaTime = dt.add(Duration(minutes: iqamaOffset));
@@ -94,7 +94,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   // --- Helpers ---
 
   String _formatPrayerTime(String key) {
-    final dt = _prayerTimes[key];
+    final dt = prayerTimes[key];
     if (dt == null) return "";
     return DateFormat('hh:mm a').format(dt);
   }
@@ -273,17 +273,17 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         final data = Map<String, dynamic>.from(res.data['data']['timings']);
         // print(res.data['data']);
         // store as DateTime objects keyed by Arabic names
-        _prayerTimes.clear();
-        _prayerTimes['الفجر'] = _parseApiTimeToToday(data['Fajr'] ?? '00:00');
-        _prayerTimes['الشروق'] = _parseApiTimeToToday(data['Sunrise'] ?? '00:00');
-        _prayerTimes['الظهر'] = _parseApiTimeToToday(data['Dhuhr'] ?? '00:00');
-        _prayerTimes['العصر'] = _parseApiTimeToToday(data['Asr'] ?? '00:00');
-        _prayerTimes['المغرب'] = _parseApiTimeToToday(data['Maghrib'] ?? '00:00');
-        _prayerTimes['العشاء'] = _parseApiTimeToToday(data['Isha'] ?? '00:00');
-        _prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
-        _prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
+        prayerTimes.clear();
+        prayerTimes['الفجر'] = _parseApiTimeToToday(data['Fajr'] ?? '00:00');
+        prayerTimes['الشروق'] = _parseApiTimeToToday(data['Sunrise'] ?? '00:00');
+        prayerTimes['الظهر'] = _parseApiTimeToToday(data['Dhuhr'] ?? '00:00');
+        prayerTimes['العصر'] = _parseApiTimeToToday(data['Asr'] ?? '00:00');
+        prayerTimes['المغرب'] = _parseApiTimeToToday(data['Maghrib'] ?? '00:00');
+        prayerTimes['العشاء'] = _parseApiTimeToToday(data['Isha'] ?? '00:00');
+        prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
+        prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
 
-
+        print(prayerTimes);
         // dates
         _setDates();
 
@@ -295,7 +295,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         _startRemainingTimeUpdater();
         CacheHelper.saveMap(
           key: 'cached_prayer_times',
-          myMap: _prayerTimes.map((k, v) => MapEntry(k, v.toIso8601String())),
+          myMap: prayerTimes.map((k, v) => MapEntry(k, v.toIso8601String())),
         );
 
         CacheHelper.saveMap(
@@ -303,7 +303,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           myMap: {'upComingPrayer': upComingPrayer},
         );
 
-        await _scheduleAllPrayerNotifications(_prayerTimes);
+        await _scheduleAllPrayerNotifications(prayerTimes);
         // final now = DateTime.now();
         // await _scheduleAllPrayerNotifications({
         //   'Fajr': now.add(const Duration(minutes: 1)),
@@ -330,9 +330,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final cachedUpcoming = await CacheHelper.getMap(key: 'cached_prayer_upcoming');
 
     if (cachedTimes != null && cachedUpcoming != null) {
-      _prayerTimes.clear();
+      prayerTimes.clear();
       cachedTimes.forEach((k, v) {
-        _prayerTimes[k] = DateTime.parse(v);
+        prayerTimes[k] = DateTime.parse(v);
       });
 
       upComingPrayer = cachedUpcoming['upComingPrayer'] ?? '';
@@ -351,7 +351,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   // --- Upcoming prayer logic (fixed no copyWith) ---
   void _updateUpcomingPrayer() {
     final now = DateTime.now();
-    final sorted = _prayerTimes.entries.toList()
+    final sorted = prayerTimes.entries.toList()
       ..sort((a, b) => a.value.compareTo(b.value));
 
     MapEntry<String, DateTime> nextPrayerEntry;
@@ -380,7 +380,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
   void _calculateRemainingTime() async {
     final now = DateTime.now();
-    final next = _prayerTimes[upComingPrayer];
+    final next = prayerTimes[upComingPrayer];
     if (next == null) return;
 
     final target = next.isBefore(now) ? next.add(const Duration(days: 1)) : next;
@@ -478,9 +478,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   }
 
   Map<String, String>? get pastEvent {
-    if (_prayerTimes.isEmpty) return null;
+    if (prayerTimes.isEmpty) return null;
     final now = DateTime.now();
-    final sorted = _prayerTimes.entries.toList()
+    final sorted = prayerTimes.entries.toList()
       ..sort((a, b) => a.value.compareTo(b.value));
 
     // Find the latest prayer time before now

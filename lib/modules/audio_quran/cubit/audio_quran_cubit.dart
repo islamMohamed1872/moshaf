@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
@@ -11,9 +10,12 @@ import 'package:moshaf/modules/audio_quran/cubit/audio_quran_states.dart';
 import '../../../components/audio_service.dart';
 import '../../../components/const.dart';
 
-class AudioQuranCubit extends Cubit<AudioQuranStates>{
-  AudioQuranCubit():super(AudioQuranInitialState());
-  static AudioQuranCubit get(context)=> BlocProvider.of(context);
+class AudioQuranCubit extends Cubit<AudioQuranStates> {
+  AudioQuranCubit() : super(AudioQuranInitialState()) {
+    _setupListeners(); // Set up listeners once in constructor
+  }
+
+  static AudioQuranCubit get(context) => BlocProvider.of(context);
   bool validSearch = false;
   bool errorSearch = false;
   var searchController = TextEditingController();
@@ -23,29 +25,46 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
   Duration duration = Duration.zero;
   Duration position = Duration.zero;
   Duration remaining = Duration.zero;
-  int sorahNumber = 0 ;
+  int sorahNumber = 0;
 
   Timer? _searchDebounce;
   bool get canGoNext => sorahNumber < 114;
   bool get canGoPrev => sorahNumber > 1;
 
+  // Simplified state management - only track playing state
+  PlayerState _playerState = PlayerState.stopped;
+
+  bool get isPlaying => _playerState == PlayerState.playing;
+  bool get isPaused => _playerState == PlayerState.paused;
+  bool get isStopped => _playerState == PlayerState.stopped;
+
+  void updatePlayerState(PlayerState state) {
+    _playerState = state;
+    emit(PlayerStateChangedState());
+  }
+
   void _resetSurahState() {
     duration = Duration.zero;
     position = Duration.zero;
-    isPlaying = false;
-    isPaused = true;
+    updatePlayerState(PlayerState.stopped);
     player.stop();
     emit(AudioQuranInitialState());
   }
-  void seekTo(Duration pos) {
+
+  void seekTo(Duration pos)async {
+    updatePlayerState(PlayerState.paused);
+    await player.pause();
     player.seek(pos);
+    emit(SeekToState());
   }
+
   void nextSurah() {
     if (!canGoNext) return;
     sorahNumber++;
     _resetSurahState();
     play();
   }
+
   void prevSurah() {
     if (!canGoPrev) return;
     sorahNumber--;
@@ -54,10 +73,8 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
   }
 
   void getSorahNumber(String name) {
-    // Cancel any ongoing debounce
     _searchDebounce?.cancel();
 
-    // If field is empty, reset instantly
     if (name.trim().isEmpty) {
       searchedSorahNumber.clear();
       validSearch = false;
@@ -66,9 +83,8 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
       return;
     }
 
-    // Start debounce
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      final currentText = searchController.text.trim(); // always get latest value
+      final currentText = searchController.text.trim();
       searchedSorahNumber.clear();
 
       if (currentText.isEmpty) {
@@ -78,12 +94,11 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
         return;
       }
 
-      // Search for matches where key starts with the typed value
       final matches = quranMap.entries
           .where((entry) => entry.key.contains(currentText))
           .map((entry) => entry.value)
           .toList();
-      // print(matches);
+
       if (matches.isNotEmpty) {
         searchedSorahNumber.addAll(matches);
         validSearch = true;
@@ -96,6 +111,7 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
       emit(SearchedSorahNumber());
     });
   }
+
   int homeCount = 20;
   void loadMore() {
     if (homeCount + 10 <= 114) {
@@ -106,7 +122,6 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
     emit(IncreaseHomeCountSuccessState());
   }
 
-  // final player = AudioPlayer();
   String formatTime(Duration duration) {
     String twoDegits(int n) => n.toString().padLeft(2, "0");
     final hours = twoDegits(duration.inHours);
@@ -119,8 +134,6 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
     ].join(":");
   }
 
-  bool isPlaying = false;
-  bool isPaused = true;
   String selecteShiekh = "مشاري راشد العفاسي";
   String url = "";
   final shiekhList = [
@@ -135,9 +148,10 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
     "ناصر القطامي",
     "ياسر الدوسري"
   ];
+
   final Map<String, String> sheikhEditionCodes = {
     "مشاري راشد العفاسي": "ar.alafasy",
-    "عبد الباسط عبد الصمد": "ar.abdulbasitmujawwad", // or murattal
+    "عبد الباسط عبد الصمد": "ar.abdulbasitmujawwad",
     "محمود علي البنا": "ar.mahmoudalialbanna",
     "محمد صديق المنشاوي": "ar.muhammadsiddiqalminshawimujawwad",
     "عبد الرحمن السديس": "ar.sudaisshuraymnaeemsultan",
@@ -145,95 +159,151 @@ class AudioQuranCubit extends Cubit<AudioQuranStates>{
     "خالد القحطاني": "ar.khaledalqahtani",
     "ناصر القطامي": "ar.nasseralqatami",
     "ياسر الدوسري": "ar.yasseraldossari",
-    "خالد الجليل":  "ar.khalidaljalil"
+    "خالد الجليل": "ar.khalidaljalil"
   };
+
   String getQuranApiUrl() {
     final edition = sheikhEditionCodes[selecteShiekh];
     if (edition == null) {
       throw Exception("Edition code not found for $selecteShiekh");
     }
+    if (selecteShiekh == "ياسر الدوسري") {
+      return "https://server11.mp3quran.net/yasser/${sorahNumber.toString().padLeft(3, "0")}.mp3";
+    }
     return "https://cdn.islamic.network/quran/audio-surah/128/$edition/$sorahNumber.mp3";
   }
 
-  Future<void> play() async {
-    emit(GetDataLoadingState());
-    String url = getQuranApiUrl();
-    try {
-      if (!isPlaying) {
-        final fileInfo = await DefaultCacheManager().getFileFromCache(url);
-        final source = fileInfo != null && fileInfo.file.existsSync()
-            ? AudioSource.uri(
-          Uri.file(fileInfo.file.path),
-          tag: MediaItem(
-            id: '$sorahNumber',
-            album: selecteShiekh,
-            title: quranMap.entries
-                .firstWhere((e) => e.value == sorahNumber)
-                .key,
-            artUri: Uri.parse(
-                'https://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg'),
-          ),
-        )
-            : AudioSource.uri(
-          Uri.parse(url),
-          tag: MediaItem(
-            id: '$sorahNumber',
-            album: selecteShiekh,
-            title: quranMap.entries
-                .firstWhere((e) => e.value == sorahNumber)
-                .key,
-            artUri: Uri.parse(
-                'https://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg'),
-          ),
-        );
-        print('URL: $url');
-        print('Is HTTP: ${url.startsWith('http:')}');
-        print('Cache file exists: ${fileInfo?.file.existsSync()}');
-        try {
-          await player.setAudioSource(source);
-          print("✅ Audio source set successfully");
-          player.play();
-          isPlaying = true;
-          isPaused = false;
-        } catch (e, s) {
-          print("❌ Player error: $e");
-          print(s);
-        }
+  void _setupListeners() {
+    // Set up listeners once in constructor
+    player.durationStream.listen((d) {
+      if (d != null) {
+        duration = d;
+        emit(ChangeSorahDuration());
+      }
+    });
 
+    player.positionStream.listen((p) {
+      position = p;
+      emit(GetPositionState());
+    });
 
-        player.durationStream.listen((d) {
-          if (d != null) {
-            duration = d;
-            emit(ChangeSorahDuration());
-          }
-        });
-
-        player.positionStream.listen((p) {
-          position = p;
-          emit(GetPositionState());
-        });
-
+    player.playerStateStream.listen((playerState) {
+      // Update internal state based on Just Audio's player state
+      if (playerState.playing) {
+        updatePlayerState(PlayerState.playing);
+      } else if (playerState.processingState == ProcessingState.completed) {
+        updatePlayerState(PlayerState.stopped);
+        position = Duration.zero;
         emit(GetDataSuccessState());
-      } else if (isPlaying && !isPaused) {
-        player.pause();
-        isPaused = true;
+      }
+      else if (playerState.processingState == ProcessingState.buffering) {
+        updatePlayerState(PlayerState.paused);
+      }
+    });
 
-      } else if (isPaused) {
-        player.play();
-        isPaused = false;
+    player.processingStateStream.listen((state) async {
+      if (state == ProcessingState.completed) {
+        await player.stop();
+        await player.seek(Duration.zero);
+        updatePlayerState(PlayerState.stopped);
+        position = Duration.zero;
+        emit(GetDataSuccessState());
+      }
+    });
+  }
+
+  Future<void> play() async {
+    try {
+      // If we're already playing, pause
+      if (isPlaying) {
+        print("isPlaying");
+        await player.pause();
+        updatePlayerState(PlayerState.paused);
+        emit(GetDataSuccessState());
+        return;
       }
 
+      // If we're paused, resume
+      if (isPaused) {
+        await player.play();
+        updatePlayerState(PlayerState.playing);
+        emit(GetDataSuccessState());
+        return;
+      }
+
+      // If we're stopped, load and play new audio
+      emit(GetDataLoadingState());
+      String url = getQuranApiUrl();
+
+      final fileInfo = await DefaultCacheManager().getFileFromCache(url);
+      if(fileInfo== null){
+        DefaultCacheManager().downloadFile(url);
+      }
+      final source = fileInfo != null && fileInfo.file.existsSync()
+          ? AudioSource.uri(
+        Uri.file(fileInfo.file.path),
+        tag: MediaItem(
+          id: '$sorahNumber',
+          album: selecteShiekh,
+          title: quranMap.entries
+              .firstWhere((e) => e.value == sorahNumber)
+              .key,
+          artUri: Uri.parse(
+              'https://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg'),
+        ),
+      )
+          : AudioSource.uri(
+        Uri.parse(url),
+        tag: MediaItem(
+          id: '$sorahNumber',
+          album: selecteShiekh,
+          title: quranMap.entries
+              .firstWhere((e) => e.value == sorahNumber)
+              .key,
+          artUri: Uri.parse(
+              'https://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg'),
+        ),
+      );
+      print('URL: $url');
+      print('Is HTTP: ${url.startsWith('http:')}');
+      print('Cache file exists: ${fileInfo?.file.existsSync()}');
+      await player.setAudioSource(source);
+      print("✅ Audio source set successfully");
+
+      player.play();
+      updatePlayerState(PlayerState.playing);
+      _setupListeners();
       emit(GetDataSuccessState());
-    } catch (e) {
-      print(e);
+
+    } catch (e, s) {
+      print("❌ Player error: $e");
+      print(s);
+      updatePlayerState(PlayerState.stopped);
       emit(GetDataErrorState());
     }
   }
-  void changeSelectedShiekh(String? value){
+
+  void changeSelectedShiekh(String? value) {
     selecteShiekh = value!;
+    stop();
+    duration = Duration.zero;
+    position = Duration.zero;
     emit(ChangeSelectedShiekhState());
   }
 
-
-
+  void stop() async {
+    await player.stop();
+    await player.seek(Duration.zero);
+    updatePlayerState(PlayerState.stopped);
+    position = Duration.zero;
+    emit(AudioQuranStoppedState());
+  }
 }
+
+// Add this enum for better state management
+enum PlayerState {
+  playing,
+  paused,
+  stopped,
+}
+

@@ -20,8 +20,10 @@ import 'package:moshaf/modules/azkar/cubit/azkar_cubit.dart';
 import 'package:moshaf/modules/prayer_times/cubit/prayer_times_cubit.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:moshaf/network/dio_helper.dart';
+import 'package:moshaf/views/azkar/azkar_screen.dart';
 import 'package:moshaf/views/landing/landing_screen.dart';
 import 'package:moshaf/views/prayer_times/prayer_times_screen.dart';
+import 'package:moshaf/views/qiblah/qiblah_on_boarding_screen.dart';
 import 'package:moshaf/views/quran/all_quran_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
@@ -280,7 +282,7 @@ class MyApp extends StatelessWidget {
                ),
              ),
              // home: const AppLayout(),
-             home: AllQuranScreen(),
+             home: QiblahOnBoardingScreen(),
            ),
         ),
       ),
