@@ -6,11 +6,13 @@ import 'package:moshaf/components/components.dart';
 import 'package:moshaf/constants/azkar.dart';
 import 'package:moshaf/views/azkar/one_pray_screen.dart';
 import 'package:moshaf/views/azkar/widgets/custom_azkar_container.dart';
+import 'package:moshaf/views/widgets/header.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
 import '../../modules/azkar/cubit/azkar_cubit.dart';
 import '../../modules/azkar/cubit/azkar_states.dart';
+import '../home/home_screen.dart';
 
 class PraysScreen extends StatelessWidget {
   const PraysScreen({super.key});
@@ -49,29 +51,12 @@ class PraysScreen extends StatelessWidget {
                           ),
                         ),
                         Positioned(
-                          top: 0,
+                          top: 15,
                           right: 0,
                           left: 0,
-                          child: Padding(
-                            padding: const EdgeInsets.all(20.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(cubit.doaaCategory,
-                                  style: AppTextStyles.madReg16(context),
-                                ),
-                                InkWell(
-                                  onTap: () {
-                                    cubit.navigateToRelatedDoaaScreen(context, cubit.doaaCategory);
-                                  },
-                                  child: Icon(
-                                    FontAwesomeIcons.fileLines,
-                                    size: 20.w,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          child: Header(title: cubit.doaaCategory,onTap: () {
+                            navigateAndFinish(context, HomeScreen());
+                          },),
                         ),
                         Positioned(
                           right: 10,
@@ -233,6 +218,33 @@ class PraysScreen extends StatelessWidget {
                                 navigateTo(context, OnePrayScreen(title: "فضل الذكر", items: AzkarConstants.fadlAlThekr));
                               },
                               text: "فضل الذكر",
+                              image: "assets/images/pray2.png"),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 8.h,
+                    ),
+                    /// الرقية بالسنة & بالقرآن
+                    Row(
+                      spacing: 8.w,
+                      children: [
+                        Expanded(
+                          child: CustomAzkarContainer(
+                              startPadding: 13,
+                              onTap: () {
+                                navigateTo(context, OnePrayScreen(title: "الرقية بالسنة", items: AzkarConstants.roqyaBelsonah));
+                              },
+                              text: "الرقية بالسنة",
+                              image: "assets/images/pray2.png"),
+                        ),
+                        Expanded(
+                          child: CustomAzkarContainer(
+                              endPadding: 13,
+                              onTap: () {
+                                navigateTo(context, OnePrayScreen(title: "الرقية بالقرآن", items: AzkarConstants.roqyaBelquran));
+                              },
+                              text: "الرقية بالقرآن",
                               image: "assets/images/pray2.png"),
                         ),
                       ],

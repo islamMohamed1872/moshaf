@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -78,6 +79,35 @@ class PrayerTimesScreen extends StatelessWidget {
                       ],
                     )
                   ],
+                ),
+                Positioned(
+                  left: 20,
+                  child: InkWell(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 30.w,
+                      height: 30.w,
+                      padding: EdgeInsetsDirectional.only(
+                        start: context.locale.languageCode == "ar" ? 0 : 7.w,
+                        top: 5,
+                        bottom: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                        ),
+                      ),
+                      child: FittedBox(
+                        child: Icon(
+                          context.locale.languageCode == "ar"
+                              ? Icons.arrow_forward_ios
+                              : Icons.arrow_back_ios,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
 
               ],

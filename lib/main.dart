@@ -14,6 +14,9 @@ import 'package:hexcolor/hexcolor.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:moshaf/constants/app_colors.dart';
+import 'package:moshaf/controllers/home/home_cubit.dart';
+import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
+import 'package:moshaf/controllers/settings/settings_cubit.dart';
 import 'package:moshaf/controllers/theme/theme_cubit.dart';
 import 'package:moshaf/modules/audio_quran/cubit/audio_quran_cubit.dart';
 import 'package:moshaf/modules/azkar/cubit/azkar_cubit.dart';
@@ -21,10 +24,15 @@ import 'package:moshaf/modules/prayer_times/cubit/prayer_times_cubit.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:moshaf/network/dio_helper.dart';
 import 'package:moshaf/views/azkar/azkar_screen.dart';
+import 'package:moshaf/views/home/home_screen.dart';
 import 'package:moshaf/views/landing/landing_screen.dart';
+import 'package:moshaf/views/pray_teaching/pray_instructions_screen.dart';
 import 'package:moshaf/views/prayer_times/prayer_times_screen.dart';
 import 'package:moshaf/views/qiblah/qiblah_on_boarding_screen.dart';
 import 'package:moshaf/views/quran/all_quran_screen.dart';
+import 'package:moshaf/views/tasbeeh/tasbeeh_screen.dart';
+import 'package:moshaf/views/wodoo_teaching/wodoo_instructions_screen.dart';
+import 'package:moshaf/views/zakat_al_mal/zakah_calculator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
 import 'components/audio_service.dart';
@@ -168,7 +176,7 @@ void overlayMain() {
     ScreenUtilInit(
       designSize: const Size(392.72727272727275, 800.7272727272727),
       child: BlocProvider(
-        create: (context) => AppCubit()..getRandomAthkar(),
+        create: (context) => HomeCubit()..getRandomAthkar(),
         child: const MaterialApp(
           debugShowCheckedModeBanner: false,
           home: OverlayAthkarWidget(),
@@ -237,13 +245,13 @@ class MyApp extends StatelessWidget {
       designSize: const Size(392.72727272727275, 800.7272727272727),
       child: MultiBlocProvider(
         providers: [
-          // PrayerTimesCubit – responsible for fetching and caching prayer times
-          BlocProvider(
-            create: (context) => PrayerTimesCubit()..fetchPrayerTimes(),),
-          // Other cubits
-          BlocProvider(create: (context) => AppCubit()..requestLocationPermissions()..requestOverlay()),
+          BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimes()),
+          BlocProvider(create: (context) => AppCubit()),
+          BlocProvider(create: (context) => HomeCubit()..requestLocationPermissions()..requestOverlay()..getFirstTime()),
           BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()),
+          BlocProvider(create: (context) => SettingsCubit()),
           BlocProvider(create: (context) => ThemeCubit()),
+          BlocProvider(create: (context) => QiblahCubit()),
           BlocProvider(create: (context) => AzkarCubit()),
           BlocProvider(create: (context) => AudioQuranCubit()),
         ],
@@ -282,7 +290,7 @@ class MyApp extends StatelessWidget {
                ),
              ),
              // home: const AppLayout(),
-             home: QiblahOnBoardingScreen(),
+             home: HomeScreen(),
            ),
         ),
       ),

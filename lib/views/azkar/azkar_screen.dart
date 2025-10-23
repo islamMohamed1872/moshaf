@@ -11,7 +11,9 @@ import 'package:moshaf/views/azkar/names_of_allah.dart';
 import 'package:moshaf/views/azkar/prays_screen.dart';
 import 'package:moshaf/views/azkar/widgets/custom_azkar_container.dart';
 import 'package:moshaf/views/azkar/zekr_screen.dart';
+import 'package:moshaf/views/home/home_screen.dart';
 import 'package:moshaf/views/landing/widgets/custom_decorated_container.dart';
+import 'package:moshaf/views/widgets/header.dart';
 
 import '../../constants/app_colors.dart';
 
@@ -52,30 +54,12 @@ class AzkarScreen extends StatelessWidget {
                             ),
                           ),
                           Positioned(
-                            top: 0,
+                            top: 15,
                             right: 0,
                             left: 0,
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(cubit.zekrCategory,
-                                    style: AppTextStyles.madReg16(context),
-                                  ),
-                                  InkWell(
-                                    onTap: () {
-                                      // cubit.getZekrBasedOnTime(context);
-                                      cubit.navigateToRelatedAzkarScreen(context, cubit.zekrCategory);
-                                    },
-                                    child: Icon(
-                                      FontAwesomeIcons.fileLines,
-                                      size: 20.w,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            child: Header(title: cubit.zekrCategory,onTap: () {
+                              navigateAndFinish(context, HomeScreen());
+                            },),
                           ),
                           Positioned(
                             right: 10,

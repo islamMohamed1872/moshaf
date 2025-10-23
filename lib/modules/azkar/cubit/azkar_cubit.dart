@@ -212,7 +212,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
   }
   String randomZekr = "";
   String zekrCategory = "";
-  void getZekrBasedOnTime(context) {
+  void getZekrBasedOnTime(context)async {
     DateTime now = DateTime.now();
     // Example lists
     final azkarAlAdhan = AzkarConstants.azkarAlAdhan;
@@ -222,6 +222,9 @@ class AzkarCubit extends Cubit<AzkarStates> {
     final azkarMotafareqa = AzkarConstants.azkarMotafareqa;
     final prayerTimes = PrayerTimesCubit.get(context).prayerTimes;
     print(prayerTimes);
+    if(prayerTimes.isEmpty){
+     await PrayerTimesCubit.get(context).fetchPrayerTimes();
+    }
 
     // 🔹 1. Check if just after any prayer time
     for (var entry in prayerTimes.entries) {

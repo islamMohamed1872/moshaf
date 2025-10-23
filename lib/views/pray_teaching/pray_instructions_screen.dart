@@ -1,0 +1,121 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:moshaf/views/home/home_screen.dart';
+import 'package:moshaf/views/pray_teaching/pray_teaching_screen.dart';
+import '../../components/components.dart';
+import '../../constants/app_colors.dart';
+import '../../constants/app_textstyles.dart';
+import '../widgets/custom_green_button.dart';
+
+class PrayInstructionsScreen extends StatelessWidget {
+  const PrayInstructionsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final List ayat = [
+      "﴿وَأَقِيمُوا الصَّلَاةَ وَآتُوا الزَّكَاةَ وَارْكَعُوا مَعَ الرَّاكِعِينَ﴾",
+      "﴿إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَوْقُوتًا﴾",
+      "﴿أَقِمِ الصَّلَاةَ لِدُلُوكِ الشَّمْسِ إِلَىٰ غَسَقِ اللَّيْلِ وَقُرْآنَ الْفَجْرِ ۖ إِنَّ قُرْآنَ الْفَجْرِ كَانَ مَشْهُودًا﴾",
+      "﴿إِنَّنِي أَنَا اللَّهُ لَا إِلَٰهَ إِلَّا أَنَا فَاعْبُدْنِي وَأَقِمِ الصَّلَاةَ لِذِكْرِي﴾",
+      "﴿اتْلُ مَا أُوحِيَ إِلَيْكَ مِنَ الْكِتَابِ وَأَقِمِ الصَّلَاةَ ۖ إِنَّ الصَّلَاةَ تَنْهَىٰ عَنِ الْفَحْشَاءِ وَالْمُنكَرِ﴾",
+      "﴿قَدْ أَفْلَحَ الْمُؤْمِنُونَ ⟐ الَّذِينَ هُمْ فِي صَلَاتِهِمْ خَاشِعُونَ﴾",
+    ];
+
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: SingleChildScrollView( // ✅ scrollable page
+          padding: const EdgeInsets.all(15.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsetsDirectional.symmetric(
+                  horizontal: 20.0,
+                  vertical: 10,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "تعليم الصلاة",
+                      style: AppTextStyles.madReg16(context),
+                    ),
+                    InkWell(
+                      /// navigate to the home screen !!!!!!!!!!!!!!!!!!!
+                      onTap: () => navigateAndFinish(context, HomeScreen()),
+                      child: Container(
+                        padding: const EdgeInsetsDirectional.symmetric(
+                            vertical: 6, horizontal: 19),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(38),
+                          border: Border.all(
+                            color: Color(AppColors.containerBorders),
+                          ),
+                        ),
+                        child: Text(
+                          "رجوع",
+                          style: AppTextStyles.madReg14(context),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsetsDirectional.symmetric(
+                    horizontal: 17, vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Color(AppColors.containerBorders),
+                  ),
+                ),
+                child: Text(
+                  "الصلاة عمود الدين، ولا حظ في الإسلام لمن تركها، وهي صلة بين العبد وربه، فمن قطعها فقد قطع الصلة بينه وبين ربه وخالقه، ومن قطع هذه الصلة فقد خسر خسراناً مبيناً. والواجب على من ابتلي بترك الصلاة أو التقصير فيها أن يتوب إلى الله تعالى توبة صادقة نصوحا، وأن يتذكر أن ترك الصلاة سبب الويل والعذاب والنكد في الدنيا وفي الآخرة، وسبب لتسلط الشيطان الرجيم على العبد",
+                  style: AppTextStyles.madReg14(context),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // ✅ replaced Expanded with Column + map
+              Column(
+                children: ayat
+                    .map(
+                      (a) => Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsetsDirectional.symmetric(
+                        horizontal: 15, vertical: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Color(AppColors.containerBorders),
+                      ),
+                    ),
+                    child: Text(
+                      a,
+                      style: AppTextStyles.madB14(
+                        context,
+                        color: Color(AppColors.mainGreen),
+                      ),
+                    ),
+                  ),
+                )
+                    .toList(),
+              ),
+              SizedBox(height: 20.h),
+              CustomGreenButton(
+                text: "تعليم الصلاة",
+                onTap: () {
+                  navigateTo(context, PrayTeachingScreen());
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

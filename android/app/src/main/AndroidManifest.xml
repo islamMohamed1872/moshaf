@@ -22,7 +22,8 @@
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
         >
-
+        <meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBWiuuOH93eV4T8agl0VQszgdBjfIK--Ew"/>
         <!-- LOCAL NOTIFICATION RECEIVERS -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
