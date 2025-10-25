@@ -10,6 +10,7 @@ import 'package:moshaf/views/widgets/header.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
+import '../../controllers/theme/theme_cubit.dart';
 import '../../modules/azkar/cubit/azkar_cubit.dart';
 import '../../modules/azkar/cubit/azkar_states.dart';
 import '../home/home_screen.dart';
@@ -19,6 +20,8 @@ class PraysScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
+
     return BlocBuilder<AzkarCubit,AzkarStates>(
       builder: (context, state) {
         final cubit = AzkarCubit.get(context);
@@ -45,7 +48,7 @@ class PraysScreen extends StatelessWidget {
                               end: Alignment.bottomCenter,
                               colors: [
                                 Colors.black.withValues(alpha: 0),
-                                const Color(0xFF151515),
+                                isDark?const Color(0xFF151515):Colors.white,
                               ],
                             ),
                           ),
@@ -55,8 +58,10 @@ class PraysScreen extends StatelessWidget {
                           right: 0,
                           left: 0,
                           child: Header(title: cubit.doaaCategory,onTap: () {
-                            navigateAndFinish(context, HomeScreen());
-                          },),
+                            navigateAndFinish(context, HomeScreen(),);
+                          },
+                          isDark: isDark,
+                          ),
                         ),
                         Positioned(
                           right: 10,
@@ -65,7 +70,7 @@ class PraysScreen extends StatelessWidget {
                             textAlign: TextAlign.center,
                             maxLines:2,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.kufi24(context),
+                            style: AppTextStyles.kufi24(context,color: Colors.white),
                           ),
                         ),
                         Positioned(
@@ -80,7 +85,7 @@ class PraysScreen extends StatelessWidget {
                                 child: Container(
                                   padding: EdgeInsetsDirectional.symmetric(horizontal: 9.w,vertical: 3.h),
                                   child: Text("اذكار",
-                                    style: AppTextStyles.madMd12(context),
+                                    style: AppTextStyles.madMd12(context,color: isDark?Colors.white:Colors.black),
                                   ),
                                 ),
                               ),
@@ -89,11 +94,11 @@ class PraysScreen extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(45),
                                   border: Border.all(
-                                      color: Color(AppColors.containerBorders)
+                                      color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)
                                   ),
                                 ),
                                 child: Text("ادعية",
-                                  style: AppTextStyles.madMd12(context),
+                                  style: AppTextStyles.madMd12(context,color: isDark?Colors.white:Colors.black),
                                 ),
                               ),
                             ],
@@ -106,14 +111,15 @@ class PraysScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 1,
                       margin: EdgeInsetsDirectional.symmetric(vertical: 10),
-                      color: Color(AppColors.containerBorders),
+                      color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                     ),
                     /// جوامع الدعاء
                     CustomAzkarContainer(
                         startPadding: 13,
                         endPadding: 13,
+                        isDark: isDark,
                         onTap: () {
-                          navigateTo(context, OnePrayScreen(title: "جوامع الدعاء", items: AzkarConstants.jawameDoaa));
+                          navigateTo(context, OnePrayScreen(title: "جوامع الدعاء", items: AzkarConstants.jawameDoaa,isDark: isDark,));
                         },
                         text: "جوامع الدعاء",
                         image: "assets/images/pray2.png"),
@@ -127,8 +133,9 @@ class PraysScreen extends StatelessWidget {
                         Expanded(
                           child: CustomAzkarContainer(
                               startPadding: 13,
+                              isDark: isDark,
                               onTap: () {
-                                navigateTo(context, OnePrayScreen(title: "ادعية نبوية", items: AzkarConstants.adeyahNabaweyah));
+                                navigateTo(context, OnePrayScreen(title: "ادعية نبوية", items: AzkarConstants.adeyahNabaweyah,isDark: isDark,));
                               },
                               text: "ادعية نبوية",
                               image: "assets/images/pray2.png"),
@@ -136,8 +143,9 @@ class PraysScreen extends StatelessWidget {
                         Expanded(
                           child: CustomAzkarContainer(
                               endPadding: 13,
+                              isDark: isDark,
                               onTap: () {
-                                navigateTo(context, OnePrayScreen(title: "ادعية القرآنية", items: AzkarConstants.adeyaQuranya));
+                                navigateTo(context, OnePrayScreen(isDark:isDark,title: "ادعية القرآنية", items: AzkarConstants.adeyaQuranya));
                               },
                               text: "ادعية القرآنية",
                               image: "assets/images/pray2.png"),
@@ -150,9 +158,10 @@ class PraysScreen extends StatelessWidget {
                     /// ادعية الانبياء
                     CustomAzkarContainer(
                         startPadding: 13,
+                        isDark: isDark,
                         endPadding: 13,
                         onTap: () {
-                          navigateTo(context, OnePrayScreen(title: "ادعية الانبياء", items: AzkarConstants.adeyatAlanbiya));
+                          navigateTo(context, OnePrayScreen(title: "ادعية الانبياء", items: AzkarConstants.adeyatAlanbiya,isDark: isDark,));
                         },
                         text: "ادعية الانبياء",
                         image: "assets/images/pray2.png"),
@@ -166,8 +175,9 @@ class PraysScreen extends StatelessWidget {
                         Expanded(
                           child: CustomAzkarContainer(
                               startPadding: 13,
+                              isDark: isDark,
                               onTap: () {
-                                navigateTo(context, OnePrayScreen(title: "ادعية للميت", items: AzkarConstants.adeyatAlmayet));
+                                navigateTo(context, OnePrayScreen(title: "ادعية للميت", items: AzkarConstants.adeyatAlmayet,isDark: isDark,));
                               },
                               text: "ادعية للميت",
                               image: "assets/images/pray2.png"),
@@ -175,8 +185,9 @@ class PraysScreen extends StatelessWidget {
                         Expanded(
                           child: CustomAzkarContainer(
                               endPadding: 13,
+                              isDark: isDark,
                               onTap: () {
-                                navigateTo(context, OnePrayScreen(title: "ادعية للمسلمين", items: AzkarConstants.adeyaForAllMuslims));
+                                navigateTo(context, OnePrayScreen(title: "ادعية للمسلمين", items: AzkarConstants.adeyaForAllMuslims,isDark: isDark,));
                               },
                               text: "ادعية للمسلمين",
                               image: "assets/images/pray2.png"),
@@ -189,9 +200,10 @@ class PraysScreen extends StatelessWidget {
                     /// فضل السور
                     CustomAzkarContainer(
                         startPadding: 13,
+                        isDark: isDark,
                         endPadding: 13,
                         onTap: () {
-                          navigateTo(context, OnePrayScreen(title: "فضل السور", items: AzkarConstants.fadlAlSowar));
+                          navigateTo(context, OnePrayScreen(title: "فضل السور", items: AzkarConstants.fadlAlSowar,isDark: isDark,));
                         },
                         text: "فضل السور",
                         image: "assets/images/pray2.png"),
@@ -205,8 +217,9 @@ class PraysScreen extends StatelessWidget {
                         Expanded(
                           child: CustomAzkarContainer(
                               startPadding: 13,
+                              isDark: isDark,
                               onTap: () {
-                                navigateTo(context, OnePrayScreen(title: "فضل الدعاء", items: AzkarConstants.fadlAlDoaa));
+                                navigateTo(context, OnePrayScreen(title: "فضل الدعاء", items: AzkarConstants.fadlAlDoaa,isDark: isDark,));
                               },
                               text: "فضل الدعاء",
                               image: "assets/images/pray2.png"),
@@ -214,8 +227,9 @@ class PraysScreen extends StatelessWidget {
                         Expanded(
                           child: CustomAzkarContainer(
                               endPadding: 13,
+                              isDark: isDark,
                               onTap: () {
-                                navigateTo(context, OnePrayScreen(title: "فضل الذكر", items: AzkarConstants.fadlAlThekr));
+                                navigateTo(context, OnePrayScreen(title: "فضل الذكر", items: AzkarConstants.fadlAlThekr,isDark: isDark,));
                               },
                               text: "فضل الذكر",
                               image: "assets/images/pray2.png"),
@@ -232,8 +246,9 @@ class PraysScreen extends StatelessWidget {
                         Expanded(
                           child: CustomAzkarContainer(
                               startPadding: 13,
+                              isDark: isDark,
                               onTap: () {
-                                navigateTo(context, OnePrayScreen(title: "الرقية بالسنة", items: AzkarConstants.roqyaBelsonah));
+                                navigateTo(context, OnePrayScreen(title: "الرقية بالسنة", items: AzkarConstants.roqyaBelsonah,isDark: isDark,));
                               },
                               text: "الرقية بالسنة",
                               image: "assets/images/pray2.png"),
@@ -241,8 +256,9 @@ class PraysScreen extends StatelessWidget {
                         Expanded(
                           child: CustomAzkarContainer(
                               endPadding: 13,
+                              isDark: isDark,
                               onTap: () {
-                                navigateTo(context, OnePrayScreen(title: "الرقية بالقرآن", items: AzkarConstants.roqyaBelquran));
+                                navigateTo(context, OnePrayScreen(title: "الرقية بالقرآن", items: AzkarConstants.roqyaBelquran,isDark: isDark,));
                               },
                               text: "الرقية بالقرآن",
                               image: "assets/images/pray2.png"),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:dio/dio.dart';
@@ -11,11 +12,13 @@ import 'package:hijri/hijri_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:moshaf/modules/prayer_times/cubit/prayer_times_states.dart';
+import 'package:quran/quran.dart' as quran;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../components/audio_service.dart';
 import '../../../components/cache_helper.dart';
 import '../../../constants/app_const.dart';
+import '../../../constants/azkar.dart';
 
 class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   PrayerTimesCubit() : super(PrayerTimesInitialStates());
@@ -73,19 +76,37 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     };
 
     final List<Map<String, String>> list = [];
+    if(prayerTimesForDay.isEmpty){
+      for (final name in order) {
+        final dt = prayerTimes[name];
+        if (dt != null) {
+          final iqamaOffset = iqamaOffsets[name] ?? 0;
+          final iqamaTime = dt.add(Duration(minutes: iqamaOffset));
 
-    for (final name in order) {
-      final dt = prayerTimes[name];
-      if (dt != null) {
-        final iqamaOffset = iqamaOffsets[name] ?? 0;
-        final iqamaTime = dt.add(Duration(minutes: iqamaOffset));
-
-        list.add({
-          'name': name,
-          'time': DateFormat('hh:mm a').format(dt),
-          'iqama': iqamaOffset == 0 ? '-' : DateFormat('hh:mm a').format(iqamaTime),
-        });
+          list.add({
+            'name': name,
+            'time': DateFormat('hh:mm a').format(dt),
+            'iqama': iqamaOffset == 0 ? '-' : DateFormat('hh:mm a').format(iqamaTime),
+          });
+        }
       }
+
+    }
+    else{
+      for (final name in order) {
+        final dt = prayerTimesForDay[name];
+        if (dt != null) {
+          final iqamaOffset = iqamaOffsets[name] ?? 0;
+          final iqamaTime = dt.add(Duration(minutes: iqamaOffset));
+
+          list.add({
+            'name': name,
+            'time': DateFormat('hh:mm a').format(dt),
+            'iqama': iqamaOffset == 0 ? '-' : DateFormat('hh:mm a').format(iqamaTime),
+          });
+        }
+      }
+
     }
 
     return list;
@@ -303,7 +324,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           myMap: {'upComingPrayer': upComingPrayer},
         );
 
-        await _scheduleAllPrayerNotifications(prayerTimes);
+        await scheduleAllPrayerNotifications();
         // final now = DateTime.now();
         // await _scheduleAllPrayerNotifications({
         //   'Fajr': now.add(const Duration(minutes: 1)),
@@ -351,9 +372,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   // --- Upcoming prayer logic (fixed no copyWith) ---
   void _updateUpcomingPrayer() {
     final now = DateTime.now();
-    final sorted = prayerTimes.entries.toList()
+    final sorted = prayerTimes.entries.toList().sublist(0,6)
       ..sort((a, b) => a.value.compareTo(b.value));
-
+    sorted.removeAt(1);
     MapEntry<String, DateTime> nextPrayerEntry;
     try {
       nextPrayerEntry = sorted.firstWhere((p) => p.value.isAfter(now));
@@ -538,7 +559,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   //   );
   // }
 
-  Future<void> _scheduleAllPrayerNotifications(Map<String, DateTime> times) async {
+  Future<void> scheduleAllPrayerNotifications() async {
+    final List skippedNotification = await CacheHelper.getData(key: "mutedNotifications")??[];
     print("📅 Scheduling prayer notifications...");
 
     // 🔹 Cancel any existing scheduled notifications first
@@ -548,12 +570,12 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final now = DateTime.now();
     int scheduledCount = 0;
 
-    for (final entry in times.entries) {
+    for (final entry in prayerTimes.entries) {
       final prayerName = entry.key;
       final time = entry.value;
       if(prayerName == "الشروق"||prayerName == "منتصف الليل"||prayerName == "الثلث الاخير") continue;
       // Skip prayers that already passed today
-      if (time.isBefore(now)) {
+      if (time.isBefore(now)||skippedNotification.contains("صلاة $prayerName")) {
         print("⏭️ Skipping $prayerName - already passed");
         continue;
       }
@@ -617,39 +639,185 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     return true; // Same day, use cache
   }
 
-  Future<void> _scheduleTomorrowsPrayers() async {
-    print("🔄 Fetching tomorrow's prayer times...");
+  tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    if (scheduled.isBefore(now) || scheduled.isAtSameMomentAs(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    return scheduled;
+  }
+
+  Future<void> scheduleDoaaNotifications() async {
+    // 🔹 Cancel any existing scheduled notifications first
+    await flutterLocalNotificationsPlugin.cancel(0);
+    final List skippedNotification = await CacheHelper.getData(key: "mutedNotifications");
+    if(skippedNotification.contains("ادعية")) return;
+    print("📅 Scheduling Doaa notifications...");
+    final scheduledDate = _nextInstanceOfTime(15, 0);
+
+    final androidDetails = AndroidNotificationDetails(
+      'doaa_channel',
+      'Doaa Notifications',
+      channelDescription: 'Daily doaa (zekr) at 3:00 PM',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+    );
+
+    final notifDetails = NotificationDetails(android: androidDetails);
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      0,
+      getRandomDoaa()['category'],
+      getRandomDoaa()['zekr'],
+      scheduledDate,
+      notifDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+    print("✅ Scheduled daily Doaa at ${DateFormat('hh:mm a').format(scheduledDate)} (local)");
+  }
+
+  Map getRandomDoaa(){
+    List doaa = [
+      AzkarConstants.adeyaQuranya,
+      AzkarConstants.adeyahNabaweyah,
+      AzkarConstants.adeyatAlanbiya,
+    ];
+
+    int randomIndex = Random().nextInt(doaa.length);
+    int randomDoaa = Random().nextInt(doaa[randomIndex]['azkar'].length);
+
+    return {"category": doaa[randomIndex]['category'], "zekr": doaa[randomIndex]['azkar'][randomDoaa]['zekr']};
+  }
+
+  Future<void> fireQuranRemindedNotifications() async {
+    final String lastReadDate = await CacheHelper.getData(key: 'lastRead');
+
+    // 🔹 Cancel any existing scheduled notifications first
+    await flutterLocalNotificationsPlugin.cancel(1);
+
+    final List? skippedNotification = await CacheHelper.getData(key: "mutedNotifications");
+    final int? lastRead = await CacheHelper.getData(key: "sora");
+
+    // 🔹 If muted or no last-read surah → don't send
+    if (skippedNotification?.contains("تذكير بالمصحف") ?? false || lastRead == null) return;
+
+    print("🚀 Sending immediate Quran reminder notification...");
+
+    String sorahName = quran.getSurahNameArabic(lastRead!);
+
+    // 🔹 Android notification configuration
+    const androidDetails = AndroidNotificationDetails(
+      'quran_channel',
+      'Quran Notifications',
+      channelDescription: 'Quran reading reminder',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+    );
+
+    const notifDetails = NotificationDetails(android: androidDetails);
+
+    // 🔹 Send immediately
+    await flutterLocalNotificationsPlugin.show(
+      1, // notification ID
+      "لا تكن هاجراً للقرآن", // title
+      "تذكير بقراءة سورة $sorahName", // body
+      notifDetails,
+    );
+
+    print("✅ Immediate Quran reminder notification sent successfully!");
+  }
+
+
+  int prayerDayOffset = 0; // 0 = today, +1 = tomorrow, -1 = yesterday
+  final Map<String, DateTime> prayerTimesForDay = {}; // Current day's timings
+
+  Future<void> fetchPrayerTimesForOffset() async {
+    emit(GetPrayerTimesLoadingState());
 
     try {
+      // 1️⃣ Get current location
       final pos = await _determinePosition();
-      final tomorrow = DateTime.now().add(const Duration(days: 1));
+
+      // 2️⃣ Compute target day based on offset
+      final targetDay = DateTime.now().add(Duration(days: prayerDayOffset));
+      print("📅 Fetching prayers for offset $prayerDayOffset → $targetDay");
+
+      final timestamp = (targetDay.millisecondsSinceEpoch ~/ 1000);
+
+      // 3️⃣ Build API URL
       final url =
-          'http://api.aladhan.com/v1/timings/${tomorrow.millisecondsSinceEpoch ~/ 1000}?latitude=${pos.latitude}&longitude=${pos.longitude}';
+          'http://api.aladhan.com/v1/timings/$timestamp?latitude=${pos.latitude}&longitude=${pos.longitude}&method=5';
 
       final res = await _dio.get(url);
 
       if (res.statusCode == 200) {
+        // 4️⃣ Parse data
         final data = Map<String, dynamic>.from(res.data['data']['timings']);
-        final tomorrowPrayers = <String, DateTime>{};
-        tomorrowPrayers['الفجر'] = _parseApiTimeToTomorrow(data['Fajr'] ?? '00:00');
-        tomorrowPrayers['الظهر'] = _parseApiTimeToTomorrow(data['Dhuhr'] ?? '00:00');
-        tomorrowPrayers['العصر'] = _parseApiTimeToTomorrow(data['Asr'] ?? '00:00');
-        tomorrowPrayers['المغرب'] = _parseApiTimeToTomorrow(data['Maghrib'] ?? '00:00');
-        tomorrowPrayers['العشاء'] = _parseApiTimeToTomorrow(data['Isha'] ?? '00:00');
+        prayerTimesForDay.clear();
 
-        await _scheduleAllPrayerNotifications(tomorrowPrayers);
-        print("✅ Tomorrow's prayers scheduled");
+        prayerTimesForDay['الفجر'] = _parseApiTimeToDay(data['Fajr'], targetDay);
+        prayerTimesForDay['الشروق'] = _parseApiTimeToDay(data['Sunrise'], targetDay);
+        prayerTimesForDay['الظهر'] = _parseApiTimeToDay(data['Dhuhr'], targetDay);
+        prayerTimesForDay['العصر'] = _parseApiTimeToDay(data['Asr'], targetDay);
+        prayerTimesForDay['المغرب'] = _parseApiTimeToDay(data['Maghrib'], targetDay);
+        prayerTimesForDay['العشاء'] = _parseApiTimeToDay(data['Isha'], targetDay);
+        prayerTimesForDay['منتصف الليل'] = _parseApiTimeToDay(data['Midnight'] ?? '00:00',targetDay);
+        prayerTimesForDay['الثلث الاخير'] = _parseApiTimeToDay(data['Lastthird'] ?? '00:00',targetDay);
+
+        // 5️⃣ Update Gregorian labels
+        dayName = DateFormat('EEEE', 'ar').format(targetDay);
+        date = DateFormat.yMMMMd('ar').format(targetDay);
+
+        // 6️⃣ Convert Gregorian → Hijri
+        final hijri = HijriCalendar.fromDate(targetDay);
+        final monthName = _arabicHijriMonths[hijri.hMonth];
+        hijriDate =
+        "${_toArabicDigits(hijri.hDay.toString())} $monthName ${_toArabicDigits(hijri.hYear.toString())}";
+
+
+        emit(GetPrayerTimesSuccessState());
+      } else {
+        emit(GetPrayerTimesErrorState());
       }
     } catch (e) {
-      print("❌ Error fetching tomorrow's prayers: $e");
+      print("❌ fetchPrayerTimesForOffset error: $e");
+      emit(GetPrayerTimesErrorState());
     }
   }
 
-  DateTime _parseApiTimeToTomorrow(String hhmm24) {
-    final parsed = DateFormat("HH:mm").parse(hhmm24);
-    final tomorrow = DateTime.now().add(const Duration(days: 1));
-    return DateTime(tomorrow.year, tomorrow.month, tomorrow.day, parsed.hour, parsed.minute);
+  void nextPrayerDay() {
+    prayerDayOffset++;
+    fetchPrayerTimesForOffset();
   }
+
+  /// Move backward one day
+  void previousPrayerDay() {
+    prayerDayOffset--;
+    fetchPrayerTimesForOffset();
+  }
+
+  /// Reset to today
+  void resetToToday() {
+    prayerDayOffset = 0;
+    fetchPrayerTimesForOffset();
+  }
+
+
+
+
+  DateTime _parseApiTimeToDay(String time, DateTime day) {
+    final parts = time.split(':');
+    final hour = int.tryParse(parts[0]) ?? 0;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    return DateTime(day.year, day.month, day.day, hour, minute);
+  }
+
+
+
+
 
 
 }

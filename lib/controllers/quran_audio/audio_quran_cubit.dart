@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:moshaf/modules/audio_quran/cubit/audio_quran_states.dart';
+import 'package:moshaf/controllers/quran_audio/audio_quran_states.dart';
 
-import '../../../components/audio_service.dart';
-import '../../../components/const.dart';
+import '../../components/audio_service.dart';
+import '../../components/const.dart';
 
 class AudioQuranCubit extends Cubit<AudioQuranStates> {
   AudioQuranCubit() : super(AudioQuranInitialState()) {
@@ -62,14 +62,14 @@ class AudioQuranCubit extends Cubit<AudioQuranStates> {
     if (!canGoNext) return;
     sorahNumber++;
     _resetSurahState();
-    play();
+    // play();
   }
 
   void prevSurah() {
     if (!canGoPrev) return;
     sorahNumber--;
     _resetSurahState();
-    play();
+    // play();
   }
 
   void getSorahNumber(String name) {

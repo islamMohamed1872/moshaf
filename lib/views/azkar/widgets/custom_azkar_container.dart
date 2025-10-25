@@ -10,6 +10,7 @@ class CustomAzkarContainer extends StatelessWidget {
   final GestureTapCallback onTap;
   final double? startPadding;
   final double? endPadding;
+  final bool isDark;
   const CustomAzkarContainer({
     super.key,
     required this.text,
@@ -17,6 +18,7 @@ class CustomAzkarContainer extends StatelessWidget {
     required this.onTap,
     this.startPadding = 0,
     this.endPadding = 0,
+    required this.isDark
   });
 
   @override
@@ -31,7 +33,7 @@ class CustomAzkarContainer extends StatelessWidget {
           padding: EdgeInsetsDirectional.symmetric(vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Color(AppColors.containerBorders)),
+            border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -39,7 +41,7 @@ class CustomAzkarContainer extends StatelessWidget {
             children: [
               Image.asset(image,width: 24.w,),
               Text(text,
-                style: AppTextStyles.madL14(context),
+                style: AppTextStyles.madL14(context,color: isDark?Colors.white:Colors.black),
               )
             ],
           ),

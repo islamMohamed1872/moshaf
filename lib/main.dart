@@ -1,8 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -11,38 +12,29 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart' as
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hexcolor/hexcolor.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:moshaf/constants/app_colors.dart';
+import 'package:moshaf/controllers/auth/auth_cubit.dart';
 import 'package:moshaf/controllers/home/home_cubit.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
 import 'package:moshaf/controllers/settings/settings_cubit.dart';
 import 'package:moshaf/controllers/theme/theme_cubit.dart';
-import 'package:moshaf/modules/audio_quran/cubit/audio_quran_cubit.dart';
+import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
 import 'package:moshaf/modules/azkar/cubit/azkar_cubit.dart';
 import 'package:moshaf/modules/prayer_times/cubit/prayer_times_cubit.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:moshaf/network/dio_helper.dart';
-import 'package:moshaf/views/azkar/azkar_screen.dart';
 import 'package:moshaf/views/home/home_screen.dart';
 import 'package:moshaf/views/landing/landing_screen.dart';
-import 'package:moshaf/views/pray_teaching/pray_instructions_screen.dart';
-import 'package:moshaf/views/prayer_times/prayer_times_screen.dart';
-import 'package:moshaf/views/qiblah/qiblah_on_boarding_screen.dart';
-import 'package:moshaf/views/quran/all_quran_screen.dart';
-import 'package:moshaf/views/tasbeeh/tasbeeh_screen.dart';
-import 'package:moshaf/views/wodoo_teaching/wodoo_instructions_screen.dart';
-import 'package:moshaf/views/zakat_al_mal/zakah_calculator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vibration/vibration.dart';
-import 'components/audio_service.dart';
+import 'package:quran/quran.dart' as quran;
+import 'components/cache_helper.dart';
 import 'components/overaly.dart';
 import 'cubit/cubit.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'layout/app_layout.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:package_info_plus/package_info_plus.dart';
+
+import 'firebase_options.dart';
 
 
 
@@ -56,12 +48,101 @@ void fetchPrayerTimesAlarm() async {
     tz.setLocalLocation(tz.getLocation(tz.local.name));
     final cubit = PrayerTimesCubit();
     await cubit.fetchPrayerTimes();
+    await cubit.scheduleDoaaNotifications();
     await cubit.close();
   }
   catch(e){
     print(e);
   }
 
+}
+
+@pragma('vm:entry-point')
+Future<void> checkAndFireQuranReminder() async {
+  try {
+    // read saved lastRead datetime string
+    final String? lastReadStr = await CacheHelper.getData(key: 'lastRead');
+
+    if (lastReadStr == null) {
+      // nothing read yet — nothing to remind
+      return;
+    }
+
+    DateTime? lastRead;
+    try {
+      lastRead = DateTime.parse(lastReadStr);
+    } catch (_) {
+      // if parsing fails, bail out
+      return;
+    }
+
+    final now = DateTime.now();
+    final difference = now.difference(lastRead).inDays;
+
+    // Only proceed if 2 or more full days passed
+    if (difference >= 2) {
+      // make sure user didn't mute this notification
+      final List? skipped = await CacheHelper.getData(key: 'mutedNotifications');
+      if (skipped?.contains("تذكير بالمصحف") ?? false) return;
+
+      // get last-read surah number (you earlier used key "sora" — ensure name matches)
+      final int? lastSora = await CacheHelper.getData(key: 'sora');
+
+      // get surah name safely
+      final String sorahName = (lastSora != null) ? quran.getSurahNameArabic(lastSora) : 'المصحف';
+
+      // call your notification helper (see below)
+      final androidDetails = ln.AndroidNotificationDetails(
+        'quran_channel',
+        'Quran Notifications',
+        channelDescription: 'Quran reading reminder',
+        importance: ln.Importance.max,
+        priority: ln.Priority.high,
+        playSound: true,
+      );
+
+      final notifDetails = ln.NotificationDetails(android: androidDetails);
+
+      await flutterLocalNotificationsPlugin.show(
+        1, // id
+        "لا تكن هاجراً للقرآن",
+        "تذكير بقراءة سورة $sorahName",
+        notifDetails,
+      );
+
+    }
+  } catch (e, st) {
+    // optionally log
+    print('checkAndFireQuranReminder error: $e\n$st');
+  }
+}
+
+Future<void> scheduleDailyQuranCheck() async {
+  // A one-shot: run in 1 minute for an initial quick check (optional)
+  final DateTime oneShotTime = DateTime.now().add(const Duration(minutes: 1));
+  await AndroidAlarmManager.oneShotAt(
+    oneShotTime,
+    // unique id for this job
+    0,
+    checkAndFireQuranReminder,
+    exact: true,
+    wakeup: true,
+    allowWhileIdle: true,
+  );
+
+  // periodic: run every day
+  await AndroidAlarmManager.periodic(
+    const Duration(days: 1),
+    // unique id for periodic job (must be different from oneShot id)
+    1,
+    checkAndFireQuranReminder,
+    exact: true,
+    wakeup: true,
+    rescheduleOnReboot: true,
+    allowWhileIdle: true,
+  );
+
+  print('Alarm scheduled for daily Quran check.');
 }
 
 /// Local notifications plugin instance (global)
@@ -74,13 +155,23 @@ ln.FlutterLocalNotificationsPlugin();
 /// ================================================
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 if(Platform.isAndroid){
   await AndroidAlarmManager.initialize();
-
+  await scheduleDailyQuranCheck();
   final now = DateTime.now();
   final next = DateTime(now.year, now.month, now.day, 0, 1).add(const Duration(days: 1));
   await AndroidAlarmManager.oneShotAt(next, 0, fetchPrayerTimesAlarm, exact: true, wakeup: true,);
   await AndroidAlarmManager.periodic(const Duration(days: 1), 1, fetchPrayerTimesAlarm, exact: true, wakeup: true,rescheduleOnReboot: true);
+}
+else{
+  // final homeCubit = HomeCubit();
+  // await homeCubit.requestIOSPermission();
+  // await homeCubit.startQuranReminderChecks();
+  // await homeCubit.initializeNotifications();
+  // homeCubit.showNotification();
 }
   DioHelper.init();
   // Setup timezone info
@@ -133,12 +224,13 @@ if(Platform.isAndroid){
   initializeDateFormatting('ar', null);
 
   // Start the app
-  runApp(EasyLocalization(
+  runApp(
+    EasyLocalization(
     supportedLocales: [Locale('en'), Locale('ar')],
     path: 'assets/langs',
     fallbackLocale: Locale('ar'),
     startLocale: Locale('ar'),
-    child: MyApp(),
+    child: const MyApp(),
   ),
   );
 }
@@ -245,13 +337,14 @@ class MyApp extends StatelessWidget {
       designSize: const Size(392.72727272727275, 800.7272727272727),
       child: MultiBlocProvider(
         providers: [
-          BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimes()),
+          BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimes()..scheduleDoaaNotifications()),
           BlocProvider(create: (context) => AppCubit()),
           BlocProvider(create: (context) => HomeCubit()..requestLocationPermissions()..requestOverlay()..getFirstTime()),
           BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()),
-          BlocProvider(create: (context) => SettingsCubit()),
-          BlocProvider(create: (context) => ThemeCubit()),
+          BlocProvider(create: (context) => SettingsCubit()..getNotificationsState()),
+          BlocProvider(create: (context) => ThemeCubit()..getThemeMode(),lazy: false,),
           BlocProvider(create: (context) => QiblahCubit()),
+          BlocProvider(create: (context) => AuthCubit()),
           BlocProvider(create: (context) => AzkarCubit()),
           BlocProvider(create: (context) => AudioQuranCubit()),
         ],
@@ -264,45 +357,35 @@ class MyApp extends StatelessWidget {
              debugShowCheckedModeBanner: false,
              themeMode: themeMode,
              theme: ThemeData(
-               brightness: Brightness.light,
-               primarySwatch: Colors.blue,
-               scaffoldBackgroundColor: HexColor("fffaf5"),
-               bottomNavigationBarTheme: BottomNavigationBarThemeData(
-                 type: BottomNavigationBarType.fixed,
-                 backgroundColor: HexColor("fffaf5"),
-                 elevation: 20.0,
-                 selectedItemColor: HexColor("936f35"),
-                 unselectedItemColor: HexColor("d6bb97"),
-                 showUnselectedLabels: false,
+               scaffoldBackgroundColor: Colors.white,
+               appBarTheme: const AppBarTheme(
+                 backgroundColor: Color(0xFF151515),
+                 systemOverlayStyle: SystemUiOverlayStyle(
+                   statusBarColor: Color(0xFF151515),
+                   statusBarIconBrightness: Brightness.dark, // white icons on dark bg
+                   statusBarBrightness: Brightness.dark, // for iOS
+                 ),
                ),
              ),
              darkTheme: ThemeData(
-               brightness: Brightness.dark,
-               primarySwatch: Colors.blue,
-               scaffoldBackgroundColor: Color(AppColors.scaffoldBg),
-               bottomNavigationBarTheme: BottomNavigationBarThemeData(
-                 type: BottomNavigationBarType.fixed,
-                 backgroundColor: HexColor("1a1a1a"),
-                 elevation: 20.0,
-                 selectedItemColor: HexColor("ffd700"),
-                 unselectedItemColor: HexColor("aaaaaa"),
-                 showUnselectedLabels: false,
+               scaffoldBackgroundColor: const Color(0xFF151515),
+               appBarTheme: const AppBarTheme(
+                 backgroundColor: Colors.white,
+                 systemOverlayStyle: SystemUiOverlayStyle(
+                   statusBarColor: Colors.white, // same as scaffold for smoothness
+                   statusBarIconBrightness: Brightness.light, // dark icons on light bg
+                   statusBarBrightness: Brightness.light, // for iOS
+                 ),
                ),
+
              ),
              // home: const AppLayout(),
-             home: HomeScreen(),
+             home:FirebaseAuth.instance.currentUser==null? LandingScreen():HomeScreen(),
            ),
         ),
       ),
     );
   }
 
-  /// Initializes the cubit by fetching or loading cached prayer times
-  Future<void> _initializePrayerTimes(PrayerTimesCubit cubit) async {
-    if (await cubit.shouldFetchNewTimes()) {
-      await cubit.fetchPrayerTimes(); // Fetch new times if outdated
-    } else {
-      await cubit.loadCachedPrayerTimes(); // Load from cache if still valid
-    }
-  }
+
 }

@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_textstyles.dart';
+import '../../../controllers/theme/theme_cubit.dart';
 
 
 class AzkarHeader extends StatelessWidget {
@@ -11,17 +12,20 @@ class AzkarHeader extends StatelessWidget {
   final VoidCallback? onBack;
   final bool showBorder;
   final Color? iconColor;
+  final bool isDark;
 
-  const AzkarHeader({
+   const AzkarHeader({
     Key? key,
     required this.title,
     this.onBack,
     this.showBorder = true,
     this.iconColor,
+    required this.isDark
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+
     return Padding(
       padding:
       const EdgeInsetsDirectional.symmetric(horizontal: 20.0, vertical: 10),
@@ -30,7 +34,7 @@ class AzkarHeader extends StatelessWidget {
         children: [
           Text(
             title,
-            style: AppTextStyles.madReg16(context),
+            style: AppTextStyles.madReg16(context,color: isDark?Colors.white:Colors.black),
           ),
           InkWell(
             onTap: onBack ?? () => Navigator.pop(context),
@@ -46,7 +50,7 @@ class AzkarHeader extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: showBorder
                     ? Border.all(
-                  color: Color(AppColors.containerBorders),
+                  color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerDarkBorders),
                 )
                     : null,
               ),
@@ -55,7 +59,7 @@ class AzkarHeader extends StatelessWidget {
                   context.locale.languageCode == "ar"
                       ? Icons.arrow_forward_ios
                       : Icons.arrow_back_ios,
-                  color: iconColor ?? Colors.white,
+                  color: iconColor ??(isDark? Colors.white:Colors.black),
                 ),
               ),
             ),

@@ -7,7 +7,8 @@ import 'package:moshaf/views/azkar/widgets/azkar_header.dart';
 import '../../constants/app_colors.dart';
 
 class NamesOfAllah extends StatelessWidget {
-  const NamesOfAllah({super.key});
+  final bool isDark;
+  const NamesOfAllah({super.key,required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +18,7 @@ class NamesOfAllah extends StatelessWidget {
           padding: const EdgeInsets.all(13.0),
           child: Column(
             children: [
-              const AzkarHeader(title: "اسماء الله الحسنى"),
+              AzkarHeader(title: "اسماء الله الحسنى",isDark: isDark,),
               Expanded(
                 child: GridView.builder(
                   padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
@@ -42,14 +43,14 @@ class NamesOfAllah extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(15),
                             ),
-                            backgroundColor: const Color(0xFF1E1E1E),
+                            backgroundColor:isDark? const Color(0xFF1E1E1E):Colors.white,
                             title: Text(
                               name,
                               textAlign: TextAlign.center,
                               style: AppTextStyles.madL14(context).copyWith(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color:isDark? Colors.white:Colors.black,
                               ),
                             ),
                             content: Text(
@@ -57,7 +58,7 @@ class NamesOfAllah extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: AppTextStyles.madReg16(context).copyWith(
                                 fontSize: 15.sp,
-                                color: Colors.white70,
+                                color:isDark? Colors.white70:Colors.black87,
                               ),
                             ),
                           ),
@@ -67,13 +68,13 @@ class NamesOfAllah extends StatelessWidget {
                         width: double.infinity,
                         padding: EdgeInsetsDirectional.symmetric(vertical: 15, horizontal: 11),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Color(AppColors.containerBorders)),
+                          border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
                           child: Text(
                             name,
-                            style: AppTextStyles.madL14(context),
+                            style: AppTextStyles.madL14(context,color: isDark?Colors.white:Colors.black),
                             textAlign: TextAlign.center,
                           ),
                         ),

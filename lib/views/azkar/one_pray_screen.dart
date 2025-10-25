@@ -6,7 +6,8 @@ import '../../constants/app_textstyles.dart';
 class OnePrayScreen extends StatelessWidget {
   final String title;
   final Map items;
-  const OnePrayScreen({super.key, required this.title, required this.items});
+  final bool isDark;
+  const OnePrayScreen({super.key, required this.title, required this.items,required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +17,7 @@ class OnePrayScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            AzkarHeader(title: title),
+            AzkarHeader(title: title,isDark: isDark,),
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.all(12),
@@ -31,7 +32,7 @@ class OnePrayScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Color(AppColors.containerBorders)),
+                      border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,7 +60,7 @@ class OnePrayScreen extends StatelessWidget {
 
                         // Regular zekr (for الأذكار)
                         if (zekr != null)
-                          _buildRichZekrText(context, zekr),
+                          _buildRichZekrText(context, zekr,isDark),
 
                         if (benfits != null)
                           ...benfits.map<Widget>((benefit) {
@@ -77,8 +78,8 @@ class OnePrayScreen extends StatelessWidget {
                                   SizedBox(
                                     height: 10,
                                   ),
-                                  _buildRichZekrText(context, benefit["hadith"] ?? ""),
-                                  Divider(color: Color(AppColors.containerBorders),)
+                                  _buildRichZekrText(context, benefit["hadith"] ?? "",isDark),
+                                  Divider(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),)
                                 ],
                               ),
                             );
@@ -98,7 +99,7 @@ class OnePrayScreen extends StatelessWidget {
   }
 
   /// Highlight "اللَّهُمَّ" at the start of each line
-  Widget _buildRichZekrText(BuildContext context, String text) {
+  Widget _buildRichZekrText(BuildContext context, String text,bool isDark) {
     final lines = text.split('\n');
 
     final List<String> greenTriggers = [
@@ -137,7 +138,7 @@ class OnePrayScreen extends StatelessWidget {
                 ),
                 TextSpan(
                   text: rest + '\n\n',
-                  style: AppTextStyles.madReg14(context),
+                  style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                 ),
               ],
             );
@@ -146,7 +147,7 @@ class OnePrayScreen extends StatelessWidget {
           // Default normal text
           return TextSpan(
             text: trimmed + '\n',
-            style: AppTextStyles.madReg14(context),
+            style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
           );
         }).toList(),
       ),

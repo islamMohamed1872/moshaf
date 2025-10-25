@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:moshaf/components/cache_helper.dart';
 import 'package:moshaf/components/components.dart';
 import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
-import 'package:moshaf/modules/audio_quran/cubit/audio_quran_cubit.dart';
+import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_states.dart';
 import 'package:moshaf/views/quran/audio_screen.dart';
@@ -15,6 +16,7 @@ import 'package:quran/quran.dart' as quran;
 import 'package:quran/quran.dart';
 
 import '../../components/audio_service.dart';
+import '../../controllers/theme/theme_cubit.dart';
 import '../../modules/text_quran/views/quran_page.dart';
 
 class AllQuranScreen extends StatelessWidget {
@@ -22,6 +24,7 @@ class AllQuranScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return BlocBuilder<TextQuranCubit,TextQuranStates>(
         builder: (context, state) {
           final cubit = TextQuranCubit.get(context);
@@ -48,7 +51,7 @@ class AllQuranScreen extends StatelessWidget {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.black.withValues(alpha: 0),
-                            const Color(0xFF151515),
+                            isDark?const Color(0xFF151515):Colors.white,
                           ],
                         ),
                       ),
@@ -69,11 +72,12 @@ class AllQuranScreen extends StatelessWidget {
                               child: Icon(
                                 cubit.isPlaying ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
                                 size: 20.w,
+                                color: Colors.white,
                               ),
                             ),
                             RichText(
                                 text: TextSpan(text: cubit.savedSora==0?"1":cubit.savedSora.toString(),
-                              style: AppTextStyles.arsura24(context),
+                              style: AppTextStyles.arsura24(context,color: Colors.white),
                             ))
                           ],
                         ),
@@ -102,7 +106,7 @@ class AllQuranScreen extends StatelessWidget {
                         textAlign: TextAlign.center,
                         maxLines:2,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.arsura24(context),
+                        style: AppTextStyles.arsura24(context,color: Colors.white),
                         ),
                       ),
                     ),
@@ -116,11 +120,11 @@ class AllQuranScreen extends StatelessWidget {
                             decoration: cubit.placeOfRevelation=="مكية"? BoxDecoration(
                               borderRadius: BorderRadius.circular(45),
                               border: Border.all(
-                                color: Color(AppColors.containerBorders)
+                                color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)
                               ),
                             ):null,
                             child: Text("مكية",
-                            style: AppTextStyles.madMd12(context),
+                            style: AppTextStyles.madMd12(context,color: isDark?Colors.white:Colors.black),
                             ),
                           ),
                           Container(
@@ -128,11 +132,11 @@ class AllQuranScreen extends StatelessWidget {
                             decoration:cubit.placeOfRevelation=="مدنية"?  BoxDecoration(
                               borderRadius: BorderRadius.circular(45),
                               border: Border.all(
-                                color: Color(AppColors.containerBorders)
+                                color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)
                               ),
                             ):null,
                             child: Text("مدنية",
-                            style: AppTextStyles.madMd12(context),
+                              style: AppTextStyles.madMd12(context,color: isDark?Colors.white:Colors.black),
                             ),
                           ),
                         ],
@@ -173,13 +177,14 @@ class AllQuranScreen extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   height: 1,
-                  color: Color(AppColors.containerBorders),
+                  color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                 ),
                 Expanded(
                     child: Padding(
                       padding: EdgeInsetsGeometry.symmetric(horizontal: 15),
                       child: ListView.separated(
                           itemBuilder: (context, index) => CustomSorahContainer(
+                            isDark: isDark,
                               placeOfRevelation: quran.getPlaceOfRevelation(
                                   index+1) ==
                                   "Makkah"
@@ -188,6 +193,7 @@ class AllQuranScreen extends StatelessWidget {
                               verseCount: quran.getVerseCount(index+1),
                               sorahIndex: index,
                               onReadPressed: () async{
+                                CacheHelper.saveData(key: "lastRead", value: DateTime.now().toString());
                                 cubit.stop();
                                 await AudioServices().player.clearAudioSources();
                                 cubit.soraNumber = index+1;

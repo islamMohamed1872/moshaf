@@ -5,9 +5,9 @@ import 'package:quran/quran.dart';
 class HeaderWidget extends StatelessWidget {
   var e;
   var jsonData;
-
+  final bool isDark;
   HeaderWidget(
-      {super.key, required this.e, required this.jsonData, });
+      {super.key, required this.e, required this.jsonData, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -29,9 +29,9 @@ class HeaderWidget extends StatelessWidget {
                 child:RichText(text:  TextSpan(text:  (e["number"]-1).toString(),
 
                   // textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style:  TextStyle(
                       fontFamily: "arsura",
-                      fontSize: 30,color: Colors.white
+                      fontSize: 30,color:isDark? Colors.white:Colors.black
 
                   ),
                 ))),

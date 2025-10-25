@@ -8,7 +8,9 @@ import '../../constants/app_textstyles.dart';
 class Header extends StatelessWidget {
   final String title;
   final GestureTapCallback? onTap;
-  const Header({super.key,required this.title,this.onTap});
+  final bool isDark;
+  final Color? iconColor;
+  const Header({super.key,required this.title,this.onTap,required this.isDark,this.iconColor});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +23,7 @@ class Header extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title,
-            style: AppTextStyles.madReg16(context),
+            style: AppTextStyles.madReg16(context,color:isDark? Colors.white:Colors.black),
           ),
           InkWell(
             onTap:onTap?? () {
@@ -40,7 +42,7 @@ class Header extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Color(AppColors.containerBorders),
+                  color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                 ),
               ),
               child: FittedBox(
@@ -48,7 +50,7 @@ class Header extends StatelessWidget {
                   context.locale.languageCode == "ar"
                       ? Icons.arrow_forward_ios
                       : Icons.arrow_back_ios,
-                  color: Colors.white,
+                  color:iconColor??Colors.white,
                 ),
               ),
             ),

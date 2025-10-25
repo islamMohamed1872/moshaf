@@ -5,8 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hexcolor/hexcolor.dart';
-import 'package:moshaf/modules/audio_quran/cubit/audio_quran_cubit.dart';
-import 'package:moshaf/modules/audio_quran/cubit/audio_quran_states.dart';
+import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
+import 'package:moshaf/controllers/quran_audio/audio_quran_states.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:moshaf/views/azkar/widgets/azkar_header.dart';
 import 'package:moshaf/views/quran/widgets/custom_sorah_container.dart';
@@ -17,6 +17,7 @@ import '../../components/audio_service.dart';
 import '../../components/components.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
+import '../../controllers/theme/theme_cubit.dart';
 import '../../modules/text_quran/views/quran_page.dart';
 
 class AudioScreen extends StatelessWidget {
@@ -24,6 +25,7 @@ class AudioScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return BlocConsumer<AudioQuranCubit, AudioQuranStates>(
       builder: (context, state) {
         final cubit = AudioQuranCubit.get(context);
@@ -56,7 +58,7 @@ class AudioScreen extends StatelessWidget {
                               ),
                             );
                           },
-                          child: Icon(FontAwesomeIcons.fileLines),
+                          child: Icon(FontAwesomeIcons.fileLines,color: isDark?Colors.white:Colors.black,),
                         ),
                         InkWell(
                           onTap: () async{
@@ -75,7 +77,7 @@ class AudioScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: Color(AppColors.containerBorders),
+                                color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                               ),
                             ),
                             child: FittedBox(
@@ -83,7 +85,7 @@ class AudioScreen extends StatelessWidget {
                                 context.locale.languageCode == "ar"
                                     ? Icons.arrow_forward_ios
                                     : Icons.arrow_back_ios,
-                                color: Colors.white,
+                                color:isDark? Colors.white:Colors.black,
                               ),
                             ),
                           ),
@@ -100,28 +102,29 @@ class AudioScreen extends StatelessWidget {
                     padding: EdgeInsetsDirectional.symmetric(horizontal: 30.w,vertical: 20),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Color(AppColors.containerBorders)),
+                      border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
                     ),
                     child: Column(
                       children: [
                         const Spacer(),
                         RichText(
                             text: TextSpan(text: cubit.sorahNumber.toString(),
-                              style: AppTextStyles.arsura40(context),
+                              style: AppTextStyles.arsura40(context,color: isDark?Colors.white:Colors.black),
                             )),
                         const SizedBox(height: 8,),
-                        Text("${quran.getPlaceOfRevelation(
+                        Text(
+                          "${quran.getPlaceOfRevelation(
                             cubit.sorahNumber) ==
                             "Makkah"
                             ? "مكية"
                             : "مدنية"} | ${quran.getVerseCount(cubit.sorahNumber)} ايات",
-                        style: AppTextStyles.madXL10(context,color: Color(0xff848484)) ,
+                        style: AppTextStyles.madXL10(context,color: Color(isDark?AppColors.containerDarkBorders:0xff848484)) ,
                         ),
                         SizedBox(
                           height: 30.h,
                         ),
-                        _buildProgressBar(cubit,context),
-                        _buildControls(cubit,state)
+                        _buildProgressBar(cubit,context,isDark),
+                        _buildControls(cubit,state,isDark)
                       ],
                     ),
                   ),
@@ -134,7 +137,7 @@ class AudioScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(
-                        color: Color(AppColors.containerBorders),
+                        color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                       ),
                     ),
                     child: DropdownButtonHideUnderline(
@@ -142,18 +145,18 @@ class AudioScreen extends StatelessWidget {
                         isExpanded: true,
                         hint: Text(
                           'اختر القارئ',
-                          style: AppTextStyles.madReg14(context),
+                          style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                         ),
                         value: cubit.selecteShiekh,
                         icon: Icon(Icons.keyboard_arrow_down_rounded),
-                        dropdownColor: Color(AppColors.containerBorders),
+                        dropdownColor: Color(isDark?AppColors.containerDarkBorders:0xffffffff),
                         borderRadius: BorderRadius.circular(12.r),
                         items: cubit.shiekhList.map((String name) {
                           return DropdownMenuItem<String>(
                             value: name,
                             child: Text(
                               name,
-                              style: AppTextStyles.madL14(context),
+                              style: AppTextStyles.madL14(context,color: isDark?Colors.white:Colors.black),
                             ),
                           );
                         }).toList(),
@@ -169,6 +172,7 @@ class AudioScreen extends StatelessWidget {
                   Expanded(
                       child: ListView.separated(
                           itemBuilder: (context, index) => CustomSorahContainer(
+                            isDark: isDark,
                             placeOfRevelation: quran.getPlaceOfRevelation(
                                 index+1) ==
                                 "Makkah"
@@ -216,16 +220,16 @@ class AudioScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressBar(AudioQuranCubit cubit,context) {
+  Widget _buildProgressBar(AudioQuranCubit cubit,context,bool isDark) {
     return Directionality(
       textDirection: ui.TextDirection.ltr,
       child: SliderTheme(
         data: SliderTheme.of(context).copyWith(trackHeight: 1,thumbSize: MaterialStateProperty.all(Size(5, 5)),),
         child: Slider(
-          activeColor: Colors.white,
-          inactiveColor: HexColor("#3E3E3E"),
+          activeColor:isDark? Colors.white:Colors.black,
+          inactiveColor:isDark? HexColor("#3E3E3E"):HexColor("#BFBFBF"),
           padding: EdgeInsets.all(0),
-          thumbColor: Color(AppColors.containerBorders),
+          thumbColor: Color(isDark?AppColors.containerDarkBorders:0xff000000),
           value: cubit.position.inSeconds
               .clamp(0, cubit.duration.inSeconds)
               .toDouble(),
@@ -244,12 +248,12 @@ class AudioScreen extends StatelessWidget {
   }
 
 
-  Widget _buildControls(AudioQuranCubit cubit,AudioQuranStates state) {
+  Widget _buildControls(AudioQuranCubit cubit,AudioQuranStates state,bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-          icon: const Icon(FontAwesomeIcons.forwardStep, size: 20,color: Colors.white,),
+          icon:  Icon(FontAwesomeIcons.forwardStep, size: 20,color:isDark? Colors.white:Colors.black,),
           onPressed: cubit.canGoPrev ? cubit.prevSurah : null,
         ),
         const SizedBox(width: 30),
@@ -259,26 +263,26 @@ class AudioScreen extends StatelessWidget {
           },
           child: CircleAvatar(
             radius: 15,
-            backgroundColor: Colors.white,
+            backgroundColor:isDark? Colors.white:Colors.black,
             child:state is GetDataLoadingState&&cubit.duration==Duration(seconds: 0)?
             Padding(
               padding: EdgeInsets.all(2),
               child: CircularProgressIndicator(
-                color: Colors.black,
+                color:isDark? Colors.black:Colors.white,
               ),
             ):
             Icon(
               cubit.isPlaying
                   ? Icons.pause
                   : Icons.play_arrow,
-              color: Colors.black,
+              color:isDark? Colors.black:Colors.white,
               size: 20,
             ),
           ),
         ),
         const SizedBox(width: 30),
         IconButton(
-          icon: const Icon(FontAwesomeIcons.backwardStep, size: 20,color: Colors.white,),
+          icon:  Icon(FontAwesomeIcons.backwardStep, size: 20,color:isDark? Colors.white:Colors.black,),
           onPressed: cubit.canGoNext ? cubit.nextSurah : null,
         ),
       ],

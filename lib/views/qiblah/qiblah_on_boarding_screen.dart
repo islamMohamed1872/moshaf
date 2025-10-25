@@ -6,15 +6,18 @@ import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_states.dart';
 import 'package:moshaf/views/qiblah/qiblah_screen.dart';
+import 'package:moshaf/views/widgets/custom_green_button.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../constants/app_colors.dart';
+import '../../controllers/theme/theme_cubit.dart';
 
 class QiblahOnBoardingScreen extends StatelessWidget {
   const QiblahOnBoardingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return BlocConsumer<QiblahCubit,QiblahStates>(
       builder: (context, state) {
         final cubit = QiblahCubit.get(context);
@@ -33,10 +36,10 @@ class QiblahOnBoardingScreen extends StatelessWidget {
                     padding: const EdgeInsetsDirectional.symmetric(horizontal: 15,vertical: 6),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: Color(AppColors.containerBorders)),
+                      border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
                     ),
                     child: Text("تخطي",
-                      style: AppTextStyles.madReg14(context),
+                      style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                     ),
                   ),
                 ),
@@ -49,35 +52,22 @@ class QiblahOnBoardingScreen extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: 19,vertical: 26),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
-                    color: Color(0xff3E3E3E).withValues(alpha: 0.8),
+                    color:isDark? Color(0xff3E3E3E).withValues(alpha: 0.8):Color(0xffBFBFBF),
                   ),
                   child:  Column(
                     spacing: 10.h,
                     children: [
 
                       Text("تحديد القبلة",
-                        style: AppTextStyles.madB20(context),
+                        style: AppTextStyles.madB20(context,color: isDark?Colors.white:Colors.black),
                       ),
                       Text("قَدْ نَرَى تَقَلُّبَ وَجْهِكَ فِي السَّمَاءِ فَلَنُوَلِّيَنَّكَ قِبْلَةً تَرْضَاهَا فَوَلِّ وَجْهَكَ شَطْرَ الْمَسْجِدِ الْحَرَامِ وَحَيْثُ مَا كُنْتُمْ فَوَلُّوا وُجُوهَكُمْ شَطْرَهُ",
-                        style: AppTextStyles.madReg16(context),
+                        style: AppTextStyles.madReg16(context,color: isDark?Colors.white:Colors.black),
                       ),
-                      InkWell(
+                      CustomGreenButton(text: "تحديد موقعك لتوجيهك نحو القبلة",
                         onTap: () {
-                          cubit.checkPermission(context);
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(vertical: 11),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Color(AppColors.mainGreen),
-                          ),
-                          child: Center(
-                            child: Text("تحديد موقعك لتوجيهك نحو القبلة",
-                              style: AppTextStyles.madB14(context),
-                            ),
-                          ),
-                        ),
+                        cubit.checkPermission(context,isDark);
+                      },
                       )
                     ],
                   ),

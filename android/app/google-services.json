@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "733056371061",
+    "project_id": "mostakeem-a41d2",
+    "storage_bucket": "mostakeem-a41d2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:733056371061:android:688527dd1e2ac0b5192b3c",
+        "android_client_info": {
+          "package_name": "com.afaqalspl.moshaf"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "733056371061-un5a30njdmqn3flajc4v36f8icgav66k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.afaqalspl.moshaf",
+            "certificate_hash": "7a93045df22e21ddad7508c00b529ac8f56bac61"
+          }
+        },
+        {
+          "client_id": "733056371061-b6gieovfqeh44d1qeac4962hkrcqk309.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnpXXUo-lWIUIUKMIVbLbSHYGVuM8EuVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "733056371061-b6gieovfqeh44d1qeac4962hkrcqk309.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "733056371061-4eil2h7lseccn5o9hqu63o999lusllr2.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.moshaf"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 
 class Basmallah extends StatefulWidget {
   int index;
-   Basmallah({super.key, required this.index });
+  final bool isDark;
+   Basmallah({super.key, required this.index ,required this.isDark});
 
   @override
   State<Basmallah> createState() => _BasmallahState();
@@ -26,7 +27,7 @@ class _BasmallahState extends State<Basmallah> {
 
       Image.asset(
           "assets/images/Basmala.png",
-          color:Colors.white,
+          color:widget.isDark?Colors.white:Colors.black,
           width: MediaQuery.of(context).size.width*.4,
         ),
       ),

@@ -10,6 +10,7 @@ class CustomDecoratedContainer extends StatelessWidget {
   final VoidCallback onPressed;
   final Color? borderColor;
   final double? height;
+  final bool isDark;
 
   const CustomDecoratedContainer({
     super.key,
@@ -18,6 +19,7 @@ class CustomDecoratedContainer extends StatelessWidget {
     required this.onPressed,
     this.borderColor,
     this.height,
+    required this.isDark
   });
 
   @override
@@ -32,7 +34,7 @@ class CustomDecoratedContainer extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8.r),
           border: Border.all(
-            color: borderColor ?? Color(AppColors.containerBorders),
+            color: borderColor ?? Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
           ),
         ),
         child: Row(
@@ -43,7 +45,7 @@ class CustomDecoratedContainer extends StatelessWidget {
             Image.asset(imagePath!, height: 22.h),
             Text(
               text,
-              style: AppTextStyles.madReg14(context),
+              style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
             ),
           ],
         ),

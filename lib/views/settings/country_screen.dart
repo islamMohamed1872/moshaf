@@ -7,12 +7,14 @@ import 'package:moshaf/views/widgets/header.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
+import '../../controllers/theme/theme_cubit.dart';
 
 class CountryScreen extends StatelessWidget {
   const CountryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return BlocBuilder<SettingsCubit,SettingsStates>(
         builder: (context, state) {
           final cubit = SettingsCubit.get(context);
@@ -23,10 +25,10 @@ class CountryScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Header(title: "البلد"),
+                Header(title: "البلد",isDark: isDark,iconColor: isDark?Colors.white:Colors.black,),
                 SizedBox(height:  35.h),
                 Text("الدولة",
-                style: AppTextStyles.madReg14(context),
+                style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                 ),
                 const SizedBox(height:  15),
                 Container(
@@ -35,7 +37,7 @@ class CountryScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8.r),
                     border: Border.all(
-                      color: Color(AppColors.containerBorders),
+                      color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                     ),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -43,18 +45,18 @@ class CountryScreen extends StatelessWidget {
                       isExpanded: true,
                       hint: Text(
                         'اختر الدولة',
-                        style: AppTextStyles.madReg14(context),
+                        style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                       ),
                       value: cubit.country,
                       icon: Icon(Icons.keyboard_arrow_down_rounded),
-                      dropdownColor: Color(AppColors.containerBorders),
+                      dropdownColor: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                       borderRadius: BorderRadius.circular(12.r),
                       items: cubit.countries.map((String name) {
                         return DropdownMenuItem<String>(
                           value: name,
                           child: Text(
                             name,
-                            style: AppTextStyles.madReg12(context),
+                            style: AppTextStyles.madReg12(context,color: isDark?Colors.white:Colors.black),
                           ),
                         );
                       }).toList(),

@@ -19,7 +19,7 @@ class QiblahCubit extends Cubit<QiblahStates>{
   bool waitingForPermissionResult = false;
   bool isPermanentlyDenied = false;
 
-  Future<void> checkPermission(context) async {
+  Future<void> checkPermission(context,bool isDark) async {
     try{
       emit(CheckPermissionState());
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -34,7 +34,7 @@ class QiblahCubit extends Cubit<QiblahStates>{
 
       if (!status.isGranted) {
         status = await Permission.locationWhenInUse.request();
-        showPermissionDialog(context);
+        showPermissionDialog(context,isDark);
         return;
       }
 
@@ -44,11 +44,11 @@ class QiblahCubit extends Cubit<QiblahStates>{
         getCurrentAddress();
         emit(GetPermissionSuccessState());
       } else if (status.isDenied) {
-        showPermissionDialog(context);
+        showPermissionDialog(context,isDark);
         emit(ShowPermissionDialogState());
       } else if (status.isPermanentlyDenied) {
         isPermanentlyDenied = true;
-        showPermissionDialog(context);
+        showPermissionDialog(context,isDark);
         emit(ShowPermissionDialogState());
       }
     }catch(e){
@@ -63,22 +63,24 @@ class QiblahCubit extends Cubit<QiblahStates>{
     locationStream = FlutterQiblah.qiblahStream;
   }
 
-  void showPermissionDialog(context){
+  void showPermissionDialog(context,bool isDark){
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text(
+        backgroundColor:isDark ? const Color(0xFF1E1E1E)   // dark mode dialog color
+          : Colors.white,
+      title: Text(
           'يتطلب إذن الموقع',
           textAlign: TextAlign.center,
-          style: AppTextStyles.madB14(context),
+          style: AppTextStyles.madB14(context,color: isDark?Colors.white:Colors.black),
         ),
         content: Text(
           isPermanentlyDenied
               ? 'تم رفض إذن الموقع بشكل نهائي. يرجى فتح الإعدادات وتفعيل إذن الموقع.'
               : 'من فضلك فعّل إذن الوصول إلى الموقع لاستخدام بوصلة القبلة.',
           textAlign: TextAlign.center,
-          style: AppTextStyles.madReg12(context),
+          style: AppTextStyles.madReg12(context,color: isDark?Colors.white:Colors.black),
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
@@ -99,13 +101,13 @@ class QiblahCubit extends Cubit<QiblahStates>{
             },
             child: Text(
               'فتح الإعدادات',
-              style: AppTextStyles.madMd12(context),
+              style: AppTextStyles.madMd12(context,color: isDark?Colors.white:Colors.black),
             ),
           ),
           if (isPermanentlyDenied)
             TextButton(
               style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.all(Colors.white),
+                backgroundColor: WidgetStateProperty.all(isDark?Colors.white:Colors.black),
                 shape: WidgetStateProperty.all(
                   ContinuousRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -115,7 +117,7 @@ class QiblahCubit extends Cubit<QiblahStates>{
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'إلغاء',
-                style: AppTextStyles.madMd12(context, color: Colors.black),
+                style: AppTextStyles.madMd12(context, color:isDark?Colors.black: Colors.white),
               ),
             ),
         ],

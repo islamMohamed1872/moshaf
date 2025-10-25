@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -10,6 +11,7 @@ import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../controllers/theme/theme_cubit.dart';
 import '../widgets/header.dart';
 
 class QiblahCompassScreen extends StatefulWidget {
@@ -50,6 +52,7 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -75,20 +78,20 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
               padding: const EdgeInsets.all(14.0),
               child: Column(
                 children: [
-                  Header(title: "تحديد القبلة"),
+                  Header(title: "تحديد القبلة",isDark: isDark,),
                   Container(
                     width: double.infinity,
                     padding: EdgeInsetsDirectional.symmetric(horizontal: 20,vertical: 15),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Color(AppColors.containerBorders)),
+                      border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
                     ),
                     child: Row(
                       spacing: 5,
                       children: [
                         Icon(Icons.location_on_outlined,size: 25.w,),
                         Text(QiblahCubit.get(context).address,
-                          style: AppTextStyles.madReg14(context),
+                          style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                         ),
                       ],
                     ),
@@ -101,7 +104,7 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
                       padding: EdgeInsetsDirectional.symmetric(horizontal: 20,vertical: 15),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Color(AppColors.containerBorders)),
+                        border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
                       ),
                       child: _buildCompassUI(angle, isPointingAtKaabah))),
                   SizedBox(
@@ -116,7 +119,7 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
                     ),
                     child: Center(
                       child: Text(isPointingAtKaabah?"تم تحديد القبلة":"تحديد القبلة",
-                        style: AppTextStyles.madB14(context),
+                        style: AppTextStyles.madB14(context,color: isDark?Colors.white:Colors.black),
                       ),
                     ),
                   ),

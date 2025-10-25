@@ -8,6 +8,7 @@ import 'package:moshaf/modules/azkar/cubit/azkar_states.dart';
 import 'package:moshaf/views/azkar/widgets/azkar_header.dart';
 
 import '../../constants/app_colors.dart';
+import '../../controllers/theme/theme_cubit.dart';
 
 class ZekrScreen extends StatelessWidget {
   final String title;
@@ -16,6 +17,7 @@ class ZekrScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return BlocBuilder<AzkarCubit,AzkarStates>(
       builder: (context, state) {
         final cubit = AzkarCubit.get(context);
@@ -24,7 +26,7 @@ class ZekrScreen extends StatelessWidget {
             padding: const EdgeInsets.all(13.0),
             child: Column(
               children: [
-                AzkarHeader(title: title),
+                AzkarHeader(title: title,isDark: isDark,),
                 Expanded(
                   child: ListView.separated(
                     itemBuilder: (context, index) => IntrinsicHeight(
@@ -40,7 +42,7 @@ class ZekrScreen extends StatelessWidget {
                               padding: EdgeInsetsDirectional.symmetric(vertical: 9, horizontal: 5),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Color(AppColors.containerBorders)),
+                                border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -54,7 +56,7 @@ class ZekrScreen extends StatelessWidget {
                                       child: SizedBox(
                                           width: 20.w,
                                           height: 20.w,
-                                          child: Icon(FontAwesomeIcons.rotateRight,color: Color(AppColors.containerBorders),size: 12,))),
+                                          child: Icon(FontAwesomeIcons.rotateRight,color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),size: 12,))),
                                   Center(
                                     child: FittedBox(
                                       fit: BoxFit.scaleDown,
@@ -70,7 +72,7 @@ class ZekrScreen extends StatelessWidget {
                                   ),
                                   Center(
                                     child: Text("مرات",
-                                      style: AppTextStyles.madReg16(context),
+                                      style: AppTextStyles.madReg16(context,color: isDark?Colors.white:Colors.black),
                                     ),
                                   )
                                 ],
@@ -83,7 +85,7 @@ class ZekrScreen extends StatelessWidget {
                               padding: EdgeInsetsDirectional.symmetric(vertical: 10, horizontal: 15),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Color(AppColors.containerBorders)),
+                                border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
                               ),
                               child: Align(
                                 alignment: Alignment.centerRight,
@@ -97,7 +99,7 @@ class ZekrScreen extends StatelessWidget {
                                         style: AppTextStyles.madReg12(context,color: Color(AppColors.mainGreen)),
                                       ),
                                     Text(items["azkar"][index]['zekr'],
-                                      style: AppTextStyles.madReg14(context),
+                                      style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                                     ),
                                     if(items["azkar"][index]['reference']!=null)
                                     Text(items["azkar"][index]['reference'],

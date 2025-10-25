@@ -221,7 +221,6 @@ class AzkarCubit extends Cubit<AzkarStates> {
     final azkarMasaa = AzkarConstants.azkarMasaa;
     final azkarMotafareqa = AzkarConstants.azkarMotafareqa;
     final prayerTimes = PrayerTimesCubit.get(context).prayerTimes;
-    print(prayerTimes);
     if(prayerTimes.isEmpty){
      await PrayerTimesCubit.get(context).fetchPrayerTimes();
     }
@@ -306,7 +305,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
     emit(GetRandomDuaa());
   }
 
-  void navigateToRelatedDoaaScreen( context, String category) {
+  void navigateToRelatedDoaaScreen( context, String category,bool isDark) {
     final categories = {
       "جوامع الدعاء": AzkarConstants.jawameDoaa,
       "أدعية نبوية": AzkarConstants.adeyahNabaweyah,
@@ -315,7 +314,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
 
     final selected = categories[category];
     if (selected != null) {
-      navigateTo(context, OnePrayScreen(title: category, items: selected));
+      navigateTo(context, OnePrayScreen(title: category, items: selected,isDark: isDark,));
     }
   }
 

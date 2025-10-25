@@ -16,15 +16,18 @@ import 'package:moshaf/views/landing/widgets/custom_decorated_container.dart';
 import 'package:moshaf/views/widgets/header.dart';
 
 import '../../constants/app_colors.dart';
+import '../../controllers/theme/theme_cubit.dart';
 
 class AzkarScreen extends StatelessWidget {
   const AzkarScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return BlocBuilder<AzkarCubit,AzkarStates>(
         builder: (context, state) {
           final cubit = AzkarCubit.get(context);
+
           return Scaffold(
             body: SafeArea(
                 child: SingleChildScrollView(
@@ -48,7 +51,7 @@ class AzkarScreen extends StatelessWidget {
                                 end: Alignment.bottomCenter,
                                 colors: [
                                   Colors.black.withValues(alpha: 0),
-                                  const Color(0xFF151515),
+                                  isDark?const Color(0xFF151515):Colors.white,
                                 ],
                               ),
                             ),
@@ -58,8 +61,10 @@ class AzkarScreen extends StatelessWidget {
                             right: 0,
                             left: 0,
                             child: Header(title: cubit.zekrCategory,onTap: () {
-                              navigateAndFinish(context, HomeScreen());
-                            },),
+                              navigateAndFinish(context, HomeScreen(),);
+                            },
+                            isDark: isDark,
+                            ),
                           ),
                           Positioned(
                             right: 10,
@@ -68,7 +73,7 @@ class AzkarScreen extends StatelessWidget {
                               textAlign: TextAlign.center,
                               maxLines:2,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.kufi24(context),
+                              style: AppTextStyles.kufi24(context,color: Colors.white),
                             ),
                           ),
                           Positioned(
@@ -81,11 +86,11 @@ class AzkarScreen extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(45),
                                     border: Border.all(
-                                        color: Color(AppColors.containerBorders)
+                                        color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)
                                     ),
                                   ),
                                   child: Text("اذكار",
-                                    style: AppTextStyles.madMd12(context),
+                                    style: AppTextStyles.madMd12(context,color: isDark?Colors.white:Colors.black),
                                   ),
                                 ),
                                 InkWell(
@@ -96,7 +101,7 @@ class AzkarScreen extends StatelessWidget {
                                   child: Container(
                                     padding: EdgeInsetsDirectional.symmetric(horizontal: 9.w,vertical: 3.h),
                                     child: Text("ادعية",
-                                      style: AppTextStyles.madMd12(context),
+                                      style: AppTextStyles.madMd12(context,color: isDark?Colors.white:Colors.black),
                                     ),
                                   ),
                                 ),
@@ -110,14 +115,15 @@ class AzkarScreen extends StatelessWidget {
                         width: double.infinity,
                         height: 1,
                         margin: EdgeInsetsDirectional.symmetric(vertical: 10),
-                        color: Color(AppColors.containerBorders),
+                          color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)
                       ),
                       /// اسماء الله الحسنى
                       CustomAzkarContainer(
                         startPadding: 13,
                         endPadding: 13,
+                        isDark: isDark,
                         onTap: () {
-                          navigateTo(context, NamesOfAllah());
+                          navigateTo(context, NamesOfAllah(isDark: isDark,));
                         },
                           text: "اسماء الله الحسنى",
                           image: "assets/images/asmaa_allah.png"),
@@ -131,6 +137,7 @@ class AzkarScreen extends StatelessWidget {
                           Expanded(
                             child: CustomAzkarContainer(
                               startPadding: 13,
+                                isDark: isDark,
                                 onTap: () {
                                 navigateTo(context, ZekrScreen(title: "اذكار الصباح", items: AzkarConstants.azkarSabah));
                                 },
@@ -140,6 +147,7 @@ class AzkarScreen extends StatelessWidget {
                           Expanded(
                             child: CustomAzkarContainer(
                               endPadding: 13,
+                                isDark: isDark,
                                 onTap: () {
                                   navigateTo(context, ZekrScreen(title: "اذكار المساء", items: AzkarConstants.azkarMasaa));
                                 },
@@ -155,6 +163,7 @@ class AzkarScreen extends StatelessWidget {
                       CustomAzkarContainer(
                         startPadding: 13,
                           endPadding: 13,
+                          isDark: isDark,
                           onTap: () {
                             navigateTo(context, ZekrScreen(title: "اذكار بعد الصلاة", items: AzkarConstants.azkarBaadAlsalah));
                           },
@@ -169,6 +178,7 @@ class AzkarScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: CustomAzkarContainer(
+                              isDark: isDark,
                               startPadding: 13,
                                 onTap: () {
                                   navigateTo(context, ZekrScreen(title: "اذكار الاستيقاظ", items: AzkarConstants.azkarAlIstiqaz));
@@ -179,6 +189,7 @@ class AzkarScreen extends StatelessWidget {
                           Expanded(
                             child: CustomAzkarContainer(
                               endPadding: 13,
+                                isDark: isDark,
                                 onTap: () {
                                   navigateTo(context, ZekrScreen(title: "اذكار النوم", items: AzkarConstants.azkarAlNawm));
                                 },
@@ -194,6 +205,7 @@ class AzkarScreen extends StatelessWidget {
                       CustomAzkarContainer(
                         startPadding: 13,
                           endPadding: 13,
+                          isDark: isDark,
                           onTap: () {
                             navigateTo(context, ZekrScreen(title: "اذكار متفرقة", items: AzkarConstants.azkarMotafareqa));
                           },
@@ -209,6 +221,7 @@ class AzkarScreen extends StatelessWidget {
                           Expanded(
                             child: CustomAzkarContainer(
                               startPadding: 13,
+                                isDark: isDark,
                                 onTap: () {
                                   navigateTo(context, ZekrScreen(title: "اذكار الاذان", items: AzkarConstants.azkarAlAdhan));
 
@@ -219,6 +232,7 @@ class AzkarScreen extends StatelessWidget {
                           Expanded(
                             child: CustomAzkarContainer(
                               endPadding: 13,
+                                isDark: isDark,
                                 onTap: () {
                                   navigateTo(context, ZekrScreen(title: "اذكار المسجد", items: AzkarConstants.azkarAlMasjid));
 
@@ -238,6 +252,7 @@ class AzkarScreen extends StatelessWidget {
                           Expanded(
                             child: CustomAzkarContainer(
                               startPadding: 13,
+                                isDark: isDark,
                                 onTap: () {
                                   navigateTo(context, ZekrScreen(title: "اذكار الطعام", items: AzkarConstants.azkarAlTaam));
 
@@ -248,6 +263,7 @@ class AzkarScreen extends StatelessWidget {
                           Expanded(
                             child: CustomAzkarContainer(
                               endPadding: 13,
+                                isDark: isDark,
                                 onTap: () {
                                   navigateTo(context, ZekrScreen(title: "اذكار الوضوء", items: AzkarConstants.azkarAlWudu));
 
@@ -267,6 +283,7 @@ class AzkarScreen extends StatelessWidget {
                           Expanded(
                             child: CustomAzkarContainer(
                               startPadding: 13,
+                                isDark: isDark,
                                 onTap: () {
                                   navigateTo(context, ZekrScreen(title: "اذكار الحج والعمرة", items: AzkarConstants.azkarAlHajjWalUmrah));
 
@@ -277,6 +294,7 @@ class AzkarScreen extends StatelessWidget {
                           Expanded(
                             child: CustomAzkarContainer(
                               endPadding: 13,
+                                isDark: isDark,
                                 onTap: () {
                                   navigateTo(context, ZekrScreen(title: "اذكار المنزل", items: AzkarConstants.azkarAlManzil));
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:moshaf/components/components.dart';
 import 'package:moshaf/views/home/home_screen.dart';
@@ -7,6 +8,7 @@ import 'package:moshaf/views/widgets/custom_outlined_green_button.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
+import '../../controllers/theme/theme_cubit.dart';
 import '../widgets/custom_green_button.dart';
 
 class PrayTeachingScreen extends StatefulWidget {
@@ -58,6 +60,7 @@ class _PrayTeachingScreenState extends State<PrayTeachingScreen> {
   ];
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return Scaffold(
       body: SafeArea(child: Padding(
         padding: const EdgeInsets.all(15.0),
@@ -73,7 +76,7 @@ class _PrayTeachingScreenState extends State<PrayTeachingScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text("تعليم الصلاة",
-                    style: AppTextStyles.madReg16(context),
+                    style: AppTextStyles.madReg16(context,color: isDark?Colors.white:Colors.black),
                   ),
                   if(index == 0 || index == instructions.length -1)
                   InkWell(
@@ -96,13 +99,12 @@ class _PrayTeachingScreenState extends State<PrayTeachingScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(38),
                         border: Border.all(
-                          color: Color(AppColors.containerBorders),
+                          color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                         ),
                       ),
-                      child: Text(index == 0?"تخطي":"رجوع",style: AppTextStyles.madReg14(context),),
+                      child: Text(index == 0?"تخطي":"رجوع",style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),),
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -113,7 +115,7 @@ class _PrayTeachingScreenState extends State<PrayTeachingScreen> {
               padding: EdgeInsetsDirectional.only(start: 120.w,end: 120.w, top: 60.h),
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Color(AppColors.containerBorders))),
+                  border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
               child: SizedBox(
                   height: 135.h,
                   child: Image.asset("assets/images/praying${index+1}.png")),
@@ -124,14 +126,13 @@ class _PrayTeachingScreenState extends State<PrayTeachingScreen> {
               padding: EdgeInsetsDirectional.symmetric(horizontal: 17, vertical: 12),
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Color(AppColors.containerBorders))),
+                  border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
               child: RichText(
                   text: TextSpan(children: [
                     TextSpan(text: "${instructions[index]["title"]}\n", style: AppTextStyles.madB14(context, color: Color(AppColors.mainGreen))),
                     TextSpan(
-                        text:
-                        "${instructions[index]["content"]}",
-                        style: AppTextStyles.madReg14(context)),
+                        text: "${instructions[index]["content"]}",
+                        style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
                   ])),
             ),
             const Spacer(),
@@ -154,8 +155,8 @@ class _PrayTeachingScreenState extends State<PrayTeachingScreen> {
                       : Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xff3E3E3E),
+                    decoration:  BoxDecoration(
+                      color: isDark? Color(0xff3E3E3E):Color(0xffBFBFBF),
                       shape: BoxShape.circle,
                     ),
                   ),

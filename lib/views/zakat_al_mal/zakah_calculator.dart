@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:moshaf/components/cache_helper.dart';
@@ -7,6 +8,8 @@ import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/views/widgets/custom_green_button.dart';
 import 'package:moshaf/views/widgets/header.dart';
 import 'dart:math';
+
+import '../../controllers/theme/theme_cubit.dart';
 
 class ZakahCalculator extends StatefulWidget {
   const ZakahCalculator({super.key});
@@ -97,6 +100,7 @@ class _ZakahCalculatorState extends State<ZakahCalculator> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SafeArea(
@@ -104,7 +108,7 @@ class _ZakahCalculatorState extends State<ZakahCalculator> {
             padding: const EdgeInsets.all(15.0),
             child: Column(
               children: [
-                Header(title: "زكاة المال"),
+                Header(title: "زكاة المال",isDark: isDark,),
                 SizedBox(
                   height: 40.h,
                 ),
@@ -113,19 +117,19 @@ class _ZakahCalculatorState extends State<ZakahCalculator> {
                   padding: EdgeInsetsDirectional.symmetric(horizontal: 17, vertical: 12),
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Color(AppColors.containerBorders))),
+                      border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
                   child: RichText(
                       text: TextSpan(children: [
-                        TextSpan(text: "فرض إسلامي يُخرَج منها", style: AppTextStyles.madReg14(context)),
+                        TextSpan(text: "فرض إسلامي يُخرَج منها", style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
                         TextSpan(text: " 2.5% ", style: AppTextStyles.madB14(context, color: Color(AppColors.mainGreen))),
                         TextSpan(
                             text:
                             "من الأموال المدخرة التي بلغت النصاب(وهو ما يعادل 85 جرامًا من الذهب أو 595 جرامًا من الفضة) ومر عليها عام",
-                            style: AppTextStyles.madReg14(context)),
+                            style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
                         TextSpan(text: " هجري كامل ", style: AppTextStyles.madB14(context, color: Color(AppColors.mainGreen))),
-                        TextSpan(text: "يجب أن تخرج الزكاة إلى", style: AppTextStyles.madReg14(context)),
+                        TextSpan(text: "يجب أن تخرج الزكاة إلى", style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
                         TextSpan(text: " الفقراء والمساكين ", style: AppTextStyles.madB14(context, color: Color(AppColors.mainGreen))),
-                        TextSpan(text: "وغيرهم من المصارف المحددة في القرآن الكريم، ويمكن أن تكون نقدًا أو عينيًا", style: AppTextStyles.madReg14(context)),
+                        TextSpan(text: "وغيرهم من المصارف المحددة في القرآن الكريم، ويمكن أن تكون نقدًا أو عينيًا", style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
                       ])),
                 ),
                 const SizedBox(
@@ -135,7 +139,7 @@ class _ZakahCalculatorState extends State<ZakahCalculator> {
                   width: double.infinity,
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Color(AppColors.containerBorders))),
+                      border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -170,7 +174,7 @@ class _ZakahCalculatorState extends State<ZakahCalculator> {
                               // show zakat result below amount if present
                               Positioned(
                                 bottom: 8,
-                                child: Text(currency??"جنية مصري", style: AppTextStyles.madL40(context))
+                                child: Text(currency??"جنية مصري", style: AppTextStyles.madL40(context,color: isDark?Colors.white:Colors.black))
                               ),
                             ],
                           ),
@@ -192,11 +196,11 @@ class _ZakahCalculatorState extends State<ZakahCalculator> {
                   decoration: InputDecoration(
                     hintText: "ادخل المبلغ",
                     hintStyle: AppTextStyles.madReg14(context,color: Color(0xff3E3E3E)),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(AppColors.containerBorders))),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
                     enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(AppColors.containerBorders))),
+                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
                     errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(AppColors.containerBorders))),
+                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
                     focusedBorder:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(AppColors.mainGreen))),
                   ),

@@ -5,8 +5,8 @@ import 'package:hexcolor/hexcolor.dart';
 import 'package:moshaf/components/components.dart';
 import 'package:moshaf/components/const.dart';
 import 'package:moshaf/modules/audio_quran/audio_screen.dart';
-import 'package:moshaf/modules/audio_quran/cubit/audio_quran_cubit.dart';
-import 'package:moshaf/modules/audio_quran/cubit/audio_quran_states.dart';
+import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
+import 'package:moshaf/controllers/quran_audio/audio_quran_states.dart';
 
 class ShiekhScreen extends StatelessWidget {
   const ShiekhScreen({super.key});

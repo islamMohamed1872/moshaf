@@ -13,7 +13,7 @@ class CustomSorahContainer extends StatelessWidget {
   final VoidCallback onListenPressed;
   final Color? borderColor;
   final double? height;
-
+  final bool isDark;
   const CustomSorahContainer({
     super.key,
     required this.placeOfRevelation,
@@ -23,6 +23,7 @@ class CustomSorahContainer extends StatelessWidget {
     required this.onListenPressed,
     this.borderColor,
     this.height,
+    required this.isDark
   });
 
   @override
@@ -34,7 +35,7 @@ class CustomSorahContainer extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(
-          color: borderColor ?? Color(AppColors.containerBorders),
+          color: borderColor ?? Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
         ),
       ),
       child: Row(
@@ -45,17 +46,17 @@ class CustomSorahContainer extends StatelessWidget {
           children: [
             RichText(
                 text: TextSpan(text: (sorahIndex+1).toString(),
-                  style: AppTextStyles.arsura24(context),
+                  style: AppTextStyles.arsura24(context,color: isDark?Colors.white:Colors.black),
                 )),
             Text("$placeOfRevelation | $verseCount ايات",
-            style: AppTextStyles.madXL10(context,color: Color(AppColors.containerBorders)),
+            style: AppTextStyles.madXL10(context,color: Color(isDark?AppColors.containerDarkBorders:0xff848484)),
             )
           ],
         ),
           const Spacer(),
           InkWell(
               onTap: onReadPressed,
-              child: Icon(FontAwesomeIcons.solidFileLines,color: Colors.white,size: 20,)),
+              child: Icon(FontAwesomeIcons.solidFileLines,color:isDark? Colors.white:Colors.black,size: 20,)),
           InkWell(
             onTap: onListenPressed,
             child: Container(

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:moshaf/views/home/home_screen.dart';
 import 'package:moshaf/views/pray_teaching/pray_teaching_screen.dart';
 import '../../components/components.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
+import '../../controllers/theme/theme_cubit.dart';
 import '../widgets/custom_green_button.dart';
 
 class PrayInstructionsScreen extends StatelessWidget {
@@ -12,6 +14,7 @@ class PrayInstructionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     final List ayat = [
       "﴿وَأَقِيمُوا الصَّلَاةَ وَآتُوا الزَّكَاةَ وَارْكَعُوا مَعَ الرَّاكِعِينَ﴾",
       "﴿إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَوْقُوتًا﴾",
@@ -39,7 +42,7 @@ class PrayInstructionsScreen extends StatelessWidget {
                   children: [
                     Text(
                       "تعليم الصلاة",
-                      style: AppTextStyles.madReg16(context),
+                      style: AppTextStyles.madReg16(context,color: isDark?Colors.white:Colors.black),
                     ),
                     InkWell(
                       /// navigate to the home screen !!!!!!!!!!!!!!!!!!!
@@ -50,12 +53,12 @@ class PrayInstructionsScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(38),
                           border: Border.all(
-                            color: Color(AppColors.containerBorders),
+                            color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                           ),
                         ),
                         child: Text(
                           "رجوع",
-                          style: AppTextStyles.madReg14(context),
+                          style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                         ),
                       ),
                     ),
@@ -70,12 +73,12 @@ class PrayInstructionsScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: Color(AppColors.containerBorders),
+                    color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                   ),
                 ),
                 child: Text(
                   "الصلاة عمود الدين، ولا حظ في الإسلام لمن تركها، وهي صلة بين العبد وربه، فمن قطعها فقد قطع الصلة بينه وبين ربه وخالقه، ومن قطع هذه الصلة فقد خسر خسراناً مبيناً. والواجب على من ابتلي بترك الصلاة أو التقصير فيها أن يتوب إلى الله تعالى توبة صادقة نصوحا، وأن يتذكر أن ترك الصلاة سبب الويل والعذاب والنكد في الدنيا وفي الآخرة، وسبب لتسلط الشيطان الرجيم على العبد",
-                  style: AppTextStyles.madReg14(context),
+                  style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                 ),
               ),
               const SizedBox(height: 8),
@@ -91,7 +94,7 @@ class PrayInstructionsScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: Color(AppColors.containerBorders),
+                        color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                       ),
                     ),
                     child: Text(

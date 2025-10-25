@@ -6,8 +6,8 @@ import 'package:moshaf/components/components.dart';
 import 'package:moshaf/cubit/cubit.dart';
 import 'package:moshaf/cubit/states.dart';
 import 'package:moshaf/modules/audio_quran/audio_player_screen.dart';
-import 'package:moshaf/modules/audio_quran/cubit/audio_quran_cubit.dart';
-import 'package:moshaf/modules/audio_quran/cubit/audio_quran_states.dart';
+import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
+import 'package:moshaf/controllers/quran_audio/audio_quran_states.dart';
 import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
 import 'package:quran/quran.dart' as quran;
 

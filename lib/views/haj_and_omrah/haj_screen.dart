@@ -9,7 +9,8 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
 import '../widgets/header.dart';
 class HajScreen extends StatelessWidget {
-  const HajScreen({super.key});
+  final bool isDark;
+  const HajScreen({super.key,required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +86,7 @@ class HajScreen extends StatelessWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.black.withValues(alpha: 0),
-                          const Color(0xFF151515),
+                          isDark?const Color(0xFF151515):Colors.white,
                         ],
                       ),
                     ),
@@ -108,7 +109,7 @@ class HajScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Color(AppColors.containerBorders),
+                            color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                           ),
                         ),
                         child: FittedBox(
@@ -129,7 +130,7 @@ class HajScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       maxLines:2,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.kufi24(context),
+                      style: AppTextStyles.kufi24(context,color: Colors.white),
                     ),
                   ),
                   Positioned(
@@ -139,12 +140,12 @@ class HajScreen extends StatelessWidget {
                       children: [
                         InkWell(
                           onTap: () {
-                            navigateAndFinish(context, OmrahScreen());
+                            navigateAndFinish(context, OmrahScreen(isDark: isDark,));
                           },
                           child: Container(
                             padding: EdgeInsetsDirectional.symmetric(horizontal: 9.w,vertical: 3.h),
                             child: Text("العمرة",
-                              style: AppTextStyles.madMd12(context),
+                              style: AppTextStyles.madMd12(context,color: isDark?Colors.white:Colors.black),
                             ),
                           ),
                         ),
@@ -154,11 +155,11 @@ class HajScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(45),
                             border: Border.all(
-                                color: Color(AppColors.containerBorders)
+                                color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)
                             ),
                           ),
                           child: Text("الحج",
-                            style: AppTextStyles.madMd12(context),
+                            style: AppTextStyles.madMd12(context,color: isDark?Colors.white:Colors.black),
                           ),
                         ),
                       ],
@@ -171,7 +172,7 @@ class HajScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 1,
                 margin: EdgeInsetsDirectional.symmetric(vertical: 10),
-                color: Color(AppColors.containerBorders),
+                  color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)
               ),
               Expanded(
                   child: ListView.separated(
@@ -180,7 +181,7 @@ class HajScreen extends StatelessWidget {
                         padding: EdgeInsetsDirectional.symmetric(vertical: 12,horizontal: 15),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Color(AppColors.containerBorders)),
+                          border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
                         ),
                         child: RichText(text: TextSpan(
                             children: [
@@ -188,7 +189,7 @@ class HajScreen extends StatelessWidget {
                                   style: AppTextStyles.madB14(context,color: Color(AppColors.mainGreen))
                               ),
                               TextSpan(text: steps[index]['step'],
-                                  style: AppTextStyles.madReg14(context)
+                                  style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)
                               ),
                             ]
                         )),

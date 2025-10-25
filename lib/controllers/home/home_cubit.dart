@@ -6,6 +6,7 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:moshaf/components/cache_helper.dart';
@@ -23,6 +24,8 @@ import 'package:moshaf/views/ramadan/ramadan_screen.dart';
 import 'package:moshaf/views/tasbeeh/tasbeeh_screen.dart';
 import 'package:moshaf/views/wodoo_teaching/wodoo_instructions_screen.dart';
 import 'package:moshaf/views/zakat_al_mal/zakah_calculator.dart';
+import 'package:quran/quran.dart' as quran;
+import 'package:workmanager/workmanager.dart';
 
 import '../../constants/azkar.dart';
 import '../../modules/prayer_times/cubit/prayer_times_cubit.dart';
@@ -59,7 +62,7 @@ class HomeCubit extends Cubit<HomeStates>{
     {"image": "assets/images/zakah.png", "title": "حساب زكاة المال"},
   ];
 
-  void navigateToFeature(BuildContext context, int index) {
+  void navigateToFeature(BuildContext context, int index,bool isDark) {
     switch (index) {
       case 0:
         navigateTo(context, PrayerTimesScreen());
@@ -68,7 +71,7 @@ class HomeCubit extends Cubit<HomeStates>{
         navigateTo(context, AllQuranScreen());
         break;
       case 2:
-        navigateTo(context, OnePrayScreen(title: "ادعية نبوية", items: AzkarConstants.adeyahNabaweyah));
+        navigateTo(context, OnePrayScreen(title: "ادعية نبوية", items: AzkarConstants.adeyahNabaweyah,isDark: isDark));
         break;
       case 3:
         AzkarCubit.get(context).getZekrBasedOnTime(context);
@@ -90,7 +93,7 @@ class HomeCubit extends Cubit<HomeStates>{
         navigateTo(context, RamadanScreen());
         break;
       case 9:
-        navigateTo(context, OmrahScreen());
+        navigateTo(context, OmrahScreen(isDark: isDark,));
         break;
       case 10:
         navigateTo(context, TasbeehScreen());
@@ -165,8 +168,10 @@ class HomeCubit extends Cubit<HomeStates>{
 
       print('✅ Location permissions granted and cached successfully: '
           '(${pos.latitude}, ${pos.longitude})');
+
       if (await PrayerTimesCubit().shouldFetchNewTimes()) {
         await PrayerTimesCubit().fetchPrayerTimes(); // Fetch new times if outdated
+        await PrayerTimesCubit().scheduleDoaaNotifications(); // Fetch new times if outdated
       } else {
         await PrayerTimesCubit().loadCachedPrayerTimes(); // Load from cache if still valid
       }
@@ -184,4 +189,158 @@ class HomeCubit extends Cubit<HomeStates>{
     }
   }
 
+  // final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+  // FlutterLocalNotificationsPlugin();
+  //
+  // /// 🔹 Call this once in main() after app starts
+  // Future<void> startQuranReminderChecks() async {
+  //   if (Platform.isIOS) {
+  //     print("🍎 Initializing iOS daily Quran reminder checks...");
+  //
+  //     // Initialize Workmanager
+  //     await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+  //
+  //     // Register periodic background task (iOS decides exact frequency)
+  //     await Workmanager().registerPeriodicTask(
+  //       "1",
+  //       kQuranReminderTask,
+  //       frequency: const Duration(hours: 24),
+  //       existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+  //       backoffPolicy: BackoffPolicy.linear,
+  //     );
+  //
+  //     print("📆 iOS Workmanager Quran check registered.");
+  //   } else {
+  //     // Android is already handled in main.dart via AndroidAlarmManager
+  //     print("🤖 Android reminder check handled by AlarmManager.");
+  //   }
+  // }
+  //
+  // Future<void> initializeNotifications() async {
+  //   const iosInit = DarwinInitializationSettings(
+  //     requestAlertPermission: true,
+  //     requestBadgePermission: true,
+  //     requestSoundPermission: true,
+  //   );
+  //
+  //   const initSettings = InitializationSettings(iOS: iosInit);
+  //
+  //   await flutterLocalNotificationsPlugin.initialize(initSettings);
+  //   print("✅ Local notifications initialized");
+  // }
+  //
+  // Future<void> showNotification() async {
+  //   print("🔁 Running daily Quran reminder check (iOS Workmanager)...");
+  //
+  //   final int? lastSora = await CacheHelper.getData(key: 'sora');
+  //   final String surahName =
+  //   (lastSora != null) ? quran.getSurahNameArabic(lastSora) : 'المصحف';
+  //
+  //   final FlutterLocalNotificationsPlugin plugin =
+  //   FlutterLocalNotificationsPlugin();
+  //
+  //   // ensure permissions (especially iOS)
+  //   await plugin
+  //       .resolvePlatformSpecificImplementation<
+  //       IOSFlutterLocalNotificationsPlugin>()
+  //       ?.requestPermissions(alert: true, badge: true, sound: true);
+  //
+  //   const iosDetails = DarwinNotificationDetails(
+  //     presentAlert: true,
+  //     presentSound: true,
+  //   );
+  //
+  //   const notifDetails = NotificationDetails(iOS: iosDetails);
+  //
+  //   await plugin.show(
+  //     1,
+  //     "لا تكن هاجراً للقرآن",
+  //     "تذكير بقراءة سورة $surahName",
+  //     notifDetails,
+  //   );
+  //
+  //   print("✅ Quran reminder sent");
+  // }
+  //
+  // Future<void> requestIOSPermission() async {
+  //   final plugin = FlutterLocalNotificationsPlugin();
+  //   await plugin
+  //       .resolvePlatformSpecificImplementation<
+  //       IOSFlutterLocalNotificationsPlugin>()
+  //       ?.requestPermissions(
+  //     alert: true,
+  //     badge: true,
+  //     sound: true,
+  //   );
+  // }
+
+
 }
+//
+//
+// const String kQuranReminderTask = "quran_reminder_task";
+//
+// /// ===============================================
+// /// BACKGROUND TASK — runs daily on iOS (and Android if needed)
+// /// ===============================================
+// @pragma('vm:entry-point')
+// void callbackDispatcher() {
+//   Workmanager().executeTask((task, inputData) async {
+//     if (task == kQuranReminderTask) {
+//       try {
+//         print("🔁 Running daily Quran reminder check (iOS Workmanager)...");
+//
+//         final String? lastReadStr = await CacheHelper.getData(key: 'lastRead');
+//         if (lastReadStr == null) {
+//           print("📭 No lastRead found, skipping reminder.");
+//           return true;
+//         }
+//
+//         final DateTime lastRead = DateTime.parse(lastReadStr);
+//         final now = DateTime.now();
+//         final int daysPassed = now.difference(lastRead).inDays;
+//
+//         print("📆 Days since last read: $daysPassed");
+//
+//         if (daysPassed <= 2) {
+//           final List? skipped =
+//           await CacheHelper.getData(key: 'mutedNotifications');
+//           if (skipped?.contains("تذكير بالمصحف") ?? false) {
+//             print("🔕 Quran reminder muted — skipping.");
+//             return true;
+//           }
+//
+//           final int? lastSora = await CacheHelper.getData(key: 'sora');
+//           final String surahName = (lastSora != null)
+//               ? quran.getSurahNameArabic(lastSora)
+//               : 'المصحف';
+//
+//           final FlutterLocalNotificationsPlugin plugin =
+//           FlutterLocalNotificationsPlugin();
+//
+//           const iosDetails = DarwinNotificationDetails(
+//             presentAlert: true,
+//             presentSound: true,
+//           );
+//
+//           const notifDetails =
+//           NotificationDetails( iOS: iosDetails);
+//
+//           await plugin.show(
+//             1,
+//             "لا تكن هاجراً للقرآن",
+//             "تذكير بقراءة سورة $surahName",
+//             notifDetails,
+//           );
+//
+//           print("✅ Quran reminder sent (2+ days since last read).");
+//         } else {
+//           print("⏳ Still within 2 days — no reminder needed.");
+//         }
+//       } catch (e) {
+//         print("❌ Background Quran reminder error: $e");
+//       }
+//     }
+//     return true;
+//   });
+// }

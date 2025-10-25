@@ -1,9 +1,14 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:moshaf/components/cache_helper.dart';
 import 'package:moshaf/components/components.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
+import 'package:moshaf/views/landing/landing_screen.dart';
 import 'package:moshaf/views/settings/country_screen.dart';
+import 'package:moshaf/views/settings/notifications_control_screen.dart';
 import 'package:moshaf/views/settings/widgets/custom_switch.dart';
 import 'package:moshaf/views/widgets/header.dart';
 import '../../controllers/settings/settings_cubit.dart';
@@ -15,9 +20,9 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return BlocBuilder<ThemeCubit, ThemeMode>(
       builder: (context, themeMode) {
-        final isDark = themeMode == ThemeMode.dark;
         final cubit = SettingsCubit.get(context);
         return Scaffold(
           body: SafeArea(
@@ -26,7 +31,7 @@ class SettingsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Header(title: "الاعدادات"),
+                  Header(title: "الاعدادات",isDark: isDark,iconColor: isDark?Colors.white:Colors.black,),
                   SizedBox(
                     height: 15.h,
                   ),
@@ -39,15 +44,16 @@ class SettingsScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isDark
                           ? const Color(0xff1C1C1C)
-                          : const Color(0xffE5E5E5),
+                          : const Color(0xff767680).withValues(alpha: 0.24),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: Row(
                       children: [
                         Expanded(
                           child: GestureDetector(
-                            onTap: () =>
-                                context.read<ThemeCubit>().setTheme(ThemeMode.light),
+                            onTap: () {
+                              ThemeCubit.get(context).toggleTheme();
+                            },
                             child: Container(
                               padding: EdgeInsetsDirectional.symmetric(
                                 horizontal: 10,
@@ -55,22 +61,24 @@ class SettingsScreen extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: !isDark
-                                    ? Colors.white
+                                    ? Color(0xff6C6C71)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(25),
                               ),
                               alignment: Alignment.center,
                               child: Text(
                                 "الوضع الفاتح",
-                                style: AppTextStyles.madMd14(context),
+                                style: AppTextStyles.madMd14(context,color: Colors.white),
                               ),
                             ),
                           ),
                         ),
                         Expanded(
                           child: GestureDetector(
-                            onTap: () =>
-                                context.read<ThemeCubit>().setTheme(ThemeMode.dark),
+                            onTap: () {
+                              CacheHelper.putBoolean(key: 'isDark', value: true);
+                              context.read<ThemeCubit>().setTheme(ThemeMode.dark);
+                            },
                             child: Container(
                               padding: EdgeInsetsDirectional.symmetric(
                                   horizontal: 10,
@@ -85,7 +93,7 @@ class SettingsScreen extends StatelessWidget {
                               alignment: Alignment.center,
                               child: Text(
                                 "الوضع الداكن",
-                                style: AppTextStyles.madMd14(context),
+                                style: AppTextStyles.madMd14(context,color: Colors.white),
                               ),
                             ),
                           ),
@@ -102,8 +110,27 @@ class SettingsScreen extends StatelessWidget {
                         _settingsItem(
                           context,
                           icon: Icons.person_outline,
-                          label: "زائر تقبل الله منك صالح الأعمال",
-                          isDark: isDark,
+                          label: () {
+                            final user = FirebaseAuth.instance.currentUser;
+
+                            if (user == null) {
+                              // 🧘 Guest user
+                              return "زائر تقبل الله منك صالح الأعمال";
+                            }
+
+                            // 🧩 Case: Apple Sign-In
+                            if (user.providerData.any((p) => p.providerId == "apple.com")) {
+                              // If user has displayName, use it; otherwise fallback to email
+                              return user.displayName?.isNotEmpty == true
+                                  ? user.displayName!
+                                  : (user.email ?? "مستخدم Apple");
+                            }
+
+                            // 🟢 Case: Other sign-ins (email, Google, etc.)
+                            return user.displayName?.isNotEmpty == true
+                                ? user.displayName!
+                                : (user.email ?? "مستخدم");
+                          }(),                          isDark: isDark,
                           imagePath: "assets/images/profile.png",
                           onTap: () {
 
@@ -117,7 +144,7 @@ class SettingsScreen extends StatelessWidget {
                           isDark: isDark,
                             imagePath: "assets/images/notifications.png",
                           onTap: () {
-
+                            navigateTo(context, NotificationsControlScreen());
                           },
                         ),
                         _divider(isDark),
@@ -151,11 +178,18 @@ class SettingsScreen extends StatelessWidget {
                         _settingsItem(
                           context,
                           icon: Icons.check_circle_outline,
-                          label: "تسجيل الدخول",
+                          label: FirebaseAuth.instance.currentUser==null?"تسجيل الدخول":"تسجيل الخروج",
                           isDark: isDark,
                             imagePath: "assets/images/login.png",
                           onTap: () {
-
+                            if(FirebaseAuth.instance.currentUser!=null){
+                              FirebaseAuth.instance.signOut();
+                              GoogleSignIn.instance.signOut();
+                              navigateAndFinish(context, LandingScreen());
+                            }
+                            else{
+                              navigateTo(context, LandingScreen());
+                            }
                           },
                         ),
                       ],
@@ -194,7 +228,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           Text(
             label,
-            style: AppTextStyles.madMd16(context)
+            style: AppTextStyles.madMd16(context,color: isDark?Colors.white:Colors.black)
           ),
           if(subText !=null)
             Text(
@@ -207,39 +241,6 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-
-
-  Widget _switchItem({
-    required String label,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-    required String imagePath,
-    required bool isDark,
-  }) {
-    return Row(
-      spacing: 11,
-      children: [
-        SizedBox(
-          width: 24.w,
-          height: 24.w,
-          child: Image.asset(imagePath),
-        ),
-
-        Text(
-          label,
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
-            fontSize: 15,
-          ),
-        ),
-        const Spacer(),
-        CustomToggleSwitch(
-          value: value,
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
 
   Widget _divider(bool isDark) {
     return Padding(

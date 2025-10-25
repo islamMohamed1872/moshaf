@@ -7,6 +7,7 @@ class CustomGreenButton extends StatelessWidget {
   final VoidCallback onTap;
   final double verticalPadding;
   final Color? color;
+  final Color? textColor;
   final TextStyle? textStyle;
 
   const CustomGreenButton({
@@ -16,6 +17,7 @@ class CustomGreenButton extends StatelessWidget {
     this.verticalPadding = 11,
     this.color,
     this.textStyle,
+    this.textColor
   });
 
   @override
@@ -36,7 +38,7 @@ class CustomGreenButton extends StatelessWidget {
             style: textStyle ??
                 AppTextStyles.madB14(
                   context,
-                  color: Colors.white,
+                  color:textColor?? Colors.white,
                 ),
           ),
         ),

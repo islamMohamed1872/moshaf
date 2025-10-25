@@ -21,6 +21,7 @@ import 'package:quran/quran.dart' as quran;
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../components/const.dart';
+import '../../../controllers/theme/theme_cubit.dart';
 import '../widgets/basmallah.dart';
 import '../widgets/header_widget.dart';
 
@@ -196,10 +197,10 @@ class _QuranViewPageState extends State<QuranViewPage>
 
 
   /// Lazy cache: only build pages if they’re missing
-  void _tryCacheAhead(int currentPage) {
+  void _tryCacheAhead(int currentPage,bool isDark) {
     // Cache current if missing
     if (!_pageWidgetCache.containsKey(currentPage)) {
-      _pageWidgetCache[currentPage] = _buildPageWidget(currentPage);
+      _pageWidgetCache[currentPage] = _buildPageWidget(currentPage,isDark);
     }
     // Cache next 5 ahead if missing
     for (
@@ -208,12 +209,12 @@ class _QuranViewPageState extends State<QuranViewPage>
       i++
     ) {
       if (!_pageWidgetCache.containsKey(i)) {
-        _pageWidgetCache[i] = _buildPageWidget(i);
+        _pageWidgetCache[i] = _buildPageWidget(i,isDark);
       }
     }
   }
 
-  Widget _buildPageWidget(int pageIndex) {
+  Widget _buildPageWidget(int pageIndex,isDark) {
     if (pageIndex <= 0) return SizedBox();
     if (_pageWidgetCache.containsKey(pageIndex)) {
       return _pageWidgetCache[pageIndex]!;
@@ -235,7 +236,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                   //   child: HeaderWidget(e: e, jsonData: widget.jsonData),
                   // ));
                   if (pageIndex != 187 && pageIndex != 1) {
-                    spans.add(WidgetSpan(child: Basmallah(index: 0)));
+                    spans.add(WidgetSpan(child: Basmallah(index: 0,isDark: isDark,)));
                   }
                   if (pageIndex == 187) {
                     spans.add(WidgetSpan(child: SizedBox(height: 10.h)));
@@ -333,8 +334,8 @@ class _QuranViewPageState extends State<QuranViewPage>
                               Fluttertoast.showToast(
                                 msg: " تم حفظ تقدمك بنجاح",
                                 toastLength: Toast.LENGTH_SHORT,
-                                backgroundColor: HexColor("d6bb97"),
-                                textColor: mainTextColor,
+                                backgroundColor:isDark?Colors.white:Colors.black,
+                                textColor: isDark?Colors.black:Colors.white,
                                 gravity: ToastGravity.BOTTOM,
                                 fontSize: 16.0,
                               );
@@ -463,7 +464,7 @@ class _QuranViewPageState extends State<QuranViewPage>
 
                     text: getVerseQCF(e["surah"], i).replaceAll(' ', ''),
                     style: TextStyle(
-                      color: Colors.white,
+                      color:isDark? Colors.white:Colors.black,
                       backgroundColor:
                           highlighted == i
                               ? HexColor("998300").withValues(alpha: 0.2)
@@ -497,9 +498,9 @@ class _QuranViewPageState extends State<QuranViewPage>
   Widget build(BuildContext context) {
     super.build(context);
     final screenSize = MediaQuery.of(context).size;
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
 
     return Scaffold(
-      backgroundColor: Color(AppColors.scaffoldBg),
       body: SafeArea(
         child: Directionality(
           textDirection: TextDirection.ltr, // Force LTR scrolling logic
@@ -521,7 +522,7 @@ class _QuranViewPageState extends State<QuranViewPage>
               await AudioServices().player.stop();
               isPlaying.value = false;
               if(highlightVerseNotifier.value!=null) highlightVerseNotifier.value=null;
-              _tryCacheAhead(index);
+              _tryCacheAhead(index,isDark);
               // load font for this page + next couple
               TextQuranCubit.get(context).loadQuranFontCached(index);
               for (int i = index + 1; i <= index + 3; i++) {
@@ -560,7 +561,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                         children: [
                           Text(
                             TextQuranCubit.get(context).convertToArabic(pageIndex.toString()),
-                            style: AppTextStyles.madMd14(context,color: Colors.white),
+                            style: AppTextStyles.madMd14(context,color:Colors.white),
                           ),
                         ],
                       )
@@ -591,13 +592,13 @@ class _QuranViewPageState extends State<QuranViewPage>
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: Color(AppColors.containerBorders),
+                                      color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                                     ),
                                   ),
-                                  child: const FittedBox(
+                                  child:  FittedBox(
                                     child: Icon(
                                       Icons.arrow_back_ios,
-                                      color: Colors.white,
+                                        color:isDark? Colors.white:Colors.black
                                     ),
                                   ),
                                 ),
@@ -609,6 +610,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                                         pageIndex,
                                       )[0]["surah"]],
                                   jsonData: widget.jsonData,
+                                  isDark: isDark,
                                 ),
                               ),
                               // Container(
@@ -640,7 +642,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                                     child: Icon(
                                       playing ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
                                       size: 20.w,
-                                      color: Colors.white,
+                                        color:isDark? Colors.white:Colors.black
                                     ),
                                   );
                                 },
@@ -666,7 +668,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                                                 !TextQuranCubit.get(
                                                   context,
                                                 ).isFontLoaded(pageIndex),
-                                            child: _buildPageWidget(pageIndex),
+                                            child: _buildPageWidget(pageIndex,isDark),
                                           ),
                                         ),
                                   ),

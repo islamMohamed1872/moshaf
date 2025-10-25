@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
+import 'package:moshaf/controllers/theme/theme_cubit.dart';
 import 'package:moshaf/modules/prayer_times/cubit/prayer_times_cubit.dart';
 import 'package:moshaf/modules/prayer_times/cubit/prayer_times_states.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -15,6 +16,7 @@ class PrayerTimesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<PrayerTimesCubit,PrayerTimesStates>(builder: (context, state) {
       final cubit = PrayerTimesCubit.get(context);
+      final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
       return Scaffold(
         body: SafeArea(child:
         Column(
@@ -37,7 +39,9 @@ class PrayerTimesScreen extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.black.withValues(alpha: 0),
-                        const Color(0xFF151515),
+                        isDark?
+                        const Color(0xFF151515):
+                         Colors.white,
                       ],
                     ),
                   ),
@@ -52,10 +56,10 @@ class PrayerTimesScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(cubit.getDayName(),
-                          style: AppTextStyles.kufi24(context,color: Colors.black),
+                          style: AppTextStyles.kufi24(context,color:isDark? Colors.black:Colors.white),
                         ),
                         Text(cubit.getHijriMonth(),
-                          style: AppTextStyles.kufi24(context,color: Colors.black),
+                          style: AppTextStyles.kufi24(context,color:isDark? Colors.black:Colors.white),
                         ),
                       ],
                     ),
@@ -64,17 +68,17 @@ class PrayerTimesScreen extends StatelessWidget {
                 Column(
                   children: [
                     Text("صلاة ${cubit.upComingPrayer} بعد",
-                      style: AppTextStyles.madReg18(context,color: Colors.white),
+                      style: AppTextStyles.madReg18(context,color:isDark? Colors.white:Color(AppColors.lightBlack)),
                     ),
                     Text(cubit.remainingTime,
-                      style: AppTextStyles.madReg40(context,color: Colors.white),
+                      style: AppTextStyles.madB40(context,color:isDark? Colors.white:Color(AppColors.lightBlack)),
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.location_on_outlined,color: Colors.white,),
+                        Icon(Icons.location_on_outlined,color:isDark? Colors.white:Color(AppColors.lightBlack)),
                         Text("${cubit.translateToArabic(cubit.city)}, ${cubit.translateToArabic(cubit.country)}",
-                          style: AppTextStyles.madL16(context),
+                          style: AppTextStyles.madL16(context,color: isDark? Colors.white:Color(AppColors.lightBlack)),
                         )
                       ],
                     )
@@ -95,7 +99,7 @@ class PrayerTimesScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white,
+                          color: isDark? Colors.white:Colors.black,
                         ),
                       ),
                       child: FittedBox(
@@ -103,7 +107,7 @@ class PrayerTimesScreen extends StatelessWidget {
                           context.locale.languageCode == "ar"
                               ? Icons.arrow_forward_ios
                               : Icons.arrow_back_ios,
-                          color: Colors.white,
+                          color: isDark? Colors.white:Colors.black,
                         ),
                       ),
                     ),
@@ -115,26 +119,40 @@ class PrayerTimesScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  margin: EdgeInsetsDirectional.only(start: 20),
-                  padding: EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white
+                InkWell(
+                  onTap: () {
+                    cubit.previousPrayerDay();
+
+                  },
+                  child: Container(
+                    width: 20.w,
+                    height: 20.w,
+                    margin: EdgeInsetsDirectional.only(start: 20),
+                    padding:isDark? EdgeInsets.all(5):
+                    EdgeInsetsDirectional.only(start: 5),
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color:isDark? Colors.white:Colors.black
+                    ),
+                    child: Icon(Icons.arrow_back_ios,color:isDark? Colors.black:Colors.white,size: 10.w,),
                   ),
-                  child: Icon(Icons.arrow_back_ios,color: Colors.black,size: 10.w,),
                 ),
                 Text("${cubit.getDayName()} ${cubit.hijriDate} - ${cubit.date}",
-                  style: AppTextStyles.madL14(context),
+                  style: AppTextStyles.madL14(context,color: isDark?Colors.white:Colors.black),
                 ),
-                Container(
-                  margin: EdgeInsetsDirectional.only(end: 20),
-                  padding: EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white
+                InkWell(
+                  onTap: () {
+                    cubit.nextPrayerDay();
+                  },
+                  child: Container(
+                    margin: EdgeInsetsDirectional.only(end: 20),
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color:isDark? Colors.white:Colors.black
+                    ),
+                    child: Icon(Icons.arrow_forward_ios,color:isDark? Colors.black:Colors.white,size: 10.w,),
                   ),
-                  child: Icon(Icons.arrow_forward_ios,color: Colors.black,size: 10.w,),
                 ),
 
               ],
@@ -145,7 +163,7 @@ class PrayerTimesScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsetsDirectional.symmetric(horizontal: 20.0),
               child: Skeletonizer(
-                enabled: cubit.prayerTimesList.isEmpty,
+                enabled: cubit.prayerTimesList.isEmpty||state is GetPrayerTimesLoadingState,
                 child: ListView.separated(
                     shrinkWrap: true,
                     itemBuilder: (context, index){
@@ -158,24 +176,24 @@ class PrayerTimesScreen extends StatelessWidget {
                         padding: EdgeInsetsDirectional.symmetric(horizontal: 20,vertical: 15.h),
                         decoration: BoxDecoration(
                           border: Border.all(
-                              color: Color(AppColors.containerBorders)
+                              color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
                           children: [
                             Text(prayerName,
-                              style: AppTextStyles.madL14(context,color: cubit.upComingPrayer==prayerName?Color(0xffFFD900):Colors.white),
+                              style: AppTextStyles.madL14(context,color: cubit.upComingPrayer==prayerName?(isDark?Color(0xffFFD900):Color(0xffB59A00)):(isDark?Colors.white:Colors.black)),
                             ),
                             const SizedBox(
                               width: 7,
                             ),
                             Text(time,
-                              style: AppTextStyles.madReg14(context,color: cubit.upComingPrayer==prayerName?Color(0xffFFD900):Colors.white),
+                              style: AppTextStyles.madReg14(context,color: cubit.upComingPrayer==prayerName?(isDark?Color(0xffFFD900):Color(0xffB59A00)):isDark?Colors.white:Colors.black),
                             ),
                             const Spacer(),
                             Text(index==1?"بداية الشروق ${cubit.convertToArabic(iqama)}":"الاقامة ${cubit.convertToArabic(iqama)}",
-                              style: AppTextStyles.madL12(context,color: cubit.upComingPrayer==prayerName?Color(0xffFFD900):Colors.white),
+                              style: AppTextStyles.madL12(context,color: cubit.upComingPrayer==prayerName?(isDark?Color(0xffFFD900):Color(0xffB59A00)):isDark?Colors.white:Colors.black),
                             ),
                           ],
                         ),
@@ -196,7 +214,7 @@ class PrayerTimesScreen extends StatelessWidget {
                   padding: EdgeInsetsDirectional.symmetric(horizontal: 20,vertical: 15.h),
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: Color(AppColors.containerBorders)
+                        color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -204,13 +222,13 @@ class PrayerTimesScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text("منتصف الليل",
-                        style: AppTextStyles.madL14(context),
+                        style: AppTextStyles.madL14(context,color: isDark?Colors.white:Colors.black),
                       ),
                       const SizedBox(
                         width: 7,
                       ),
                       Text(cubit.prayerTimesList.isEmpty?"loading":cubit.convertToArabic(cubit.prayerTimesList[6]['time'].toString()),
-                        style: AppTextStyles.madReg14(context),
+                        style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                       ),
                     ],
                   ),
@@ -228,7 +246,7 @@ class PrayerTimesScreen extends StatelessWidget {
                   padding: EdgeInsetsDirectional.symmetric(horizontal: 20,vertical: 15.h),
                   decoration: BoxDecoration(
                     border: Border.all(
-                        color: Color(AppColors.containerBorders)
+                        color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -236,13 +254,13 @@ class PrayerTimesScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text("الثلث الاخير",
-                        style: AppTextStyles.madL14(context),
+                        style: AppTextStyles.madL14(context,color: isDark?Colors.white:Colors.black),
                       ),
                       const SizedBox(
                         width: 7,
                       ),
                       Text(cubit.prayerTimesList.isEmpty?"loading":cubit.convertToArabic(cubit.prayerTimesList[7]['time'].toString()),
-                        style: AppTextStyles.madReg14(context),
+                        style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
                       ),
                     ],
                   ),

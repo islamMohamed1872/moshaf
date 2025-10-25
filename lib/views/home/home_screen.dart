@@ -10,10 +10,12 @@ import 'package:moshaf/controllers/home/home_states.dart';
 import 'package:moshaf/views/settings/settings_screen.dart';
 import 'package:moshaf/views/widgets/custom_green_button.dart';
 
+import '../../controllers/theme/theme_cubit.dart';
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  void _showFirstTimeDialog(BuildContext context, HomeCubit cubit) {
+  void _showFirstTimeDialog(BuildContext context, HomeCubit cubit,bool isDark) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -23,7 +25,7 @@ class HomeScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
           side: BorderSide(
-            color: Color(AppColors.containerBorders),
+            color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
           ),
         ),
         child: Padding(
@@ -86,13 +88,15 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
+
     return BlocBuilder<HomeCubit, HomeStates>(
       builder: (context, state) {
         final cubit = HomeCubit.get(context);
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (cubit.isFirstTime == true) {
-            _showFirstTimeDialog(context, cubit);
+            _showFirstTimeDialog(context, cubit,isDark);
           }
         });
 
@@ -125,7 +129,7 @@ class HomeScreen extends StatelessWidget {
                         itemBuilder: (context, index) {
                           final item = cubit.gridItems[index];
                           return InkWell(
-                            onTap: () => cubit.navigateToFeature(context, index),
+                            onTap: () => cubit.navigateToFeature(context, index,isDark),
                             borderRadius: BorderRadius.circular(10),
                             splashColor: Color(AppColors.mainGreen).withOpacity(0.1),
                             child: Container(
@@ -136,7 +140,7 @@ class HomeScreen extends StatelessWidget {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
-                                  color: Color(AppColors.containerBorders),
+                                  color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                                 ),
                               ),
                               child: Column(
@@ -153,7 +157,7 @@ class HomeScreen extends StatelessWidget {
                                   Text(
                                     item["title"]!,
                                     textAlign: TextAlign.center,
-                                    style: AppTextStyles.madB16(context),
+                                    style: AppTextStyles.madB16(context,color: isDark? Colors.white:Colors.black),
                                   ),
                                 ],
                               ),
@@ -179,7 +183,7 @@ class HomeScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: Color(AppColors.containerBorders),
+                              color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                             ),
                           ),
                           child: Row(
@@ -194,7 +198,7 @@ class HomeScreen extends StatelessWidget {
                               Text(
                                 "الإعدادات",
                                 textAlign: TextAlign.center,
-                                style: AppTextStyles.madB16(context),
+                                style: AppTextStyles.madB16(context,color: isDark? Colors.white:Colors.black),
                               ),
                             ],
                           ),

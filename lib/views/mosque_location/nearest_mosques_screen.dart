@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -15,6 +16,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
+import '../../controllers/theme/theme_cubit.dart';
 import '../widgets/custom_green_button.dart';
 
 class MasjidLocatorScreen extends StatefulWidget {
@@ -350,6 +352,7 @@ class _MasjidLocatorScreenState extends State<MasjidLocatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return Scaffold(
       body: !_isReadyToRender
           ? const Center(child: CircularProgressIndicator())
@@ -387,18 +390,18 @@ class _MasjidLocatorScreenState extends State<MasjidLocatorScreen> {
             child: ElevatedButton(
               onPressed: () => navigateAndFinish(context, HomeScreen()),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+                backgroundColor:isDark? Colors.black:Colors.white,
+                foregroundColor: isDark? Colors.white:Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                   side: BorderSide(
-                    color: Color(AppColors.containerBorders),
+                    color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
                   ),
                 ),
               ),
               child: Text(
                 "العودة للرئيسية",
-                style: AppTextStyles.madReg14(context,color: Colors.black),
+                style: AppTextStyles.madReg14(context,color:isDark? Colors.white:Colors.black),
               ),
             ),
           ),
@@ -414,10 +417,10 @@ class _MasjidLocatorScreenState extends State<MasjidLocatorScreen> {
                 width: 45.w,
                 height: 45.w,
                 decoration: BoxDecoration(
-                  color: Colors.black,
+                  color: isDark? Colors.black:Colors.white,
                   borderRadius: BorderRadius.circular(50),
                 ),
-                child: const Icon(Icons.my_location, color: Colors.white),
+                child: Icon(Icons.my_location, color: isDark? Colors.white:Colors.black),
               ),
             ),
           ),
@@ -430,7 +433,7 @@ class _MasjidLocatorScreenState extends State<MasjidLocatorScreen> {
             child: Container(
               padding: EdgeInsets.all(15.w),
               decoration: BoxDecoration(
-                color: Color(0xff232323),
+                color: isDark? Color(0xff232323):Colors.white,
                 borderRadius: BorderRadius.circular(15),
               ),
               child:
@@ -441,7 +444,7 @@ class _MasjidLocatorScreenState extends State<MasjidLocatorScreen> {
                   Text(
                     _currentAddress ?? "جارٍ تحديد موقعك...",
                     textAlign: TextAlign.center,
-                    style: AppTextStyles.madReg16(context),
+                    style: AppTextStyles.madReg16(context,color: isDark?Colors.white:Colors.black),
                   ),
                   SizedBox(height: 10.h),
                   CustomGreenButton(
@@ -453,7 +456,7 @@ class _MasjidLocatorScreenState extends State<MasjidLocatorScreen> {
               Text(
                 _nearestMosqueName??"",
                 textAlign: TextAlign.center,
-                style: AppTextStyles.madReg16(context),
+                style: AppTextStyles.madReg16(context,color: isDark? Colors.white:Colors.black),
               ),
             ),
           ),
