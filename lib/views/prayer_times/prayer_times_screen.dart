@@ -5,8 +5,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/theme/theme_cubit.dart';
-import 'package:moshaf/modules/prayer_times/cubit/prayer_times_cubit.dart';
-import 'package:moshaf/modules/prayer_times/cubit/prayer_times_states.dart';
+import 'package:moshaf/controllers/prayer_times/prayer_times_cubit.dart';
+import 'package:moshaf/controllers/prayer_times/prayer_times_states.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class PrayerTimesScreen extends StatelessWidget {

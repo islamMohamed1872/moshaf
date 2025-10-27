@@ -8,8 +8,8 @@ import 'package:moshaf/components/components.dart';
 import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
-import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
-import 'package:moshaf/modules/text_quran/cubit/text_quran_states.dart';
+import 'package:moshaf/controllers/text_quran/text_quran_cubit.dart';
+import 'package:moshaf/controllers/text_quran/text_quran_states.dart';
 import 'package:moshaf/views/quran/audio_screen.dart';
 import 'package:moshaf/views/quran/widgets/custom_sorah_container.dart';
 import 'package:quran/quran.dart' as quran;
@@ -17,7 +17,7 @@ import 'package:quran/quran.dart';
 
 import '../../components/audio_service.dart';
 import '../../controllers/theme/theme_cubit.dart';
-import '../../modules/text_quran/views/quran_page.dart';
+import 'widgets/quran_page.dart';
 
 class AllQuranScreen extends StatelessWidget {
   const AllQuranScreen({super.key});

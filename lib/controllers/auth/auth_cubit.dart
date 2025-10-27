@@ -131,7 +131,8 @@ class AuthCubit extends Cubit<AuthStates>{
           // Request authorization scopes
           final GoogleSignInClientAuthorization? auth =
           await account.authorizationClient
-              .authorizationForScopes(['email', 'profile']);
+              .authorizationForScopes(['email', 'profile'],
+          );
 
           if (auth == null ) {
             emit(AuthSignInWithGoogleErrorState("فشل الحصول على بيانات التفويض."));

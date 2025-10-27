@@ -7,7 +7,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hexcolor/hexcolor.dart';
 import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
 import 'package:moshaf/controllers/quran_audio/audio_quran_states.dart';
-import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
+import 'package:moshaf/controllers/text_quran/text_quran_cubit.dart';
 import 'package:moshaf/views/azkar/widgets/azkar_header.dart';
 import 'package:moshaf/views/quran/widgets/custom_sorah_container.dart';
 import 'package:quran/quran.dart';
@@ -18,7 +18,7 @@ import '../../components/components.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
 import '../../controllers/theme/theme_cubit.dart';
-import '../../modules/text_quran/views/quran_page.dart';
+import 'widgets/quran_page.dart';
 
 class AudioScreen extends StatelessWidget {
   const AudioScreen({super.key});

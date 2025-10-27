@@ -12,7 +12,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:moshaf/components/cache_helper.dart';
 import 'package:moshaf/components/components.dart';
 import 'package:moshaf/controllers/home/home_states.dart';
-import 'package:moshaf/modules/azkar/cubit/azkar_cubit.dart';
+import 'package:moshaf/controllers/azkar/azkar_cubit.dart';
 import 'package:moshaf/views/azkar/prays_screen.dart';
 import 'package:moshaf/views/haj_and_omrah/omrah_screen.dart';
 import 'package:moshaf/views/mosque_location/mosque_location_screen.dart';
@@ -28,7 +28,7 @@ import 'package:quran/quran.dart' as quran;
 import 'package:workmanager/workmanager.dart';
 
 import '../../constants/azkar.dart';
-import '../../modules/prayer_times/cubit/prayer_times_cubit.dart';
+import '../prayer_times/prayer_times_cubit.dart';
 import '../../views/azkar/azkar_screen.dart';
 import '../../views/azkar/one_pray_screen.dart';
 

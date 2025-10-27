@@ -5,7 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moshaf/components/cache_helper.dart';
 import 'package:moshaf/controllers/settings/settings_states.dart';
-import 'package:moshaf/modules/prayer_times/cubit/prayer_times_cubit.dart';
+import 'package:moshaf/controllers/prayer_times/prayer_times_cubit.dart';
 import 'package:share_plus/share_plus.dart';
 
 class SettingsCubit extends Cubit<SettingsStates>{
@@ -100,7 +100,7 @@ class SettingsCubit extends Cubit<SettingsStates>{
   }
 
   void getNotificationsState() async {
-    final data = await CacheHelper.getData(key: "mutedNotifications");
+    final data = await CacheHelper.getData(key: "mutedNotifications")??[];
     print(data);
 
     if (data != null && data is List) {

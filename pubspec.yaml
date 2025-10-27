@@ -117,11 +117,6 @@ flutter:
     - assets/audio/
     - assets/audio/prayer_audio.mp3
     - assets/images/sora_number.png
-    - assets/images/0.jpg
-    - assets/images/1.jpg
-    - assets/images/2.jpg
-    - assets/images/3.png
-    - assets/images/4.png
   #    - assets/voice/azan.mp3
 
   # An image asset can refer to one or more resolution-specific "variants", see

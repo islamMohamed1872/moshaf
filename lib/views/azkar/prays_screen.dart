@@ -11,8 +11,8 @@ import 'package:moshaf/views/widgets/header.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
 import '../../controllers/theme/theme_cubit.dart';
-import '../../modules/azkar/cubit/azkar_cubit.dart';
-import '../../modules/azkar/cubit/azkar_states.dart';
+import '../../controllers/azkar/azkar_cubit.dart';
+import '../../controllers/azkar/azkar_states.dart';
 import '../home/home_screen.dart';
 
 class PraysScreen extends StatelessWidget {

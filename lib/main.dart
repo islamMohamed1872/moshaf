@@ -20,16 +20,15 @@ import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
 import 'package:moshaf/controllers/settings/settings_cubit.dart';
 import 'package:moshaf/controllers/theme/theme_cubit.dart';
 import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
-import 'package:moshaf/modules/azkar/cubit/azkar_cubit.dart';
-import 'package:moshaf/modules/prayer_times/cubit/prayer_times_cubit.dart';
-import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
+import 'package:moshaf/controllers/azkar/azkar_cubit.dart';
+import 'package:moshaf/controllers/prayer_times/prayer_times_cubit.dart';
+import 'package:moshaf/controllers/text_quran/text_quran_cubit.dart';
 import 'package:moshaf/network/dio_helper.dart';
 import 'package:moshaf/views/home/home_screen.dart';
 import 'package:moshaf/views/landing/landing_screen.dart';
 import 'package:quran/quran.dart' as quran;
 import 'components/cache_helper.dart';
 import 'components/overaly.dart';
-import 'cubit/cubit.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -338,7 +337,6 @@ class MyApp extends StatelessWidget {
       child: MultiBlocProvider(
         providers: [
           BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimes()..scheduleDoaaNotifications()),
-          BlocProvider(create: (context) => AppCubit()),
           BlocProvider(create: (context) => HomeCubit()..requestLocationPermissions()..requestOverlay()..getFirstTime()),
           BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()),
           BlocProvider(create: (context) => SettingsCubit()..getNotificationsState()),

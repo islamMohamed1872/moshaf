@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
-import 'package:moshaf/modules/azkar/cubit/azkar_cubit.dart';
-import 'package:moshaf/modules/azkar/cubit/azkar_states.dart';
+import 'package:moshaf/controllers/azkar/azkar_cubit.dart';
+import 'package:moshaf/controllers/azkar/azkar_states.dart';
 import 'package:moshaf/views/azkar/widgets/azkar_header.dart';
 
 import '../../constants/app_colors.dart';

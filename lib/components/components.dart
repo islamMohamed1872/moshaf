@@ -4,10 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:hexcolor/hexcolor.dart';
 import 'package:moshaf/components/const.dart';
-import 'package:moshaf/modules/text_quran/cubit/text_quran_cubit.dart';
+import 'package:moshaf/controllers/text_quran/text_quran_cubit.dart';
 import 'package:quran/quran.dart' as quran;
 // import 'package:fluttertoast/fluttertoast.dart';
-import '../cubit/cubit.dart';
 
 Widget SoraItems(
         {required int number,
