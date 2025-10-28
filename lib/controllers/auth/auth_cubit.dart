@@ -110,82 +110,42 @@ class AuthCubit extends Cubit<AuthStates>{
     emit(AuthSignInWithGoogleLoadingState());
 
     try {
-      // Ensure previous Google sessions are cleared
-      await GoogleSignIn.instance.signOut();
+      final googleSignIn = GoogleSignIn.instance;
 
-      final GoogleSignIn signIn = GoogleSignIn.instance;
+      // Initialize with web client ID for Android:
+      await googleSignIn.initialize(
+        serverClientId: '733056371061-b6gieovfqeh44d1qeac4962hkrcqk309.apps.googleusercontent.com',
+      );
 
-      // Attempt lightweight authentication
-      unawaited(signIn.attemptLightweightAuthentication());
+      // Interactive sign-in:
+      final account = await googleSignIn.authenticate();
 
-      if (signIn.supportsAuthenticate()) {
-        try {
-          final GoogleSignInAccount? account = await signIn.authenticate();
-
-          if (account == null) {
-            // User cancelled manually
-            emit(AuthSignInWithGoogleErrorState("تم إلغاء تسجيل الدخول."));
-            return;
-          }
-
-          // Request authorization scopes
-          final GoogleSignInClientAuthorization? auth =
-          await account.authorizationClient
-              .authorizationForScopes(['email', 'profile'],
-          );
-
-          if (auth == null ) {
-            emit(AuthSignInWithGoogleErrorState("فشل الحصول على بيانات التفويض."));
-            return;
-          }
-
-          // Build Firebase credential using only accessToken
-          final credential = GoogleAuthProvider.credential(
-            accessToken: auth.accessToken,
-          );
-
-          // Sign in with Firebase
-          await _auth.signInWithCredential(credential);
-
-          emit(AuthSignInWithGoogleSuccessState());
-        } catch (error) {
-          String message = "حدث خطأ غير متوقع. حاول مرة أخرى لاحقًا.";
-
-          if (error is FirebaseAuthException) {
-            message = firebaseAuthErrorMessage(error.code, fallback: error.message);
-            print("FirebaseAuthException.code = ${error.code}");
-            print("FirebaseAuthException.message = ${error.message}");
-          }
-          else if (error is GoogleSignInException) {
-            // 🔵 Google Sign-In plugin errors (google_sign_in 7.x.x)
-            message = firebaseAuthErrorMessage(error.code.toString(), fallback: error.description);
-            debugPrint("GoogleSignInException.code = ${error.code}");
-            debugPrint("GoogleSignInException.message = ${error.description}");
-          }
-          else if (error is PlatformException) {
-            message = error.message ?? message;
-            print("object");
-          } else {
-            final s = error.toString();
-            if (s.isNotEmpty) message = s;
-          }
-          emit(AuthSignInWithGoogleErrorState(message));
-        }
-      } else if (kIsWeb) {
-        // Web-specific authentication
-        final googleProvider = GoogleAuthProvider()
-          ..addScope('email')
-          ..addScope('profile');
-
-        await _auth.signInWithPopup(googleProvider);
-        emit(AuthSignInWithGoogleSuccessState());
-      } else {
-        emit(AuthSignInWithGoogleErrorState(
-            "طريقة تسجيل الدخول غير مدعومة على هذا النظام."));
+      if (account == null) {
+        emit(AuthSignInWithGoogleErrorState("تم إلغاء تسجيل الدخول."));
+        return;
       }
+
+      // Authentication object:
+      final auth = await account.authentication;
+
+      // Build Firebase credential:
+      final credential = GoogleAuthProvider.credential(
+        idToken: auth.idToken,
+        // accessToken: auth.accessToken,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      emit(AuthSignInWithGoogleSuccessState());
+    } on GoogleSignInException catch (e) {
+      debugPrint("GoogleSignInException.code = ${e.code}, desc = ${e.description}");
+      emit(AuthSignInWithGoogleErrorState("خطأ تسجيل الدخول عبر Google"));
+    } on FirebaseAuthException catch (e) {
+      final msg = firebaseAuthErrorMessage(e.code, fallback: e.message);
+      emit(AuthSignInWithGoogleErrorState(msg));
     } catch (e) {
-      print('🔥 Unexpected error: $e');
-      emit(AuthSignInWithGoogleErrorState("حدث خطأ غير متوقع. حاول لاحقًا."));
+      debugPrint("Unexpected Google sign-in error: $e");
+      emit(AuthSignInWithGoogleErrorState("حدث خطأ غير متوقع. حاول مرة أخرى لاحقًا."));
     }
   }
 

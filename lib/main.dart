@@ -12,6 +12,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart' as
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hexcolor/hexcolor.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/controllers/auth/auth_cubit.dart';
@@ -40,6 +41,8 @@ import 'firebase_options.dart';
 @pragma('vm:entry-point')
 void fetchPrayerTimesAlarm() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HomeWidget.setAppGroupId('group.com.example.mostakeem');
+
   try{
     await initializeDateFormatting('ar', null);
     DioHelper.init();
@@ -122,7 +125,7 @@ Future<void> scheduleDailyQuranCheck() async {
   await AndroidAlarmManager.oneShotAt(
     oneShotTime,
     // unique id for this job
-    0,
+    3,
     checkAndFireQuranReminder,
     exact: true,
     wakeup: true,
@@ -133,7 +136,7 @@ Future<void> scheduleDailyQuranCheck() async {
   await AndroidAlarmManager.periodic(
     const Duration(days: 1),
     // unique id for periodic job (must be different from oneShot id)
-    1,
+    2,
     checkAndFireQuranReminder,
     exact: true,
     wakeup: true,
@@ -161,7 +164,7 @@ if(Platform.isAndroid){
   await AndroidAlarmManager.initialize();
   await scheduleDailyQuranCheck();
   final now = DateTime.now();
-  final next = DateTime(now.year, now.month, now.day, 0, 1).add(const Duration(days: 1));
+  final next = DateTime(now.year, now.month, now.day, 0, 1).add(const Duration(minutes: 1));
   await AndroidAlarmManager.oneShotAt(next, 0, fetchPrayerTimesAlarm, exact: true, wakeup: true,);
   await AndroidAlarmManager.periodic(const Duration(days: 1), 1, fetchPrayerTimesAlarm, exact: true, wakeup: true,rescheduleOnReboot: true);
 }

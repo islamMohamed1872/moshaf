@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "733056371061-un5a30njdmqn3flajc4v36f8icgav66k.apps.googleusercontent.com",
+          "client_id": "733056371061-8c2qb81bouk9vgph6351828nvvftseck.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.afaqalspl.moshaf",
-            "certificate_hash": "7a93045df22e21ddad7508c00b529ac8f56bac61"
+            "certificate_hash": "3560bf603e5a93b93e7900924d4b96e9032546a3"
           }
         },
         {
