@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geocoding/geocoding.dart';
@@ -326,8 +328,15 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         );
 
         await scheduleAllPrayerNotifications();
-        await updateWidgetsData();
-
+        if(Platform.isIOS){
+          await updateWidgetsData();
+          // 🎯 Start Live Activity for the next prayer
+          final nextTime = prayerTimes[upComingPrayer];
+          if (nextTime != null) {
+            await startPrayerActivity(prayer: upComingPrayer, prayerTime: nextTime);
+            await updatePrayerCountdown();
+          }
+        }
         // final now = DateTime.now();
         // await _scheduleAllPrayerNotifications({
         //   'Fajr': now.add(const Duration(minutes: 1)),
@@ -843,6 +852,40 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     );
   }
 
+  final _channel = MethodChannel('mostakeem/live_activity');
 
+  Future<void> startPrayerActivity({
+    required String prayer,
+    required DateTime prayerTime,
+  }) async {
+    final remaining = prayerTime.difference(DateTime.now()).inSeconds.toDouble();
+
+    await _channel.invokeMethod('startActivity', {
+      'upcomingPrayer': prayer,
+      'remaining': remaining,
+      'upcomingTime': DateFormat('hh:mm a', 'ar').format(prayerTime),
+    });
+  }
+
+  Future<void> updatePrayerCountdown() async {
+    Timer.periodic(const Duration(seconds: 30), (_) async {
+      final nextPrayerTime = prayerTimes[upComingPrayer];
+      if (nextPrayerTime == null) return;
+
+      final diff = nextPrayerTime.difference(DateTime.now()).inSeconds.toDouble();
+
+      if (diff <= 0) {
+        await _channel.invokeMethod('endActivity');
+        // 🕌 Start next prayer automatically
+        _updateUpcomingPrayer();
+        final newTime = prayerTimes[upComingPrayer];
+        if (newTime != null) {
+          await startPrayerActivity(prayer: upComingPrayer, prayerTime: newTime);
+        }
+      } else {
+        await _channel.invokeMethod('updateActivity', {'remaining': diff});
+      }
+    });
+  }
 
 }

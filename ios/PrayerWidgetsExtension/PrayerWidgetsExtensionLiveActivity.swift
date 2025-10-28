@@ -1,80 +1,81 @@
-//
-//  PrayerWidgetsExtensionLiveActivity.swift
-//  PrayerWidgetsExtension
-//
-//  Created by SPL SS on 28/10/2025.
-//
-
 import ActivityKit
 import WidgetKit
 import SwiftUI
 
-struct PrayerWidgetsExtensionAttributes: ActivityAttributes {
+// MARK: - Attributes (data model for the live activity)
+struct PrayerActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
-        // Dynamic stateful properties about your activity go here!
-        var emoji: String
+        var upcomingPrayer: String
+        var remainingTime: TimeInterval // seconds left
+        var upcomingTime: String
     }
 
-    // Fixed non-changing properties about your activity go here!
-    var name: String
+    var location: String
 }
 
-struct PrayerWidgetsExtensionLiveActivity: Widget {
+// MARK: - Live Activity Widget
+@available(iOS 16.1, *)
+struct PrayerLiveActivity: Widget {
     var body: some WidgetConfiguration {
-        ActivityConfiguration(for: PrayerWidgetsExtensionAttributes.self) { context in
-            // Lock screen/banner UI goes here
-            VStack {
-                Text("Hello \(context.state.emoji)")
-            }
-            .activityBackgroundTint(Color.cyan)
-            .activitySystemActionForegroundColor(Color.black)
+        ActivityConfiguration(for: PrayerActivityAttributes.self) { context in
+            // Lock screen + Live Activity view
+            VStack(alignment: .center, spacing: 6) {
+                Text("🕌 \(context.state.upcomingPrayer)")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(.green)
 
+                Text(formatRemainingTime(context.state.remainingTime))
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
+
+                Text("حتى صلاة \(context.state.upcomingPrayer) في \(context.state.upcomingTime)")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .padding()
+            .frame(maxWidth: .infinity)
+            .activityBackgroundTint(Color(red: 21/255, green: 21/255, blue: 21/255))
+            .activitySystemActionForegroundColor(.green)
         } dynamicIsland: { context in
+            // Dynamic Island layout (optional)
             DynamicIsland {
-                // Expanded UI goes here.  Compose the expanded UI through
-                // various regions, like leading/trailing/center/bottom
                 DynamicIslandExpandedRegion(.leading) {
-                    Text("Leading")
+                    Text("🕌 \(context.state.upcomingPrayer)")
+                        .font(.headline)
+                        .foregroundColor(.green)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text("Trailing")
-                }
-                DynamicIslandExpandedRegion(.bottom) {
-                    Text("Bottom \(context.state.emoji)")
-                    // more content
+                    Text(formatRemainingTime(context.state.remainingTime))
+                        .monospacedDigit()
+                        .font(.title2)
                 }
             } compactLeading: {
-                Text("L")
+                Text("🕌")
             } compactTrailing: {
-                Text("T \(context.state.emoji)")
+                Text(shortRemaining(context.state.remainingTime))
             } minimal: {
-                Text(context.state.emoji)
+                Text(shortRemaining(context.state.remainingTime))
             }
-            .widgetURL(URL(string: "http://www.apple.com"))
-            .keylineTint(Color.red)
         }
     }
 }
 
-extension PrayerWidgetsExtensionAttributes {
-    fileprivate static var preview: PrayerWidgetsExtensionAttributes {
-        PrayerWidgetsExtensionAttributes(name: "World")
+// MARK: - Helper functions
+func formatRemainingTime(_ seconds: TimeInterval) -> String {
+    let intSec = Int(seconds)
+    let h = intSec / 3600
+    let m = (intSec % 3600) / 60
+    let s = intSec % 60
+    if h > 0 {
+        return String(format: "%02d:%02d:%02d", h, m, s)
+    } else {
+        return String(format: "%02d:%02d", m, s)
     }
 }
 
-extension PrayerWidgetsExtensionAttributes.ContentState {
-    fileprivate static var smiley: PrayerWidgetsExtensionAttributes.ContentState {
-        PrayerWidgetsExtensionAttributes.ContentState(emoji: "😀")
-     }
-     
-     fileprivate static var starEyes: PrayerWidgetsExtensionAttributes.ContentState {
-         PrayerWidgetsExtensionAttributes.ContentState(emoji: "🤩")
-     }
-}
-
-#Preview("Notification", as: .content, using: PrayerWidgetsExtensionAttributes.preview) {
-   PrayerWidgetsExtensionLiveActivity()
-} contentStates: {
-    PrayerWidgetsExtensionAttributes.ContentState.smiley
-    PrayerWidgetsExtensionAttributes.ContentState.starEyes
+func shortRemaining(_ seconds: TimeInterval) -> String {
+    let intSec = Int(seconds)
+    let m = (intSec % 3600) / 60
+    return "\(m)m"
 }

@@ -11,6 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart' as ln;
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:hexcolor/hexcolor.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -36,7 +37,13 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'firebase_options.dart';
 
-
+Future<void> ensureLocationPermission() async {
+  LocationPermission permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied ||
+      permission == LocationPermission.deniedForever) {
+    permission = await Geolocator.requestPermission();
+  }
+}
 
 @pragma('vm:entry-point')
 void fetchPrayerTimesAlarm() async {
@@ -156,7 +163,7 @@ ln.FlutterLocalNotificationsPlugin();
 /// ================================================
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  HomeWidget.setAppGroupId('group.com.example.mostakeem');
+  await ensureLocationPermission();
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -170,6 +177,8 @@ if(Platform.isAndroid){
   await AndroidAlarmManager.periodic(const Duration(days: 1), 1, fetchPrayerTimesAlarm, exact: true, wakeup: true,rescheduleOnReboot: true);
 }
 else{
+  HomeWidget.setAppGroupId('group.com.example.mostakeem');
+
   // final homeCubit = HomeCubit();
   // await homeCubit.requestIOSPermission();
   // await homeCubit.startQuranReminderChecks();
