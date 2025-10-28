@@ -9,6 +9,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hijri/hijri_calendar.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:moshaf/controllers/prayer_times/prayer_times_states.dart';
@@ -325,6 +326,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         );
 
         await scheduleAllPrayerNotifications();
+        await updateWidgetsData();
+
         // final now = DateTime.now();
         // await _scheduleAllPrayerNotifications({
         //   'Fajr': now.add(const Duration(minutes: 1)),
@@ -816,7 +819,29 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   }
 
 
+  Future<void> updateWidgetsData() async {
+    if (prayerTimes.isEmpty) return;
 
+    final upcoming = upComingPrayer;
+    final upcomingTime = prayerTimes[upComingPrayer];
+
+    // ✅ Use Arabic locale and 12-hour clock
+    final arabicFormatter = DateFormat('hh:mm a', 'ar');
+    final upcomingTimeStr = arabicFormatter.format(upcomingTime!);
+
+    await HomeWidget.saveWidgetData<String>('prayer_name', upcoming);
+    await HomeWidget.saveWidgetData<String>('prayer_time', upcomingTimeStr);
+
+    final all = prayerTimes.map(
+          (k, v) => MapEntry(k, arabicFormatter.format(v)),
+    );
+    await HomeWidget.saveWidgetData<Map<String, String>>('all_prayers', all);
+
+    await HomeWidget.updateWidget(
+      name: 'PrayerWidgetExtension',
+      iOSName: 'PrayerWidgetExtension',
+    );
+  }
 
 
 

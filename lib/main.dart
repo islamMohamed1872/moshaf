@@ -41,7 +41,6 @@ import 'firebase_options.dart';
 @pragma('vm:entry-point')
 void fetchPrayerTimesAlarm() async {
   WidgetsFlutterBinding.ensureInitialized();
-  HomeWidget.setAppGroupId('group.com.example.mostakeem');
 
   try{
     await initializeDateFormatting('ar', null);
@@ -157,6 +156,8 @@ ln.FlutterLocalNotificationsPlugin();
 /// ================================================
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HomeWidget.setAppGroupId('group.com.example.mostakeem');
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
