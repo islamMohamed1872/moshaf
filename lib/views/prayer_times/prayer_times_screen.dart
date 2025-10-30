@@ -113,7 +113,6 @@ class PrayerTimesScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-
               ],
             ),
             Row(
