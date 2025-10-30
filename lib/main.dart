@@ -29,6 +29,7 @@ import 'package:moshaf/network/dio_helper.dart';
 import 'package:moshaf/views/home/home_screen.dart';
 import 'package:moshaf/views/landing/landing_screen.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:workmanager/workmanager.dart';
 import 'components/cache_helper.dart';
 import 'components/overaly.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -36,6 +37,74 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'firebase_options.dart';
+
+
+// ================================================
+// WORKMANAGER CALLBACKS (iOS)
+// ================================================
+
+@pragma('vm:entry-point')
+Future<void> callbackFetchPrayerTimes() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await initializeDateFormatting('ar', null);
+    DioHelper.init();
+    tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation(tz.local.name));
+    final cubit = PrayerTimesCubit();
+    await cubit.fetchPrayerTimes();
+    await cubit.close();
+    print("✅ iOS: Prayer times fetched via WorkManager");
+  } catch (e) {
+    print("❌ iOS: Error fetching prayer times: $e");
+  }
+}
+
+@pragma('vm:entry-point')
+Future<void> callbackCheckQuranReminder() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    final String? lastReadStr = await CacheHelper.getData(key: 'lastRead');
+
+    if (lastReadStr == null) {
+      return;
+    }
+
+    DateTime? lastRead;
+    try {
+      lastRead = DateTime.parse(lastReadStr);
+    } catch (_) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final difference = now.difference(lastRead).inDays;
+
+    if (difference >= 2) {
+      final List? skipped = await CacheHelper.getData(key: 'mutedNotifications');
+      if (skipped?.contains("تذكير بالمصحف") ?? false) return;
+
+      final int? lastSora = await CacheHelper.getData(key: 'sora');
+      final String sorahName = (lastSora != null) ? quran.getSurahNameArabic(lastSora) : 'المصحف';
+
+      final iOSDetails = ln.DarwinNotificationDetails();
+      final notifDetails = ln.NotificationDetails(iOS: iOSDetails);
+
+      await flutterLocalNotificationsPlugin.show(
+        10,
+        "لا تكن هاجراً للقرآن",
+        "تذكير بقراءة سورة $sorahName",
+        notifDetails,
+      );
+
+      print("✅ iOS: Quran reminder notification sent");
+    }
+  } catch (e, st) {
+    print('❌ iOS: checkAndFireQuranReminder error: $e\n$st');
+  }
+}
 
 Future<void> ensureLocationPermission() async {
   LocationPermission permission = await Geolocator.checkPermission();
@@ -56,7 +125,7 @@ void fetchPrayerTimesAlarm() async {
     tz.setLocalLocation(tz.getLocation(tz.local.name));
     final cubit = PrayerTimesCubit();
     await cubit.fetchPrayerTimes();
-    await cubit.scheduleDoaaNotifications();
+    // await cubit.scheduleDoaaNotifications();
     await cubit.close();
   }
   catch(e){
@@ -112,7 +181,7 @@ Future<void> checkAndFireQuranReminder() async {
       final notifDetails = ln.NotificationDetails(android: androidDetails);
 
       await flutterLocalNotificationsPlugin.show(
-        1, // id
+        10, // id
         "لا تكن هاجراً للقرآن",
         "تذكير بقراءة سورة $sorahName",
         notifDetails,
@@ -153,9 +222,43 @@ Future<void> scheduleDailyQuranCheck() async {
   print('Alarm scheduled for daily Quran check.');
 }
 
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    try {
+      if (task == "fetchPrayerTimes") {
+        print("🔔 WorkManager: Executing fetchPrayerTimes");
+        await callbackFetchPrayerTimes();
+      } else if (task == "quranReminder") {
+        print("🔔 WorkManager: Executing quranReminder");
+        await callbackCheckQuranReminder();
+      }
+      return true;
+    } catch (e) {
+      print("❌ WorkManager task error: $e");
+      return false;
+    }
+  });
+}
+
 /// Local notifications plugin instance (global)
 final ln.FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 ln.FlutterLocalNotificationsPlugin();
+
+/// Calculate initial delay to run at specific time (hour:minute)
+Duration _calculateInitialDelay(int targetHour, int targetMinute) {
+  final now = DateTime.now();
+  var scheduledTime = DateTime(now.year, now.month, now.day, targetHour, targetMinute);
+
+  // If the time has already passed today, schedule for tomorrow
+  if (scheduledTime.isBefore(now)) {
+    scheduledTime = scheduledTime.add(const Duration(days: 1));
+  }
+
+  final delay = scheduledTime.difference(now);
+  print("⏰ Initial delay calculated: ${delay.inHours}h ${delay.inMinutes % 60}m until $targetHour:${targetMinute.toString().padLeft(2, '0')}");
+  return delay;
+}
 
 
 /// ================================================
@@ -172,18 +275,57 @@ if(Platform.isAndroid){
   await AndroidAlarmManager.initialize();
   await scheduleDailyQuranCheck();
   final now = DateTime.now();
-  final next = DateTime(now.year, now.month, now.day, 0, 1).add(const Duration(minutes: 1));
-  await AndroidAlarmManager.oneShotAt(next, 0, fetchPrayerTimesAlarm, exact: true, wakeup: true,);
+  DateTime nextMidnight = DateTime(now.year, now.month, now.day, 0, 1);
+
+  if (nextMidnight.isBefore(now)) {
+    // already passed midnight — schedule for next day
+    nextMidnight = nextMidnight.add(const Duration(days: 1));
+  }
+  await AndroidAlarmManager.oneShotAt(nextMidnight, 0, fetchPrayerTimesAlarm, exact: true, wakeup: true,);
   await AndroidAlarmManager.periodic(const Duration(days: 1), 1, fetchPrayerTimesAlarm, exact: true, wakeup: true,rescheduleOnReboot: true);
 }
-else{
-  HomeWidget.setAppGroupId('group.com.example.mostakeem');
+else if (Platform.isIOS) {
+  // 🔹 Initialize WorkManager for iOS
+  await Workmanager().initialize(
+    callbackDispatcher,
+    isInDebugMode: false,
+  );
 
-  // final homeCubit = HomeCubit();
-  // await homeCubit.requestIOSPermission();
-  // await homeCubit.startQuranReminderChecks();
-  // await homeCubit.initializeNotifications();
-  // homeCubit.showNotification();
+  // 🔹 Schedule periodic prayer times fetch (every 1 day)
+  await Workmanager().registerPeriodicTask(
+    "ios_fetch_prayer_times",
+    "fetchPrayerTimes",
+    frequency: const Duration(days: 1),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+    initialDelay: _calculateInitialDelay(0, 1), // 00:01
+    constraints: Constraints(
+      requiresDeviceIdle: false,
+      requiresBatteryNotLow: false,
+      requiresCharging: false,
+      requiresStorageNotLow: false,
+      networkType: NetworkType.connected
+    ),
+  );
+
+  // 🔹 Schedule daily Quran reminder check (every 1 day)
+  await Workmanager().registerPeriodicTask(
+    "ios_quran_reminder",
+    "quranReminder",
+    frequency: const Duration(days: 1),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+    initialDelay: _calculateInitialDelay(0, 1), // 00:01
+    constraints: Constraints(
+      requiresDeviceIdle: false,
+      requiresBatteryNotLow: false,
+      requiresCharging: false,
+      requiresStorageNotLow: false,
+        networkType: NetworkType.connected
+    ),
+  );
+
+  print("📱 iOS: WorkManager tasks scheduled");
+
+  HomeWidget.setAppGroupId('group.com.example.mostakeem');
 }
   DioHelper.init();
   // Setup timezone info
@@ -349,7 +491,7 @@ class MyApp extends StatelessWidget {
       designSize: const Size(392.72727272727275, 800.7272727272727),
       child: MultiBlocProvider(
         providers: [
-          BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimes()..scheduleDoaaNotifications()),
+          BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimes()),
           BlocProvider(create: (context) => HomeCubit()..requestLocationPermissions()..requestOverlay()..getFirstTime()),
           BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()),
           BlocProvider(create: (context) => SettingsCubit()..getNotificationsState()),
