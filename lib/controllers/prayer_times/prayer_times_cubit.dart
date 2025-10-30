@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:dio/dio.dart';
@@ -12,6 +13,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:moshaf/controllers/prayer_times/prayer_times_states.dart';
@@ -307,9 +309,18 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
         prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
 
+        // prayerTimes['الفجر'] = DateTime.now().add(Duration(minutes: 1));
+        // prayerTimes['الشروق'] = _parseApiTimeToToday(data['Sunrise'] ?? '00:00');
+        // prayerTimes['الظهر'] = DateTime.now().add(Duration(minutes: 2));
+        // prayerTimes['العصر'] = DateTime.now().add(Duration(minutes: 3));
+        // prayerTimes['المغرب'] = DateTime.now().add(Duration(minutes: 4));
+        // prayerTimes['العشاء'] = DateTime.now().add(Duration(minutes: 5));
+        // prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
+        // prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
+
         print(prayerTimes);
         // dates
-        _setDates();
+        _setDates(datetime: DateTime.now());
 
         CacheHelper.saveData(key: 'last_prayer_update',value:  DateTime.now().toIso8601String());
 
@@ -336,6 +347,16 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
             await startPrayerActivity(prayer: upComingPrayer, prayerTime: nextTime);
             await updatePrayerCountdown();
           }
+        }
+        else{
+          final nextTime = prayerTimes[upComingPrayer];
+          updatePrayerWidget(
+            upcomingPrayer: upComingPrayer,
+            upcomingTime: nextTime!,
+            allPrayers: prayerTimes
+          );
+          await scheduleNextPrayerWidgetUpdate(prayerTimes);
+
         }
         // final now = DateTime.now();
         // await _scheduleAllPrayerNotifications({
@@ -369,7 +390,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       });
 
       upComingPrayer = cachedUpcoming['upComingPrayer'] ?? '';
-      _setDates();
+      _setDates(datetime: DateTime.now());
 
       // find upcoming prayer & start timer
       _updateUpcomingPrayer();
@@ -429,27 +450,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         "${_toArabicDigits(minutes.toString().padLeft(2, '0'))} : "
             "${_toArabicDigits(hours.toString().padLeft(2, '0'))}";
 
-    final player = AudioServices().player;
-
-    // Only play when countdown reaches 0
-    if (diff.inSeconds == 0) {
-      try {
-        await player.setAudioSource(
-          AudioSource.asset(
-            'assets/voice/azan.mp3',
-            tag: MediaItem(
-              id: 'azan',
-              title: 'أذان الصلاة',
-              artist: 'تنبيه الصلاة',
-            ),
-          ),
-        );
-        await player.play();
-      } catch (e) {
-        print('Error playing adhan in app: $e');
-      }
-    }
-
     emit(UpdateRemainingTime());
   }
 
@@ -486,19 +486,21 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   // --- Dates ---
   String getHijriMonth(){
     final hijri = HijriCalendar.now();
-    return _arabicHijriMonths[hijri.hMonth];
+    return _arabicHijriMonths[hijri.hMonth-1];
   }
 
   String getDayName(){
-    dayName = DateFormat('EEEE', 'ar').format(DateTime.now());
-    return dayName;
+
+    return DateFormat('EEEE', 'ar').format(DateTime.now());
   }
 
-  void _setDates() {
-    dayName = DateFormat('EEEE', 'ar').format(DateTime.now());
-    date = DateFormat.yMMMMd('ar').format(DateTime.now());
+  void _setDates({
+    required DateTime datetime
+}) {
+    dayName = DateFormat('EEEE', 'ar').format(datetime);
+    date = DateFormat.yMMMMd('ar').format(datetime);
 
-    final hijri = HijriCalendar.now();
+    final hijri = HijriCalendar.fromDate(datetime);
     final monthName = _arabicHijriMonths[hijri.hMonth - 1];
     hijriDate = "${_toArabicDigits(hijri.hDay.toString())} $monthName ${_toArabicDigits(hijri.hYear.toString())}";
     // if you want Arabic digits inside hijriDate, wrap numbers using _toArabicDigits
@@ -591,39 +593,86 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         print("⏭️ Skipping $prayerName - already passed");
         continue;
       }
+      if(Platform.isAndroid){
+        final azanOption = await CacheHelper.getData(key: "azanSound")??"اذان الحرم المكي";
+        String audioFileName = "";
 
-      final androidDetails = AndroidNotificationDetails(
-        'prayer_channel',
-        'Prayer Times',
-        channelDescription: 'Prayer time notifications',
-        importance: Importance.max,
-        priority: Priority.high,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('azan'),
-      );
+        switch(azanOption){
+          case "اذان الحرم المكي":
+            audioFileName = "azan";
+            break;
+          case "عبد الباسط عبد الصمد":
+            audioFileName = "abdullbaset";
+            break;
+          case "ناصر القطامي":
+            audioFileName = "naser_alkatamy";
+            break;
+          case "صالح الجعفراوي":
+            audioFileName = "saleh_algafrawy";
+            break;
+          default:
+            audioFileName = "azan";
+            break;
+        }
 
-      final notifDetails = NotificationDetails(android: androidDetails);
-
-      try {
-        await flutterLocalNotificationsPlugin.zonedSchedule(
-          time.hashCode,
-          'وقت الصلاة',
-          'حان الآن موعد صلاة $prayerName',
-          tz.TZDateTime.from(time, tz.local),
-          notifDetails,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          matchDateTimeComponents: DateTimeComponents.time,
+        final androidDetails = AndroidNotificationDetails(
+          'prayer_channel_$audioFileName',
+          'Prayer Times ($audioFileName)',
+          channelDescription: 'Prayer time notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound(audioFileName),
         );
 
-        scheduledCount++;
-        print("✅ Scheduled notification for $prayerName at ${DateFormat('hh:mm a').format(time)}");
-      } catch (e) {
-        print("❌ Error scheduling $prayerName: $e");
+        final notifDetails = NotificationDetails(android: androidDetails);
+
+        try {
+          await flutterLocalNotificationsPlugin.zonedSchedule(
+            time.hashCode,
+            'وقت الصلاة',
+            'حان الآن موعد صلاة $prayerName',
+            tz.TZDateTime.from(time, tz.local),
+            notifDetails,
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            matchDateTimeComponents: DateTimeComponents.time,
+          );
+
+          scheduledCount++;
+          print("✅ Scheduled notification for $prayerName at ${DateFormat('hh:mm a').format(time)}");
+        } catch (e) {
+          print("❌ Error scheduling $prayerName: $e");
+        }
+
       }
+      else{
+       try{
+         final iosDetails = DarwinNotificationDetails(
+           presentAlert: true,  // show alert banner
+           presentBadge: true,  // update app icon badge
+           presentSound: true,  // play notification sound
+           interruptionLevel: InterruptionLevel.timeSensitive,
+         );
+         final notifDetails = NotificationDetails(iOS: iosDetails);
+
+         await flutterLocalNotificationsPlugin.zonedSchedule(
+           time.hashCode,
+           'وقت الصلاة',
+           'حان الآن موعد صلاة $prayerName',
+           tz.TZDateTime.from(time, tz.local),
+           notifDetails,
+           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+           matchDateTimeComponents: DateTimeComponents.time,
+         );
+         scheduledCount++;
+         print("✅ Scheduled notification for $prayerName at ${DateFormat('hh:mm a').format(time)}");
+       }catch (e) {
+         print("❌ Error scheduling $prayerName: $e");
+       }
+      }
+      print("📅 Scheduled $scheduledCount prayer notifications");
     }
-
-    print("📅 Scheduled $scheduledCount prayer notifications");
-
+    await scheduleDoaaNotifications();
     // // If no prayers left today, schedule tomorrow's prayers
     // if (scheduledCount == 0) {
     //   print("⚠️ No prayers left today, will fetch tomorrow's prayers");
@@ -653,10 +702,10 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
-    var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
-    if (scheduled.isBefore(now) || scheduled.isAtSameMomentAs(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
-    }
+    var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, 18, now.minute+1);
+    // if (scheduled.isBefore(now) || scheduled.isAtSameMomentAs(now)) {
+    //   scheduled = scheduled.add(const Duration(days: 1));
+    // }
     return scheduled;
   }
 
@@ -666,28 +715,85 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final List skippedNotification = await CacheHelper.getData(key: "mutedNotifications")??[];
     if(skippedNotification.contains("ادعية")) return;
     print("📅 Scheduling Doaa notifications...");
-    final scheduledDate = _nextInstanceOfTime(15, 0);
+    final now = DateTime.now();
+    final scheduledDate = DateTime(now.year, now.month, now.day, 15, 0);
+    if(scheduledDate.isBefore(now)){
+      scheduledDate.add(const Duration(days: 1));
+    }
 
-    final androidDetails = AndroidNotificationDetails(
-      'doaa_channel',
-      'Doaa Notifications',
-      channelDescription: 'Daily doaa (zekr) at 3:00 PM',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: true,
-    );
+    final String category = getRandomDoaa()['category'];
+    final String zekr = getRandomDoaa()['zekr'];
+    print(zekr);
+    print(category);
 
-    final notifDetails = NotificationDetails(android: androidDetails);
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      0,
-      getRandomDoaa()['category'],
-      getRandomDoaa()['zekr'],
-      scheduledDate,
-      notifDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
+    if(Platform.isAndroid){
+      final androidDetails = AndroidNotificationDetails(
+        'doaa_channel',
+        'Doaa Notifications',
+        channelDescription: 'Daily doaa (zekr) at 3:00 PM',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+      );
+
+
+
+      final notifDetails = NotificationDetails(android: androidDetails);
+      // await flutterLocalNotificationsPlugin.show(0, category, zekr, notifDetails);
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        0,
+        category,
+        zekr,
+        tz.TZDateTime.from(scheduledDate, tz.local),
+        notifDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+      print("✅ Scheduled daily Doaa at ${DateFormat('hh:mm a').format(scheduledDate)} (local)");
+    }
+    else if(Platform.isIOS){
+      final iosDetails = DarwinNotificationDetails(
+        presentAlert: true,  // show alert banner
+        presentBadge: true,  // update app icon badge
+        presentSound: true,  // play notification sound
+        interruptionLevel: InterruptionLevel.timeSensitive,
+      );
+      final notifDetails = NotificationDetails(iOS: iosDetails);
+
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        0,
+        category,
+        zekr,
+        tz.TZDateTime.from(scheduledDate, tz.local),
+        notifDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    }
+    final pending = await flutterLocalNotificationsPlugin.pendingNotificationRequests();
+
+    // Check if our notification ID (0) exists
+    final exists = pending.any((notif) => notif.id == 0);
+
+    if (exists) {
+      print("✅ Doaa notification is scheduled successfully!");
+    } else {
+      print("⚠️ Doaa notification was NOT scheduled.");
+    }
+  }
+
+  Future<void> pushInstantNotification()async{
+    final iosDetails = DarwinNotificationDetails(
+      presentAlert: true,  // show alert banner
+      presentBadge: true,  // update app icon badge
+      presentSound: true,  // play notification sound
+      // sound: 'default.wav', // optional custom sound from ios/Runner directory
+      interruptionLevel: InterruptionLevel.timeSensitive, // optional: iOS 15+ style
     );
-    print("✅ Scheduled daily Doaa at ${DateFormat('hh:mm a').format(scheduledDate)} (local)");
+    final notifDetails = NotificationDetails(iOS: iosDetails);
+
+    await flutterLocalNotificationsPlugin.show(7000, "category", "zekr", notifDetails);
+    print("done");
   }
 
   Map getRandomDoaa(){
@@ -784,10 +890,11 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         date = DateFormat.yMMMMd('ar').format(targetDay);
 
         // 6️⃣ Convert Gregorian → Hijri
-        final hijri = HijriCalendar.fromDate(targetDay);
-        final monthName = _arabicHijriMonths[hijri.hMonth];
-        hijriDate =
-        "${_toArabicDigits(hijri.hDay.toString())} $monthName ${_toArabicDigits(hijri.hYear.toString())}";
+        // final hijri = HijriCalendar.fromDate(targetDay);
+        // final monthName = _arabicHijriMonths[hijri.hMonth];
+        // hijriDate =
+        // "${_toArabicDigits(hijri.hDay.toString())} $monthName ${_toArabicDigits(hijri.hYear.toString())}";
+        _setDates(datetime: targetDay);
 
 
         emit(GetPrayerTimesSuccessState());
@@ -827,7 +934,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     return DateTime(day.year, day.month, day.day, hour, minute);
   }
 
-
+///ios Home widget
   Future<void> updateWidgetsData() async {
     if (prayerTimes.isEmpty) return;
 
@@ -888,4 +995,207 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     });
   }
 
+
+
+  /// android Home Widget
+
+  Future<void> updatePrayerWidget({
+    required String upcomingPrayer,
+    required DateTime upcomingTime,
+    required Map<String, DateTime> allPrayers,
+  }) async {
+    String formatArabicTime(DateTime time) {
+      final formatted = DateFormat('hh:mm a', 'ar').format(time);
+      // Replace AM/PM with Arabic equivalents
+      final arabicTime = formatted
+          .replaceAll('AM', 'ص')
+          .replaceAll('PM', 'م');
+      // Convert Western digits to Arabic numerals
+      const western = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+      const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+      var result = arabicTime;
+      for (int i = 0; i < western.length; i++) {
+        result = result.replaceAll(western[i], arabic[i]);
+      }
+      return result;
+    }
+
+    // ✅ Format upcoming prayer time in Arabic 12-hour style
+    final formattedUpcoming = formatArabicTime(upcomingTime);
+
+    // Save upcoming prayer
+    await HomeWidget.saveWidgetData<String>('prayer_name', upcomingPrayer);
+    await HomeWidget.saveWidgetData<String>('prayer_time', formattedUpcoming);
+
+    // ✅ Save all prayer times individually (formatted)
+    for (final entry in allPrayers.entries) {
+      final formattedTime = formatArabicTime(entry.value);
+      await HomeWidget.saveWidgetData<String>(entry.key, formattedTime);
+    }
+
+    // ✅ Update both widgets
+    await HomeWidget.updateWidget(name: 'HomeWidgetSmallProvider');
+    await HomeWidget.updateWidget(name: 'HomeWidgetLargeProvider');
+  }
+
+  Future<void> scheduleNextPrayerWidgetUpdate(Map<String, DateTime> allPrayers) async {
+    final now = DateTime.now();
+
+    // 🔹 Filter out unwanted prayers
+    final upcoming = allPrayers.entries
+        .where((e) =>
+    e.value.isAfter(now) &&
+        e.key != 'منتصف الليل' &&
+        e.key != 'الثلث الاخير')
+        .toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+
+    if (upcoming.isEmpty) {
+      print("⚠️ No upcoming prayers today, scheduling for tomorrow");
+      // Schedule for first prayer tomorrow
+      final tomorrow = now.add(Duration(days: 1));
+      final firstPrayerTomorrow = DateTime(
+        tomorrow.year,
+        tomorrow.month,
+        tomorrow.day,
+        allPrayers['الفجر']?.hour ?? 5,
+        allPrayers['الفجر']?.minute ?? 0,
+      );
+
+      await AndroidAlarmManager.oneShotAt(
+        firstPrayerTomorrow,
+        1001,
+        updatePrayerWidgetCallback,
+        exact: true,
+        wakeup: true,
+      );
+      debugPrint('⏰ Scheduled widget update for tomorrow at ${firstPrayerTomorrow}');
+      return;
+    }
+
+    final nextPrayer = upcoming.first;
+
+    // 🔹 Save next prayer info for background callback
+    await CacheHelper.saveData(
+      key: 'next_prayer_name',
+      value: nextPrayer.key,
+    );
+    await CacheHelper.saveData(
+      key: 'next_prayer_time',
+      value: nextPrayer.value.toIso8601String(),
+    );
+
+    // 🔹 Schedule widget update at the next prayer time
+    await AndroidAlarmManager.oneShotAt(
+      nextPrayer.value,
+      1001, // unique alarm ID
+      updatePrayerWidgetCallback,
+      exact: true,
+      wakeup: true,
+    );
+
+    debugPrint('⏰ Scheduled widget auto-update for ${nextPrayer.key} at ${nextPrayer.value}');
+  }
+
+
+
+
 }
+
+
+@pragma('vm:entry-point')
+void updatePrayerWidgetCallback() async {
+  print("🔔 Widget update callback triggered!");
+  await initializeDateFormatting('ar');
+  try {
+    // 1️⃣ Load cached prayer data
+    final cachedTimes = await CacheHelper.getMap(key: 'cached_prayer_times');
+    final cachedUpcoming = await CacheHelper.getMap(key: 'cached_prayer_upcoming');
+
+    if (cachedTimes == null || cachedUpcoming == null) {
+      print("❌ No cached prayer data found");
+      return;
+    }
+
+    // 2️⃣ Parse prayer times
+    final allPrayers = cachedTimes.map((k, v) {
+      try {
+        return MapEntry(k, DateTime.parse(v));
+      } catch (e) {
+        print("❌ Error parsing prayer time $k: $e");
+        return MapEntry(k, DateTime.now());
+      }
+    });
+
+    final now = DateTime.now();
+
+    // 3️⃣ Find next upcoming prayer
+    final upcoming = allPrayers.entries
+        .where((e) =>
+    e.value.isAfter(now) &&
+        e.key != 'منتصف الليل' &&
+        e.key != 'الثلث الاخير')
+        .toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+
+    String upcomingPrayer;
+    DateTime? upcomingTime;
+
+    if (upcoming.isNotEmpty) {
+      upcomingPrayer = upcoming.first.key;
+      upcomingTime = upcoming.first.value;
+      print("✅ Next prayer: $upcomingPrayer at $upcomingTime");
+    } else {
+      print("⚠️ No more prayers today, using cached upcoming");
+      upcomingPrayer = cachedUpcoming['upComingPrayer'] ?? 'الفجر';
+      upcomingTime = allPrayers[upcomingPrayer];
+    }
+
+    if (upcomingTime == null) {
+      print("❌ Could not find upcoming prayer time");
+      return;
+    }
+
+    // 4️⃣ Format time for widget
+    String formatArabicTime(DateTime time) {
+      final formatted = DateFormat('hh:mm a', 'ar').format(time);
+      final arabicTime = formatted
+          .replaceAll('AM', 'ص')
+          .replaceAll('PM', 'م');
+
+      const western = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+      const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+      var result = arabicTime;
+      for (int i = 0; i < western.length; i++) {
+        result = result.replaceAll(western[i], arabic[i]);
+      }
+      return result;
+    }
+
+    final formattedTime = formatArabicTime(upcomingTime);
+
+    // 5️⃣ Update widgets
+    await HomeWidget.saveWidgetData<String>('prayer_name', upcomingPrayer);
+    await HomeWidget.saveWidgetData<String>('prayer_time', formattedTime);
+
+    // Also save all prayer times
+    for (final entry in allPrayers.entries) {
+      final formattedPrayerTime = formatArabicTime(entry.value);
+      await HomeWidget.saveWidgetData<String>(entry.key, formattedPrayerTime);
+    }
+
+    await HomeWidget.updateWidget(name: 'HomeWidgetSmallProvider');
+    await HomeWidget.updateWidget(name: 'HomeWidgetLargeProvider');
+
+    print("✅ Widget updated successfully!");
+
+    // 6️⃣ Schedule next update
+    // Create a temporary cubit instance to schedule the next alarm
+    final cubit = PrayerTimesCubit();
+    await cubit.scheduleNextPrayerWidgetUpdate(allPrayers);
+
+  } catch (e, s) {
+    print("❌ Error in updatePrayerWidgetCallback: $e\n$s");
+  }
+}
+
