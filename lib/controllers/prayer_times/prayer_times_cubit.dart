@@ -356,7 +356,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
             allPrayers: prayerTimes
           );
           await scheduleNextPrayerWidgetUpdate(prayerTimes);
-
         }
         // final now = DateTime.now();
         // await _scheduleAllPrayerNotifications({
@@ -670,8 +669,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
          print("❌ Error scheduling $prayerName: $e");
        }
       }
-      print("📅 Scheduled $scheduledCount prayer notifications");
     }
+    print("📅 Scheduled $scheduledCount prayer notifications");
     await scheduleDoaaNotifications();
     // // If no prayers left today, schedule tomorrow's prayers
     // if (scheduledCount == 0) {

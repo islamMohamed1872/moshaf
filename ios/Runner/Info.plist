@@ -2,7 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+<!-- Location Permissions -->
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>This app uses your location to show accurate prayer times and Qibla direction based on your city.</string>
 
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>This app uses your location to update prayer times and Qibla direction even when running in the background.</string>
+
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app uses the microphone to enable Quran recitation and Azan playback features.</string>
     <key>CFBundleURLTypes</key>
     <array>
     	<dict>

@@ -30,14 +30,14 @@ class ZekrScreen extends StatelessWidget {
                 Expanded(
                   child: ListView.separated(
                     itemBuilder: (context, index) => IntrinsicHeight(
-                      child: Row(
-                        spacing: 4,
-                        children: [
-                          InkWell(
-                            onTap: () {
-                              cubit.decrementCount(items["azkar"][index]);
-                            },
-                            child: Container(
+                      child: InkWell(
+                        onTap: () {
+                          cubit.decrementCount(items["azkar"][index]);
+                        },
+                        child: Row(
+                          spacing: 4,
+                          children: [
+                            Container(
                               width: 75.w,
                               padding: EdgeInsetsDirectional.symmetric(vertical: 9, horizontal: 5),
                               decoration: BoxDecoration(
@@ -78,39 +78,39 @@ class ZekrScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              width: double.infinity,
-                              padding: EdgeInsetsDirectional.symmetric(vertical: 10, horizontal: 15),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
-                              ),
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  spacing: 10,
-                                  children: [
-                                    if(items["azkar"][index]['title']!=null)
-                                      Text(items["azkar"][index]['title'],
+                            Expanded(
+                              child: Container(
+                                width: double.infinity,
+                                padding: EdgeInsetsDirectional.symmetric(vertical: 10, horizontal: 15),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
+                                ),
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    spacing: 10,
+                                    children: [
+                                      if(items["azkar"][index]['title']!=null)
+                                        Text(items["azkar"][index]['title'],
+                                          style: AppTextStyles.madReg12(context,color: Color(AppColors.mainGreen)),
+                                        ),
+                                      Text(items["azkar"][index]['zekr'],
+                                        style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
+                                      ),
+                                      if(items["azkar"][index]['reference']!=null)
+                                      Text(items["azkar"][index]['reference'],
                                         style: AppTextStyles.madReg12(context,color: Color(AppColors.mainGreen)),
                                       ),
-                                    Text(items["azkar"][index]['zekr'],
-                                      style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
-                                    ),
-                                    if(items["azkar"][index]['reference']!=null)
-                                    Text(items["azkar"][index]['reference'],
-                                      style: AppTextStyles.madReg12(context,color: Color(AppColors.mainGreen)),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     separatorBuilder: (context, index) => SizedBox(height: 8,),

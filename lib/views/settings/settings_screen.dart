@@ -5,8 +5,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:moshaf/components/cache_helper.dart';
 import 'package:moshaf/components/components.dart';
+import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/views/landing/landing_screen.dart';
+import 'package:moshaf/views/settings/azan_sound_screen.dart';
 import 'package:moshaf/views/settings/country_screen.dart';
 import 'package:moshaf/views/settings/notifications_control_screen.dart';
 import 'package:moshaf/views/settings/widgets/custom_switch.dart';
@@ -151,6 +153,18 @@ class SettingsScreen extends StatelessWidget {
                         _settingsItem(
                           context,
                           icon: Icons.share_outlined,
+                          label: "تغيير صوت المؤذن",
+                          isDark: isDark,
+                          imagePath: "assets/images/azan_sound.png",
+                          onTap: () {
+                            cubit.getAzanSound();
+                            navigateTo(context, AzanSoundScreen());
+                          },
+                        ),
+                        _divider(isDark),
+                        _settingsItem(
+                          context,
+                          icon: Icons.share_outlined,
                           label: "مشاركة التطبيق",
                           isDark: isDark,
                             imagePath: "assets/images/share.png",
@@ -192,6 +206,75 @@ class SettingsScreen extends StatelessWidget {
                             }
                           },
                         ),
+                        _divider(isDark),
+
+
+                        /// ✅ Login
+                        if(FirebaseAuth.instance.currentUser!=null)
+                          _settingsItem(
+                            context,
+                            icon: Icons.check_circle_outline,
+                            label: "مسح بيانات الحساب",
+                            isDark: isDark,
+                            imagePath: "assets/images/delete_account.png",
+                            onTap: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  backgroundColor:isDark? Color(AppColors.scaffoldBg): Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  title: Text(
+                                    "تأكيد الحذف",
+                                    style: AppTextStyles.madB14(context,color: isDark?Colors.white:Colors.black),
+                                  ),
+                                  content: Text(
+                                    "هل أنت متأكد أنك تريد مسح حسابك وجميع بياناتك نهائيًا؟",
+                                    style: AppTextStyles.madReg12(context,color: isDark?Colors.white:Colors.black),
+                                  ),
+                                  actionsAlignment: MainAxisAlignment.spaceBetween,
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      style: TextButton.styleFrom(
+                                        backgroundColor: Colors.grey.shade200,
+                                        foregroundColor: Colors.black,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child:  Text(
+                                        "إلغاء",
+                                        style: AppTextStyles.madReg12(context,),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      style: TextButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child:  Text(
+                                        "تأكيد",
+                                        style: AppTextStyles.madReg12(context,color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm == true) {
+                                await cubit.deleteUserAccount(context,isDark);
+                              }
+                            },
+                          ),
+
                       ],
                     ),
                   ),

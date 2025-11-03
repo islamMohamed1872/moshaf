@@ -4,5 +4,6 @@ class SettingsInitialState extends SettingsStates{}
 
 class TogglePrayerTimesWidgetState extends SettingsStates{}
 class ChangeCountryState extends SettingsStates{}
+class ChangeAzanSoundState extends SettingsStates{}
 class MuteNotificationState extends SettingsStates{}
 class GetNotificationState extends SettingsStates{}
