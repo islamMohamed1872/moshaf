@@ -73,7 +73,7 @@ class RamadanScreen extends StatelessWidget {
                     color: isDark?Color(0xff6B6B6B):Colors.white,
                     textColor: isDark?Colors.white:Colors.black,
                     onTap: () {
-
+                      // navigateTo(context, RamadanEventsScreen());
                     },
                   )
                 ],

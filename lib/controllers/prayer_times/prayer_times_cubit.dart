@@ -45,18 +45,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   /// UI: check whether we have data to render
   bool get hasData => prayerTimes.isNotEmpty && upComingPrayer.isNotEmpty;
 
-  /// returns "hh:mm a" for the upcoming prayer (English numerals + AM/PM)
-  String get upcomingPrayerTime {
-    final dt = prayerTimes[upComingPrayer];
-    if (dt == null) return "";
-    return DateFormat('hh:mm a').format(dt);
-  }
-
-  /// formatted sunrise (الشروق)
-  String get sunriseTime => _formatPrayerTime('الشروق');
-
-  /// formatted sunset (المغرب)
-  String get sunsetTime => _formatPrayerTime('المغرب');
 
   List<Map<String, String>> get prayerTimesList {
     final order = [
@@ -117,13 +105,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     return list;
   }
 
-  // --- Helpers ---
-
-  String _formatPrayerTime(String key) {
-    final dt = prayerTimes[key];
-    if (dt == null) return "";
-    return DateFormat('hh:mm a').format(dt);
-  }
 
   /// Convert English time/AMPM/digits into Arabic script for display.
   /// Example input: "04:43 AM" -> returns Arabic digits + صباحاً/مساءً
@@ -309,12 +290,12 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
         prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
 
-        // prayerTimes['الفجر'] = DateTime.now().add(Duration(minutes: 1));
+        // prayerTimes['الفجر'] = DateTime.now().add(Duration(seconds: 5));
         // prayerTimes['الشروق'] = _parseApiTimeToToday(data['Sunrise'] ?? '00:00');
-        // prayerTimes['الظهر'] = DateTime.now().add(Duration(minutes: 2));
-        // prayerTimes['العصر'] = DateTime.now().add(Duration(minutes: 3));
-        // prayerTimes['المغرب'] = DateTime.now().add(Duration(minutes: 4));
-        // prayerTimes['العشاء'] = DateTime.now().add(Duration(minutes: 5));
+        // prayerTimes['الظهر'] = DateTime.now().add(Duration(seconds: 10));
+        // prayerTimes['العصر'] = DateTime.now().add(Duration(seconds: 15));
+        // prayerTimes['المغرب'] = DateTime.now().add(Duration(seconds: 20));
+        // prayerTimes['العشاء'] = DateTime.now().add(Duration(seconds: 25));
         // prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
         // prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
 
@@ -406,16 +387,16 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final now = DateTime.now();
     final sorted = prayerTimes.entries.toList().sublist(0,6)
       ..sort((a, b) => a.value.compareTo(b.value));
-    sorted.removeAt(1);
+    sorted.removeAt(0);
     MapEntry<String, DateTime> nextPrayerEntry;
     try {
       nextPrayerEntry = sorted.firstWhere((p) => p.value.isAfter(now));
     } catch (_) {
       // all today's prayers passed — pick first and move it to tomorrow
       final first = sorted.first;
-      nextPrayerEntry = MapEntry(first.key, first.value.add(const Duration(days: 1)));
+      nextPrayerEntry = MapEntry('الفجر', first.value.add(const Duration(days: 1)));
+      prayerTimes['الفجر'] = nextPrayerEntry.value;
     }
-
     upComingPrayer = nextPrayerEntry.key;
     emit(GetNextPrayerSuccessState());
   }
@@ -435,7 +416,11 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final now = DateTime.now();
     final next = prayerTimes[upComingPrayer];
     if (next == null) return;
-
+    if (next.isBefore(now)) {
+      // 🔁 Update to next prayer time
+      _updateUpcomingPrayer();
+      return;
+    }
     final target = next.isBefore(now) ? next.add(const Duration(days: 1)) : next;
     final diff = target.difference(now);
 
@@ -448,6 +433,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     "${_toArabicDigits(seconds.toString().padLeft(2, '0'))} : "
         "${_toArabicDigits(minutes.toString().padLeft(2, '0'))} : "
             "${_toArabicDigits(hours.toString().padLeft(2, '0'))}";
+
+
 
     emit(UpdateRemainingTime());
   }
