@@ -15,29 +15,34 @@ import 'package:moshaf/controllers/prayer_times/prayer_times_cubit.dart';
 import 'package:moshaf/views/landing/landing_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:islamic_events/islamic_events.dart';
 
 class SettingsCubit extends Cubit<SettingsStates>{
   SettingsCubit() : super(SettingsInitialState());
   static SettingsCubit get(context) => BlocProvider.of(context);
 
 
-  void shareApp() {
-    String message = "📖 تطبيق مستقيم - اقرأ واستمع للقرآن الكريم.\nيمكنك تحميله من هنا:\n";
-
-    if (Platform.isAndroid) {
-      message += "https://play.google.com/store/apps/details?id=com.afaqalspl.moshaf";
-    } else if (Platform.isIOS) {
-      message += "https://apps.apple.com/app/idXXXXXXXXXX"; // <-- replace with your real App Store ID
-    } else {
-      message += "https://yourwebsite.com/moshaf"; // fallback for web or desktop
+  void shareApp()async {
+    List events = await IslamicEvents.allEvents;
+    for (var event in events){
+      print(event.name);
     }
-
-    SharePlus.instance.share(
-      ShareParams(
-        text: message,
-        subject: "🌙 تطبيق مستقيم - للقراءة والاستماع للقرآن الكريم",
-      ),
-    );
+    // String message = "📖 تطبيق مستقيم - اقرأ واستمع للقرآن الكريم.\nيمكنك تحميله من هنا:\n";
+    //
+    // if (Platform.isAndroid) {
+    //   message += "https://play.google.com/store/apps/details?id=com.afaqalspl.moshaf";
+    // } else if (Platform.isIOS) {
+    //   message += "https://apps.apple.com/eg/app/mostakeem-%D9%85%D8%B3%D8%AA%D9%82%D9%8A%D9%85/id6754695857";
+    // } else {
+    //   message += "https://yourwebsite.com/moshaf"; // fallback for web or desktop
+    // }
+    //
+    // SharePlus.instance.share(
+    //   ShareParams(
+    //     text: message,
+    //     subject: "🌙 تطبيق مستقيم - للقراءة والاستماع للقرآن الكريم",
+    //   ),
+    // );
   }
 
   String country = "مصر";

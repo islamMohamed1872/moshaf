@@ -63,7 +63,6 @@ class _QuranViewPageState extends State<QuranViewPage>
     highlightVerseNotifier = ValueNotifier<int?>(
       int.tryParse(widget.highlightVerse ?? ''),
     );
-    // print(highlightVerseNotifier.value);
 
     final player = AudioServices().player;
     player.playerStateStream.listen((state) {
@@ -235,9 +234,27 @@ class _QuranViewPageState extends State<QuranViewPage>
                   // spans.add(WidgetSpan(
                   //   child: HeaderWidget(e: e, jsonData: widget.jsonData),
                   // ));
+                  // if(getPageData(
+                  //   pageIndex,
+                  // ).length>1){
+                  //   spans.add(WidgetSpan(child: HeaderWidget(
+                  //     e:
+                  //     widget.jsonData[getPageData(
+                  //       pageIndex,
+                  //     )[getPageData(
+                  //       pageIndex,
+                  //     ).length-1]["surah"]],
+                  //     jsonData: widget.jsonData,
+                  //     isDark: isDark,
+                  //   ),));
+                  // }
                   if (pageIndex != 187 && pageIndex != 1) {
                     spans.add(WidgetSpan(child: Basmallah(index: 0,isDark: isDark,)));
                   }
+                  print(getPageData(
+                    pageIndex,
+                  ));
+
                   if (pageIndex == 187) {
                     spans.add(WidgetSpan(child: SizedBox(height: 10.h)));
                   }
@@ -510,12 +527,6 @@ class _QuranViewPageState extends State<QuranViewPage>
             scrollDirection: Axis.horizontal,
             allowImplicitScrolling: true,
             onPageChanged: (a) async{
-              // TextQuranCubit.get(context).soraNumber = widget.jsonData[getPageData(
-              //   a,
-              // )[0]["surah"]]['number'];
-              // print(widget.jsonData[getPageData(
-              //   a-1,
-              // )[0]["surah"]]);
               selectedSpan = "";
               index = a;
               if (index <= 0) return;
@@ -540,6 +551,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                   ),
                 );
               }
+
 
               return Stack(
                 children: [
@@ -568,14 +580,14 @@ class _QuranViewPageState extends State<QuranViewPage>
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          Row(
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               InkWell(
-                                onTap: () async{
+                                onTap: () async {
                                   await AudioServices().player.clearAudioSources();
                                   TextQuranCubit.get(context).stop();
                                   isPlaying.value = false;
@@ -592,45 +604,24 @@ class _QuranViewPageState extends State<QuranViewPage>
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
+                                      color: Color(isDark
+                                          ? AppColors.containerDarkBorders
+                                          : AppColors.containerLightBorders),
                                     ),
                                   ),
-                                  child:  FittedBox(
-                                    child: Icon(
-                                      Icons.arrow_back_ios,
-                                        color:isDark? Colors.white:Colors.black
-                                    ),
+                                  child: FittedBox(
+                                    child: Icon(Icons.arrow_back_ios,
+                                        color: isDark ? Colors.white : Colors.black),
                                   ),
                                 ),
                               ),
                               Expanded(
                                 child: HeaderWidget(
-                                  e:
-                                      widget.jsonData[getPageData(
-                                        pageIndex,
-                                      )[0]["surah"]],
+                                  e: widget.jsonData[getPageData(pageIndex)[0]["surah"]],
                                   jsonData: widget.jsonData,
                                   isDark: isDark,
                                 ),
                               ),
-                              // Container(
-                              //   height: 20,
-                              //   width: 120,
-                              //   decoration: BoxDecoration(
-                              //     color: Colors.orange.withOpacity(0.5),
-                              //     borderRadius: BorderRadius.circular(12),
-                              //     border: Border.all(color: Colors.black),
-                              //   ),
-                              //   child: Center(
-                              //     child: Text(
-                              //       "الصفحه $pageIndex",
-                              //       style: const TextStyle(
-                              //         fontFamily: 'aldahabi',
-                              //         fontSize: 12,
-                              //       ),
-                              //     ),
-                              //   ),
-                              // ),
                               ValueListenableBuilder<bool>(
                                 valueListenable: isPlaying,
                                 builder: (context, playing, _) {
@@ -642,40 +633,40 @@ class _QuranViewPageState extends State<QuranViewPage>
                                     child: Icon(
                                       playing ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
                                       size: 20.w,
-                                        color:isDark? Colors.white:Colors.black
+                                      color: isDark ? Colors.white : Colors.black,
                                     ),
                                   );
                                 },
                               ),
                             ],
                           ),
-                          if (pageIndex == 1 || pageIndex == 2)
-                            SizedBox(height: screenSize.height * .15),
-
-                          // SizedBox(height: 15.h),
-                          Directionality(
-                            textDirection: m.TextDirection.rtl,
-                            child: SizedBox(
-                              width: double.infinity,
-                              child:
-                                  BlocBuilder<TextQuranCubit, TextQuranStates>(
-                                    builder:
-                                        (context, state) => Transform.scale(
-                                          scale: 0.95,
-                                          alignment: Alignment.topCenter,
-                                          child: Skeletonizer(
-                                            enabled:
-                                                !TextQuranCubit.get(
-                                                  context,
-                                                ).isFontLoaded(pageIndex),
-                                            child: _buildPageWidget(pageIndex,isDark),
-                                          ),
-                                        ),
+                        ),
+                        if (pageIndex == 1 || pageIndex == 2)
+                          SliverToBoxAdapter(
+                            child: SizedBox(height: screenSize.height * .15),
+                          ),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Directionality(
+                              textDirection: m.TextDirection.rtl,
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: BlocBuilder<TextQuranCubit, TextQuranStates>(
+                                  builder: (context, state) => Transform.scale(
+                                    scale: 0.95,
+                                    alignment: Alignment.center,
+                                    child: Skeletonizer(
+                                      enabled: !TextQuranCubit.get(context).isFontLoaded(pageIndex),
+                                      child: _buildPageWidget(pageIndex, isDark),
+                                    ),
                                   ),
+                                ),
+                              ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

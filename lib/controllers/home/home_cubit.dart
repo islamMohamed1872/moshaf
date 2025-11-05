@@ -20,7 +20,9 @@ import 'package:moshaf/views/pray_teaching/pray_instructions_screen.dart';
 import 'package:moshaf/views/prayer_times/prayer_times_screen.dart';
 import 'package:moshaf/views/qiblah/qiblah_on_boarding_screen.dart';
 import 'package:moshaf/views/quran/all_quran_screen.dart';
+import 'package:moshaf/views/quran_radio/quran_radio_screen.dart';
 import 'package:moshaf/views/ramadan/ramadan_screen.dart';
+import 'package:moshaf/views/search/search_screen.dart';
 import 'package:moshaf/views/tasbeeh/tasbeeh_screen.dart';
 import 'package:moshaf/views/wodoo_teaching/wodoo_instructions_screen.dart';
 import 'package:moshaf/views/zakat_al_mal/zakah_calculator.dart';
@@ -60,6 +62,8 @@ class HomeCubit extends Cubit<HomeStates>{
     {"image": "assets/images/haj.png", "title": "مناسك الحج والعمرة"},
     {"image": "assets/images/tasbeeh.png", "title": "السبحة"},
     {"image": "assets/images/zakah.png", "title": "حساب زكاة المال"},
+    {"image": "assets/images/radio.png", "title": "اذاعة القرآن الكريم"},
+    {"image": "assets/images/search.png", "title": "بحث"},
   ];
 
   void navigateToFeature(BuildContext context, int index,bool isDark) {
@@ -100,6 +104,12 @@ class HomeCubit extends Cubit<HomeStates>{
         break;
       case 11:
         navigateTo(context, ZakahCalculator());
+        break;
+      case 12:
+        navigateTo(context, QuranRadioScreen());
+        break;
+      case 13:
+        navigateTo(context, SearchScreen());
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(

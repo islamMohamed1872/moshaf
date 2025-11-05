@@ -66,7 +66,7 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
     searchQuery = value;
     emit(ChangeSearchQueryState());
   }
-  var filteredData;
+  List? filteredData;
   void changeFilteredData(value){
     filteredData = value;
     emit(ChangeFilteredDataState());
