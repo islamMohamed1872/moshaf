@@ -135,7 +135,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   String country = "";
 
   String translateToArabic(String name) {
-    return arabicLocationNames[name] ?? name;
+    return AppConstants.arabicLocationNames[name] ?? name;
   }
 
   Future<Position> _determinePosition() async {
@@ -989,7 +989,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     required String upcomingPrayer,
     required DateTime upcomingTime,
     required Map<String, DateTime> allPrayers,
-  }) async {
+  }) async
+  {
     String formatArabicTime(DateTime time) {
       final formatted = DateFormat('hh:mm a', 'ar').format(time);
       // Replace AM/PM with Arabic equivalents

@@ -9,7 +9,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../../controllers/theme/theme_cubit.dart';
 import '../widgets/header.dart';

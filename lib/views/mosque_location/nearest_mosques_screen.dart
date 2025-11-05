@@ -6,14 +6,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:moshaf/components/components.dart';
 import 'package:moshaf/views/home/home_screen.dart';
-import 'package:permission_handler/permission_handler.dart';
-
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
 import '../../controllers/theme/theme_cubit.dart';
@@ -38,7 +37,7 @@ class _MasjidLocatorScreenState extends State<MasjidLocatorScreen> {
   BitmapDescriptor? _mosqueMarkerIcon;
   String? _currentAddress;
 
-  static const String _apiKey = "AIzaSyBWiuuOH93eV4T8agl0VQszgdBjfIK--Ew";
+  final String _apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
   final Dio _dio = Dio();
 
   bool get _isReadyToRender =>
@@ -68,9 +67,9 @@ class _MasjidLocatorScreenState extends State<MasjidLocatorScreen> {
 
   Future<void> _loadCustomMarkers() async {
     final userIcon =
-    await _getBytesFromAsset("assets/images/user_maps_pin.png", 70);
+    await _getBytesFromAsset("assets/images/user_maps_pin.png", 50);
     final mosqueIcon =
-    await _getBytesFromAsset("assets/images/mosque_location_pin.png", 80);
+    await _getBytesFromAsset("assets/images/mosque_location_pin.png", 60);
 
     setState(() {
       _userMarkerIcon = userIcon;

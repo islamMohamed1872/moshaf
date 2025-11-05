@@ -14,7 +14,7 @@
     <!-- REQUIRED FOR SDK 34+ -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
-
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application
         android:label="Mostakeem - مستقيم"
         android:name="${applicationName}"
@@ -23,7 +23,32 @@
         android:networkSecurityConfig="@xml/network_security_config"
         >
         <meta-data android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBWiuuOH93eV4T8agl0VQszgdBjfIK--Ew"/>
+            android:value="AIzaSyBZ0Ck4x3f1b7djhMM_1nQVenOkk7vIroY"/>
+
+        <!-- SMALL WIDGET -->
+        <receiver
+            android:name=".HomeWidgetSmallProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_small_info" />
+        </receiver>
+
+        <!-- LARGE WIDGET -->
+        <receiver
+            android:name=".HomeWidgetLargeProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_large_info" />
+        </receiver>
+
         <!-- LOCAL NOTIFICATION RECEIVERS -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"

@@ -2,98 +2,106 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-<!-- Location Permissions -->
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>This app uses your location to show accurate prayer times and Qibla direction based on your city.</string>
 
-<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-<string>This app uses your location to update prayer times and Qibla direction even when running in the background.</string>
+  <!-- 🧭 Location Permissions -->
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>This app uses your location to show accurate prayer times and Qibla direction based on your city.</string>
+  <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+  <string>This app uses your location to update prayer times and Qibla direction even when running in the background.</string>
+  <key>NSLocationAlwaysUsageDescription</key>
+  <string>This app needs access to your location to provide you with accurate prayer times.</string>
 
-    <key>NSMicrophoneUsageDescription</key>
-    <string>This app uses the microphone to enable Quran recitation and Azan playback features.</string>
-    <key>CFBundleURLTypes</key>
-    <array>
-    	<dict>
-    		<key>CFBundleTypeRole</key>
-    		<string>Editor</string>
-    		<key>CFBundleURLSchemes</key>
-    		<array>
-    			<!-- TODO Replace this value: -->
-    			<!-- Copied from GoogleService-Info.plist key REVERSED_CLIENT_ID -->
-    			<string>com.googleusercontent.apps.733056371061-4eil2h7lseccn5o9hqu63o999lusllr2</string>
-    		</array>
-    	</dict>
-    </array>
-    <key>NSUserNotificationUsageDescription</key>
-    <string>يُستخدم هذا التطبيق لإرسال تذكيرات بالصلاة وقراءة القرآن.</string>
-    <key>GIDClientID</key>
-    <!-- TODO Replace this value: -->
-    <!-- Copied from GoogleService-Info.plist key CLIENT_ID -->
-    <string>733056371061-4eil2h7lseccn5o9hqu63o999lusllr2.apps.googleusercontent.com</string>
-    <key>BGTaskSchedulerPermittedIdentifiers</key>
-    <array>
-        <string>dev.flutter.background.refresh</string>
-    </array>
-    <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsArbitraryLoads</key>
-        <true/>
-    </dict>
-      <key>UIBackgroundModes</key>
-      <array>
-        <string>audio</string>
-        <string>fetch</string>
-      </array>
-    <key>BGTaskSchedulerPermittedIdentifiers</key>
-    <array>
-        <string>dev.flutter.background.refresh</string>
-    </array>
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string>This app needs access to your location to provide you with accurate prayer times.</string>
-    <key>NSLocationAlwaysUsageDescription</key>
-    <string>This app needs access to your location to provide you with accurate prayer times.</string>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>Mostakeem - مستقيم</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>Mostakeem - مستقيم</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
+  <!-- 🎙️ Microphone (for Azan/Quran) -->
+  <key>NSMicrophoneUsageDescription</key>
+  <string>This app uses the microphone to enable Quran recitation and Azan playback features.</string>
+
+  <!-- 🔔 Notifications -->
+  <key>NSUserNotificationUsageDescription</key>
+  <string>يُستخدم هذا التطبيق لإرسال تذكيرات بالصلاة وقراءة القرآن.</string>
+
+  <!-- 🌐 Network and Security -->
+  <key>NSAppTransportSecurity</key>
+  <dict>
+      <key>NSAllowsArbitraryLoads</key>
+      <true/>
+  </dict>
+
+  <!-- 🔄 Background Modes -->
+  <key>UIBackgroundModes</key>
+  <array>
+      <string>audio</string>
+      <string>fetch</string>
+  </array>
+
+  <key>BGTaskSchedulerPermittedIdentifiers</key>
+  <array>
+      <string>dev.flutter.background.refresh</string>
+  </array>
+
+  <!-- 🔗 Google Sign-In -->
+  <key>CFBundleURLTypes</key>
+  <array>
+      <dict>
+          <key>CFBundleTypeRole</key>
+          <string>Editor</string>
+          <key>CFBundleURLSchemes</key>
+          <array>
+              <string>com.googleusercontent.apps.733056371061-4eil2h7lseccn5o9hqu63o999lusllr2</string>
+          </array>
+      </dict>
+  </array>
+  <key>GIDClientID</key>
+  <string>733056371061-4eil2h7lseccn5o9hqu63o999lusllr2.apps.googleusercontent.com</string>
+
+  <!-- ⚙️ App Metadata -->
+  <key>CFBundleDevelopmentRegion</key>
+  <string>$(DEVELOPMENT_LANGUAGE)</string>
+  <key>CFBundleDisplayName</key>
+  <string>Mostakeem - مستقيم</string>
+  <key>CFBundleExecutable</key>
+  <string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundleIdentifier</key>
+  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>Mostakeem - مستقيم</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$(FLUTTER_BUILD_NAME)</string>
+  <key>CFBundleSignature</key>
+  <string>????</string>
+  <key>CFBundleVersion</key>
+  <string>$(FLUTTER_BUILD_NUMBER)</string>
+
+  <key>LSRequiresIPhoneOS</key>
+  <true/>
+  <key>UILaunchStoryboardName</key>
+  <string>LaunchScreen</string>
+  <key>UIMainStoryboardFile</key>
+  <string>Main</string>
+
+  <!-- 📱 Orientations -->
+  <key>UISupportedInterfaceOrientations</key>
+  <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationLandscapeLeft</string>
+      <string>UIInterfaceOrientationLandscapeRight</string>
+  </array>
+  <key>UISupportedInterfaceOrientations~ipad</key>
+  <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationPortraitUpsideDown</string>
+      <string>UIInterfaceOrientationLandscapeLeft</string>
+      <string>UIInterfaceOrientationLandscapeRight</string>
+  </array>
+
+  <!-- ⚡ Performance -->
+  <key>CADisableMinimumFrameDurationOnPhone</key>
+  <true/>
+  <key>UIApplicationSupportsIndirectInputEvents</key>
+  <true/>
+
 </dict>
 </plist>

@@ -19,40 +19,42 @@ class QiblahCubit extends Cubit<QiblahStates>{
   bool waitingForPermissionResult = false;
   bool isPermanentlyDenied = false;
 
-  Future<void> checkPermission(context,bool isDark) async {
-    try{
+  Future<void> checkPermission(BuildContext context, bool isDark) async {
+    try {
       emit(CheckPermissionState());
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      print('Service enabled: $serviceEnabled');
       if (!serviceEnabled) {
         await Geolocator.openLocationSettings();
-        waitingForPermissionResult = true;
         return;
       }
 
-      var status = await Permission.locationWhenInUse.status;
+      // Check and request permission using Geolocator only
+      LocationPermission permission = await Geolocator.checkPermission();
 
-      if (!status.isGranted) {
-        status = await Permission.locationWhenInUse.request();
-        showPermissionDialog(context,isDark);
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        showPermissionDialog(context, isDark);
+        emit(ShowPermissionDialogState());
         return;
       }
 
-      if (status.isGranted) {
+      if (permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse) {
         hasPermission = true;
         initializeStream();
         getCurrentAddress();
         emit(GetPermissionSuccessState());
-      } else if (status.isDenied) {
-        showPermissionDialog(context,isDark);
-        emit(ShowPermissionDialogState());
-      } else if (status.isPermanentlyDenied) {
-        isPermanentlyDenied = true;
-        showPermissionDialog(context,isDark);
+      } else {
+        showPermissionDialog(context, isDark);
         emit(ShowPermissionDialogState());
       }
-    }catch(e){
-      print(e);
+    } catch (e) {
+      print('Permission error: $e');
     }
   }
 

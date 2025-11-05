@@ -7,7 +7,6 @@ import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_states.dart';
 import 'package:moshaf/views/qiblah/qiblah_screen.dart';
 import 'package:moshaf/views/widgets/custom_green_button.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../../constants/app_colors.dart';
 import '../../controllers/theme/theme_cubit.dart';
