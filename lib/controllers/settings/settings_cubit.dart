@@ -23,26 +23,22 @@ class SettingsCubit extends Cubit<SettingsStates>{
 
 
   void shareApp()async {
-    List events = await IslamicEvents.allEvents;
-    for (var event in events){
-      print(event.name);
+    String message = "📖 تطبيق مستقيم - اقرأ واستمع للقرآن الكريم.\nيمكنك تحميله من هنا:\n";
+
+    if (Platform.isAndroid) {
+      message += "https://play.google.com/store/apps/details?id=com.afaqalspl.moshaf";
+    } else if (Platform.isIOS) {
+      message += "https://apps.apple.com/eg/app/mostakeem-%D9%85%D8%B3%D8%AA%D9%82%D9%8A%D9%85/id6754695857";
+    } else {
+      message += "https://yourwebsite.com/moshaf"; // fallback for web or desktop
     }
-    // String message = "📖 تطبيق مستقيم - اقرأ واستمع للقرآن الكريم.\nيمكنك تحميله من هنا:\n";
-    //
-    // if (Platform.isAndroid) {
-    //   message += "https://play.google.com/store/apps/details?id=com.afaqalspl.moshaf";
-    // } else if (Platform.isIOS) {
-    //   message += "https://apps.apple.com/eg/app/mostakeem-%D9%85%D8%B3%D8%AA%D9%82%D9%8A%D9%85/id6754695857";
-    // } else {
-    //   message += "https://yourwebsite.com/moshaf"; // fallback for web or desktop
-    // }
-    //
-    // SharePlus.instance.share(
-    //   ShareParams(
-    //     text: message,
-    //     subject: "🌙 تطبيق مستقيم - للقراءة والاستماع للقرآن الكريم",
-    //   ),
-    // );
+
+    SharePlus.instance.share(
+      ShareParams(
+        text: message,
+        subject: "🌙 تطبيق مستقيم - للقراءة والاستماع للقرآن الكريم",
+      ),
+    );
   }
 
   String country = "مصر";

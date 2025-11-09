@@ -158,11 +158,8 @@ class SearchScreen extends StatelessWidget {
                               onTap: () async {
                                 cubit.stop();
                                 await AudioServices().player.clearAudioSources();
-                                print(cubit.ayatFiltered["result"][index]);
                                 cubit.soraNumber = cubit.ayatFiltered["result"][index]['surah'];
                                 int verseNumber = cubit.ayatFiltered["result"][index]['verse'];
-                                print(cubit.soraNumber);
-                                print(verseNumber);
                                 int pageNumber = quran.getPageNumber(cubit.soraNumber!, verseNumber);
                                 navigateTo(context, QuranViewPage(
                                   shouldHighlightText: false,

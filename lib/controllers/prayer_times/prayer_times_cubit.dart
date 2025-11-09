@@ -299,7 +299,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         // prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
         // prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
 
-        print(prayerTimes);
+        // print(prayerTimes);
         // dates
         _setDates(datetime: DateTime.now());
 
@@ -387,7 +387,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final now = DateTime.now();
     final sorted = prayerTimes.entries.toList().sublist(0,6)
       ..sort((a, b) => a.value.compareTo(b.value));
-    sorted.removeAt(0);
+    sorted.remove(sorted.firstWhere((element) => element.key == "الشروق"));
     MapEntry<String, DateTime> nextPrayerEntry;
     try {
       nextPrayerEntry = sorted.firstWhere((p) => p.value.isAfter(now));
@@ -607,8 +607,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           channelDescription: 'Prayer time notifications',
           importance: Importance.max,
           priority: Priority.high,
-          playSound: true,
-          sound: RawResourceAndroidNotificationSound(audioFileName),
+          playSound: false,
+
+          // sound: RawResourceAndroidNotificationSound(audioFileName),
         );
 
         final notifDetails = NotificationDetails(android: androidDetails);
@@ -622,6 +623,15 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
             notifDetails,
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             matchDateTimeComponents: DateTimeComponents.time,
+          );
+          await AndroidAlarmManager.oneShotAt(
+            time,
+            time.hashCode,
+            playAzanCallback,
+            params: {'file': audioFileName},
+            exact: true,
+            wakeup: true,
+            allowWhileIdle: true,
           );
 
           scheduledCount++;
@@ -1183,6 +1193,22 @@ void updatePrayerWidgetCallback() async {
 
   } catch (e, s) {
     print("❌ Error in updatePrayerWidgetCallback: $e\n$s");
+  }
+
+
+}
+
+@pragma('vm:entry-point')
+void playAzanCallback() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final player = AudioServices().player;
+  try {
+    // You can store the selected azan sound in SharedPreferences or CacheHelper
+    final azanOption = await CacheHelper.getData(key: "azanSound") ?? "azan";
+    await player.setAsset('assets/audio/$azanOption.mp3');
+    await player.play();
+  } catch (e) {
+    print('❌ Error playing Azan: $e');
   }
 }
 

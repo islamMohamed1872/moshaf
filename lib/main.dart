@@ -88,8 +88,8 @@ Future<void> callbackCheckQuranReminder() async {
       if (skipped?.contains("تذكير بالمصحف") ?? false) return;
 
       final int? lastSora = await CacheHelper.getData(key: 'sora');
-      final String sorahName = (lastSora != null) ? quran.getSurahNameArabic(lastSora) : 'المصحف';
-
+      if(lastSora == null) return;
+      final String sorahName =quran.getSurahNameArabic(lastSora);
       final iOSDetails = ln.DarwinNotificationDetails();
       final notifDetails = ln.NotificationDetails(iOS: iOSDetails);
 
@@ -269,6 +269,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: "assets/.env");
   await ensureLocationPermission();
+  callbackCheckQuranReminder();
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -401,7 +402,7 @@ Future<void> initializeService() async {
     await service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: onStart, // Function to run when service starts
-        isForegroundMode: true,
+        isForegroundMode: false,
         autoStart: true,
       ),
       iosConfiguration: IosConfiguration(),
