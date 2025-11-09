@@ -7,6 +7,9 @@ import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/home/home_cubit.dart';
 import 'package:moshaf/controllers/home/home_states.dart';
+import 'package:moshaf/controllers/prayer_times/prayer_times_cubit.dart';
+import 'package:moshaf/controllers/prayer_times/prayer_times_states.dart';
+import 'package:moshaf/views/home/widgets/animated_prayer_container.dart';
 import 'package:moshaf/views/settings/settings_screen.dart';
 import 'package:moshaf/views/widgets/custom_green_button.dart';
 
@@ -115,6 +118,21 @@ class HomeScreen extends StatelessWidget {
                   Expanded(child: SingleChildScrollView(child: Column(
                     children: [
 
+                      BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
+                        builder: (context, state) {
+                          final cubit = PrayerTimesCubit.get(context);
+                          return AnimatedPrayerContainer(
+                            isDark: isDark,
+                            prayerName: cubit.upComingPrayer,
+                            remainingTime: cubit.remainingTime,
+                            dayName: cubit.getDayName(),
+                            hijriDate: cubit.hijriDate,
+                            date: cubit.date,
+                          );
+                        },
+                      ),
+
+
                       /// ✅ Grid section
                       GridView.builder(
                         shrinkWrap: true,
@@ -217,3 +235,5 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
+
+

@@ -495,7 +495,7 @@ class MyApp extends StatelessWidget {
       child: MultiBlocProvider(
         providers: [
           BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimes()),
-          BlocProvider(create: (context) => HomeCubit()..requestLocationPermissions()..requestOverlay()..getFirstTime()),
+          BlocProvider(create: (context) => HomeCubit()..requestLocationPermissions()..requestOverlay()..getFirstTime(),lazy: false,),
           BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()),
           BlocProvider(create: (context) => SettingsCubit()..getNotificationsState()),
           BlocProvider(create: (context) => ThemeCubit()..getThemeMode(),lazy: false,),
