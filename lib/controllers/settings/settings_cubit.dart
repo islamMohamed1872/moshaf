@@ -5,6 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:moshaf/components/cache_helper.dart';
 import 'package:moshaf/components/components.dart';
@@ -67,10 +68,49 @@ class SettingsCubit extends Cubit<SettingsStates>{
     "صالح الجعفراوي",
   ];
 
-  void changeAzanSound(String value,context){
+  void changeAzanSound(String value,context)async{
     azanSound = value;
     CacheHelper.saveData(key: 'azanSound', value: value);
-    PrayerTimesCubit.get(context).scheduleAllPrayerNotifications();
+    await PrayerTimesCubit.get(context).scheduleAllPrayerNotifications();
+   if(Platform.isAndroid){
+     String audioFileName = "";
+
+     switch(azanSound){
+       case "اذان الحرم المكي":
+         audioFileName = "azan";
+         break;
+       case "عبد الباسط عبد الصمد":
+         audioFileName = "abdullbaset";
+         break;
+       case "ناصر القطامي":
+         audioFileName = "naser_alkatamy";
+         break;
+       case "صالح الجعفراوي":
+         audioFileName = "saleh_algafrawy";
+         break;
+       default:
+         audioFileName = "azan";
+         break;
+     }
+     final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+     FlutterLocalNotificationsPlugin();
+     final androidDetails = AndroidNotificationDetails(
+       'prayer_channel_$audioFileName',
+       'Prayer Times ($audioFileName)',
+       channelDescription: 'Prayer time notifications',
+       importance: Importance.max,
+       priority: Priority.high,
+       playSound: true,
+       sound: RawResourceAndroidNotificationSound(audioFileName),
+     );
+     final notifDetails = NotificationDetails(android: androidDetails);
+     await flutterLocalNotificationsPlugin.show(
+       DateTime.now().hashCode,
+       'وقت الصلاة',
+       'حان الآن موعد الصلاة',
+       notifDetails,
+     );
+   }
     emit(ChangeAzanSoundState());
   }
   void getAzanSound()async{

@@ -102,115 +102,119 @@ class _ZakahCalculatorState extends State<ZakahCalculator> {
   Widget build(BuildContext context) {
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return Scaffold(
-      resizeToAvoidBottomInset: true,
       body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(15.0),
-            child: Column(
-              children: [
-                Header(title: "زكاة المال",isDark: isDark,),
-                SizedBox(
-                  height: 40.h,
-                ),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsetsDirectional.symmetric(horizontal: 17, vertical: 12),
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
-                  child: RichText(
-                      text: TextSpan(children: [
-                        TextSpan(text: "فرض إسلامي يُخرَج منها", style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
-                        TextSpan(text: " 2.5% ", style: AppTextStyles.madB14(context, color: Color(AppColors.mainGreen))),
-                        TextSpan(
-                            text:
-                            "من الأموال المدخرة التي بلغت النصاب(وهو ما يعادل 85 جرامًا من الذهب أو 595 جرامًا من الفضة) ومر عليها عام",
-                            style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
-                        TextSpan(text: " هجري كامل ", style: AppTextStyles.madB14(context, color: Color(AppColors.mainGreen))),
-                        TextSpan(text: "يجب أن تخرج الزكاة إلى", style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
-                        TextSpan(text: " الفقراء والمساكين ", style: AppTextStyles.madB14(context, color: Color(AppColors.mainGreen))),
-                        TextSpan(text: "وغيرهم من المصارف المحددة في القرآن الكريم، ويمكن أن تكون نقدًا أو عينيًا", style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
-                      ])),
-                ),
-                const SizedBox(
-                  height: 8,
-                ),
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Padding(
-                        padding: EdgeInsetsDirectional.only(start: 15.w, end: 15.w, top: 10.h),
-                        child: IconButton(
-                            onPressed: () {
-                              // optional: reset result
-                              setState(() {
-                                zakatResult = null;
-                                moneyController.clear();
-                              });
-                            },
-                            icon: Icon(
-                              FontAwesomeIcons.arrowRotateRight,
-                              size: 15.w,
-                              color: Color(0xff3E3E3E),
-                            )),
-                      ),
-                      Center(
-                        child: SizedBox(
-                          height: 120,
-                          child: Stack(
-                            alignment: Alignment.bottomCenter,
-                            children: [
-                              Positioned(
-                                  top: 0,
-                                  child: Text(
-                                    zakatResult ==null ? "00" : zakatResult.toString().padLeft(2, "0"),
-                                    style: AppTextStyles.madB60(context, color: Color(AppColors.mainGreen)),
-                                  )),
-                              // show zakat result below amount if present
-                              Positioned(
-                                bottom: 8,
-                                child: Text(currency??"جنية مصري", style: AppTextStyles.madL40(context,color: isDark?Colors.white:Colors.black))
-                              ),
-                            ],
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Header(title: "زكاة المال",isDark: isDark,iconColor: isDark?Colors.white:Colors.black,),
+                  SizedBox(
+                    height: 40.h,
+                  ),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsetsDirectional.symmetric(horizontal: 17, vertical: 12),
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
+                    child: RichText(
+                        text: TextSpan(children: [
+                          TextSpan(text: "فرض إسلامي يُخرَج منها", style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
+                          TextSpan(text: " 2.5% ", style: AppTextStyles.madB14(context, color: Color(AppColors.mainGreen))),
+                          TextSpan(
+                              text:
+                              "من الأموال المدخرة التي بلغت النصاب(وهو ما يعادل 85 جرامًا من الذهب أو 595 جرامًا من الفضة) ومر عليها عام",
+                              style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
+                          TextSpan(text: " هجري كامل ", style: AppTextStyles.madB14(context, color: Color(AppColors.mainGreen))),
+                          TextSpan(text: "يجب أن تخرج الزكاة إلى", style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
+                          TextSpan(text: " الفقراء والمساكين ", style: AppTextStyles.madB14(context, color: Color(AppColors.mainGreen))),
+                          TextSpan(text: "وغيرهم من المصارف المحددة في القرآن الكريم، ويمكن أن تكون نقدًا أو عينيًا", style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black)),
+                        ])),
+                  ),
+                  const SizedBox(
+                    height: 8,
+                  ),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Padding(
+                          padding: EdgeInsetsDirectional.only(start: 15.w, end: 15.w, top: 10.h),
+                          child: IconButton(
+                              onPressed: () {
+                                // optional: reset result
+                                setState(() {
+                                  zakatResult = null;
+                                  moneyController.clear();
+                                });
+                              },
+                              icon: Icon(
+                                FontAwesomeIcons.arrowRotateRight,
+                                size: 15.w,
+                                color: Color(0xff3E3E3E),
+                              )),
+                        ),
+                        Center(
+                          child: SizedBox(
+                            height: 120,
+                            child: Stack(
+                              alignment: Alignment.bottomCenter,
+                              children: [
+                                Positioned(
+                                    top: 0,
+                                    child: Text(
+                                      zakatResult ==null ? "00" : zakatResult.toString().padLeft(2, "0"),
+                                      style: AppTextStyles.madB60(context, color: Color(AppColors.mainGreen)),
+                                    )),
+                                // show zakat result below amount if present
+                                Positioned(
+                                  bottom: 8,
+                                  child: Text(currency??"جنية مصري", style: AppTextStyles.madL40(context,color: isDark?Colors.white:Colors.black))
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(
-                        height: 25.h,
-                      ),
-                    ],
+                        SizedBox(
+                          height: 25.h,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(
-                  height: 8,
-                ),
-                TextFormField(
-                  controller: moneyController,
-                  keyboardType: TextInputType.number,
-                  cursorColor: Color(AppColors.mainGreen),
-                  decoration: InputDecoration(
-                    hintText: "ادخل المبلغ",
-                    hintStyle: AppTextStyles.madReg14(context,color: Color(0xff3E3E3E)),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
-                    errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
-                    focusedBorder:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(AppColors.mainGreen))),
+                  const SizedBox(
+                    height: 8,
                   ),
-                ),
-                const Spacer(),
-                CustomGreenButton(
-                  text: "حساب الضريبة",
-                  onTap: _calculateZakat,
-                )
-              ],
+                  TextFormField(
+                    controller: moneyController,
+                    keyboardType: TextInputType.number,
+                    style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
+                    cursorColor: Color(AppColors.mainGreen),
+                    decoration: InputDecoration(
+                      hintText: "ادخل المبلغ",
+                      hintStyle: AppTextStyles.madReg14(context,color: Color(0xff3E3E3E)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
+                      errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders))),
+                      focusedBorder:
+                      OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Color(AppColors.mainGreen))),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 150.h,
+                  ),
+                  CustomGreenButton(
+                    text: "حساب الزكاة",
+                    onTap: _calculateZakat,
+                  )
+                ],
+              ),
             ),
           )),
     );

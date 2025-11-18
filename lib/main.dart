@@ -166,8 +166,10 @@ Future<void> checkAndFireQuranReminder() async {
       // get last-read surah number (you earlier used key "sora" — ensure name matches)
       final int? lastSora = await CacheHelper.getData(key: 'sora');
 
+      if(lastSora == null) return;
+
       // get surah name safely
-      final String sorahName = (lastSora != null) ? quran.getSurahNameArabic(lastSora) : 'المصحف';
+      final String sorahName = quran.getSurahNameArabic(lastSora);
 
       // call your notification helper (see below)
       final androidDetails = ln.AndroidNotificationDetails(
@@ -267,7 +269,8 @@ Duration _calculateInitialDelay(int targetHour, int targetMinute) {
 /// ================================================
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: "assets/.env");
+  await dotenv.load(fileName: ".env");
+  print("📦 GOOGLE_MAPS_API_KEY = ${dotenv.env['GOOGLE_MAPS_API_KEY']}");
   await ensureLocationPermission();
   callbackCheckQuranReminder();
 

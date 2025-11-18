@@ -53,7 +53,6 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
   Widget build(BuildContext context) {
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     return Scaffold(
-      backgroundColor: Colors.black,
       body: SafeArea(
         child: StreamBuilder<QiblahDirection>(
           stream: QiblahCubit.get(context).locationStream,
@@ -77,7 +76,9 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
               padding: const EdgeInsets.all(14.0),
               child: Column(
                 children: [
-                  Header(title: "تحديد القبلة",isDark: isDark,),
+                  Header(title: "تحديد القبلة",isDark: isDark,iconColor: isDark?Colors.white:Colors.black,),
+                  SizedBox(
+                    height: 25.h,),
                   Container(
                     width: double.infinity,
                     padding: EdgeInsetsDirectional.symmetric(horizontal: 20,vertical: 15),
@@ -118,7 +119,7 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
                     ),
                     child: Center(
                       child: Text(isPointingAtKaabah?"تم تحديد القبلة":"تحديد القبلة",
-                        style: AppTextStyles.madB14(context,color: isDark?Colors.white:Colors.black),
+                        style: AppTextStyles.madB14(context,color: Colors.white),
                       ),
                     ),
                   ),

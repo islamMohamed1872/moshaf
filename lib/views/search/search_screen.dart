@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hexcolor/hexcolor.dart';
+import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/text_quran/text_quran_cubit.dart';
 import 'package:moshaf/controllers/text_quran/text_quran_states.dart';
@@ -33,7 +34,7 @@ class SearchScreen extends StatelessWidget {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    Header(title: "بحث", isDark: isDark),
+                    Header(title: "بحث", isDark: isDark,iconColor: isDark?Colors.white:Colors.black,),
                     SizedBox(
                       height: 20.h,
                     ),
@@ -41,7 +42,7 @@ class SearchScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 45.h,
                       decoration: BoxDecoration(
-                        color: isDark?Colors.white:Colors.black,
+                        color: isDark?Colors.white:Color(AppColors.containerLightBorders),
                         borderRadius: BorderRadius.circular(15.0),
                       ),
                       child: Directionality(
@@ -79,7 +80,7 @@ class SearchScreen extends StatelessWidget {
                           decoration: InputDecoration(
                             prefixIcon: IconButton(
                               onPressed: () {},
-                              icon: Icon(Icons.search),
+                              icon: Icon(Icons.search,color:isDark?Colors.black: Colors.white,),
                             ),
                             contentPadding: EdgeInsetsDirectional.symmetric(
                               vertical: 10,
@@ -174,7 +175,7 @@ class SearchScreen extends StatelessWidget {
                                   8,
                                 ), // optional, adjust as needed
                                 decoration: BoxDecoration(
-                                  color: Colors.white70,
+                                  color:isDark? Colors.white70: Colors.black12,
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Text(

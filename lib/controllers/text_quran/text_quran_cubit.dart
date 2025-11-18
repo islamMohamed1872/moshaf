@@ -373,4 +373,65 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
     await player.stop();
     emit(TextQuranStoppedState());
   }
+
+  // 🔹 Filter variables
+  String filterType = "all"; // "all", "surah", "juz"
+  int? selectedSurah;
+  int? selectedJuz;
+
+  List<int> getFilteredSurahs() {
+    List<int> surahs = List.generate(114, (index) => index + 1);
+
+    if (filterType == "juz" && selectedJuz != null) {
+      final int target = selectedJuz!;
+      surahs = surahs.where((s) {
+        final int verseCount = quran.getVerseCount(s);
+
+        // quick include if the surah's first or last verse juz covers the target
+        final int firstJuz = quran.getJuzNumber(s, 1);
+        final int lastJuz  = quran.getJuzNumber(s, verseCount);
+        if (target >= firstJuz && target <= lastJuz) return true;
+
+        // fallback: scan verses (rare, for boundary cases)
+        for (int ay = 1; ay <= verseCount; ay++) {
+          if (quran.getJuzNumber(s, ay) == target) return true;
+        }
+        return false;
+      }).toList();
+    }
+
+    if (filterType == "surah" && selectedSurah != null) {
+      surahs = [selectedSurah!];
+    }
+
+    return surahs;
+  }
+
+
+  void setFilterType(String type) {
+    filterType = type;
+    if (type == "all") {
+      selectedSurah = null;
+      selectedJuz = null;
+    }
+    emit(ChangeFilterState());
+  }
+
+  void setSelectedSurah(int? surah) {
+    selectedSurah = surah;
+    emit(ChangeFilterState());
+  }
+
+  void setSelectedJuz(int? juz) {
+    selectedJuz = juz;
+    emit(ChangeFilterState());
+  }
+
+  void clearFilters() {
+    filterType = "all";
+    selectedSurah = null;
+    selectedJuz = null;
+    emit(ChangeFilterState());
+  }
+
 }

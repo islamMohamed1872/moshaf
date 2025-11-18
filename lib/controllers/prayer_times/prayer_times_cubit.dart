@@ -19,8 +19,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:moshaf/controllers/prayer_times/prayer_times_states.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:timezone/timezone.dart' as tz;
-
-import '../../components/audio_service.dart';
 import '../../components/cache_helper.dart';
 import '../../constants/app_const.dart';
 import '../../constants/azkar.dart';
@@ -290,12 +288,12 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
         prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
 
-        // prayerTimes['الفجر'] = DateTime.now().add(Duration(seconds: 5));
+        // prayerTimes['الفجر'] = DateTime.now().add(Duration(minutes: 1));
         // prayerTimes['الشروق'] = _parseApiTimeToToday(data['Sunrise'] ?? '00:00');
-        // prayerTimes['الظهر'] = DateTime.now().add(Duration(seconds: 10));
-        // prayerTimes['العصر'] = DateTime.now().add(Duration(seconds: 15));
-        // prayerTimes['المغرب'] = DateTime.now().add(Duration(seconds: 20));
-        // prayerTimes['العشاء'] = DateTime.now().add(Duration(seconds: 25));
+        // prayerTimes['الظهر'] = DateTime.now().add(Duration(minutes: 3));
+        // prayerTimes['العصر'] = DateTime.now().add(Duration(minutes: 6));
+        // prayerTimes['المغرب'] = DateTime.now().add(Duration(minutes: 9));
+        // prayerTimes['العشاء'] = DateTime.now().add(Duration(minutes: 12));
         // prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
         // prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
 
@@ -607,9 +605,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           channelDescription: 'Prayer time notifications',
           importance: Importance.max,
           priority: Priority.high,
-          playSound: false,
-
-          // sound: RawResourceAndroidNotificationSound(audioFileName),
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound(audioFileName),
         );
 
         final notifDetails = NotificationDetails(android: androidDetails);
@@ -624,16 +621,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             matchDateTimeComponents: DateTimeComponents.time,
           );
-          await AndroidAlarmManager.oneShotAt(
-            time,
-            time.hashCode,
-            playAzanCallback,
-            params: {'file': audioFileName},
-            exact: true,
-            wakeup: true,
-            allowWhileIdle: true,
-          );
-
           scheduledCount++;
           print("✅ Scheduled notification for $prayerName at ${DateFormat('hh:mm a').format(time)}");
         } catch (e) {
@@ -1198,17 +1185,6 @@ void updatePrayerWidgetCallback() async {
 
 }
 
-@pragma('vm:entry-point')
-void playAzanCallback() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final player = AudioServices().player;
-  try {
-    // You can store the selected azan sound in SharedPreferences or CacheHelper
-    final azanOption = await CacheHelper.getData(key: "azanSound") ?? "azan";
-    await player.setAsset('assets/audio/$azanOption.mp3');
-    await player.play();
-  } catch (e) {
-    print('❌ Error playing Azan: $e');
-  }
-}
+
+
 

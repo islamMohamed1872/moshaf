@@ -352,6 +352,7 @@ class _MasjidLocatorScreenState extends State<MasjidLocatorScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
+    print("the api key is: $_apiKey");
     return Scaffold(
       body: !_isReadyToRender
           ? const Center(child: CircularProgressIndicator())

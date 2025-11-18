@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:audio_service/audio_service.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart' as m;
 import 'package:flutter/material.dart';
@@ -15,8 +17,10 @@ import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/text_quran/text_quran_cubit.dart';
 import 'package:moshaf/views/quran/tafseer_screen.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:quran/quran.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:share_plus/share_plus.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../components/const.dart';
@@ -51,7 +55,8 @@ class _QuranViewPageState extends State<QuranViewPage>
   final Map<int, Widget> _pageWidgetCache = {};
   String selectedSpan = "";
   int index = 0;
-
+  int? startVerse;
+  int? endVerse;
   @override
   bool get wantKeepAlive => true;
 
@@ -90,6 +95,218 @@ class _QuranViewPageState extends State<QuranViewPage>
     isPlaying.dispose();
     super.dispose();
   }
+  Future<void> _showDownloadDialog(int surah, int start, int end, bool isDark) async {
+    showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? Color(AppColors.scaffoldBg) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: Text(
+          "تحميل المقاطع المختارة",
+          textAlign: TextAlign.center,
+          style: AppTextStyles.madB14(
+            context,
+            color: isDark ? Colors.white : Colors.black,
+          ),
+        ),
+        content: Text(
+          "هل تريد تحميل الآيات من $start إلى $end من سورة ${quran.getSurahNameArabic(surah)}؟",
+          textAlign: TextAlign.center,
+          style: AppTextStyles.madReg12(
+            context,
+            color: isDark ? Colors.white70 : Colors.black87,
+          ),
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          // Cancel Button
+          TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.grey.shade200,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              "إلغاء",
+              style: AppTextStyles.madReg14(context, color: Colors.black),
+            ),
+          ),
+
+          // Download Button
+          TextButton.icon(
+            icon: const Icon(Icons.download, size: 18, color: Colors.white),
+            label: Text(
+              "تحميل",
+              style: AppTextStyles.madReg14(context, color: Colors.white),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: Color(AppColors.mainGreen),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _downloadCombinedAudio(surah, start, end);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _downloadCombinedAudio(int surah, int start, int end) async {
+    try {
+      Fluttertoast.showToast(msg: "⏳ جاري تحميل الآيات...");
+
+      final dio = Dio();
+      final tempDir = await getTemporaryDirectory();
+      final List<String> files = [];
+
+      // 🔹 Step 1: Download each verse
+      for (int i = start; i <= end; i++) {
+        final url = quran.getAudioURLByVerse(surah, i, "ar.abdulbasitmurattal");
+        final savePath = "${tempDir.path}/verse_$i.mp3";
+
+        await dio.download(url, savePath);
+        files.add(savePath);
+        debugPrint("✅ Downloaded verse $i");
+      }
+
+      // 🔹 Step 2: Combine into single MP3 file
+      final surahName = quran.getSurahNameArabic(surah).replaceAll(' ', '_');
+      final combinedFileName = "سورة_${surahName}_من_$startإلى_$end.mp3";
+
+      // Prefer system Downloads directory
+      Directory? downloadsDir;
+      if (Platform.isAndroid) {
+        downloadsDir = Directory('/storage/emulated/0/Download');
+      } else {
+        downloadsDir = await getApplicationDocumentsDirectory();
+      }
+
+      final combinedPath = "${downloadsDir.path}/$combinedFileName";
+      await _combineAudioFiles(files, combinedPath);
+
+      // 🔹 Step 3: Remove temp files
+      for (final path in files) {
+        try {
+          await File(path).delete();
+        } catch (e) {
+          debugPrint("⚠️ Could not delete $path: $e");
+        }
+      }
+
+      Fluttertoast.showToast(
+        msg: "✅ تم التحميل بنجاح! \n📥 تم حفظ الملف في مجلد التنزيلات.",
+        toastLength: Toast.LENGTH_LONG,
+      );
+      // 🔹 Show share dialog
+      _showShareDialog(combinedPath, surahName, start, end);
+
+      debugPrint("🎧 Combined file saved at $combinedPath");
+    } catch (e, s) {
+      debugPrint("❌ Error downloading/combining: $e\n$s");
+      Fluttertoast.showToast(msg: "حدث خطأ أثناء التحميل");
+    }
+  }
+
+  Future<void> _combineAudioFiles(List<String> inputPaths, String outputPath) async {
+    final outputFile = File(outputPath).openWrite();
+
+    for (final path in inputPaths) {
+      final bytes = await File(path).readAsBytes();
+      outputFile.add(bytes);
+    }
+
+    await outputFile.close();
+  }
+
+  void _showShareDialog(String filePath, String surahName, int start, int end) {
+    final isDark = context.read<ThemeCubit>().isDark;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? Color(AppColors.scaffoldBg) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: Text(
+          "تم التحميل بنجاح",
+          textAlign: TextAlign.center,
+          style: AppTextStyles.madB14(
+            context,
+            color: isDark ? Colors.white : Colors.black,
+          ),
+        ),
+        content: Text(
+          "تم حفظ الملف: \nسورة $surahName من $start إلى $end\n\nهل ترغب بمشاركته على واتساب؟",
+          textAlign: TextAlign.center,
+          style: AppTextStyles.madReg12(
+            context,
+            color: isDark ? Colors.white70 : Colors.black87,
+          ),
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          // Close button
+          TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.grey.shade200,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              "إغلاق",
+              style: AppTextStyles.madReg14(context, color: Colors.black),
+            ),
+          ),
+
+          // Share to WhatsApp
+          TextButton.icon(
+            icon: const Icon(Icons.share, size: 18, color: Colors.white),
+            label: Text(
+              "واتساب",
+              style: AppTextStyles.madReg14(context, color: Colors.white),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: Color(0xFF25D366), // WhatsApp green
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await Share.shareXFiles(
+                [XFile(filePath)],
+                text: "🎧 سورة $surahName من $start إلى $end",
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
 
   void _startHighlightAnimation() {
     Timer.periodic(const Duration(milliseconds: 400), (timer) {
@@ -260,6 +477,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                   }
                 }
 
+
                 spans.add(
                   TextSpan(
                     recognizer:
@@ -333,6 +551,28 @@ class _QuranViewPageState extends State<QuranViewPage>
                                     ],
                                   ),
                                 ),
+                                const PopupMenuDivider(height: 1,color: Color(0xffD6D6D6),),
+                                PopupMenuItem<String>(
+                                  value: 'select_start',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.arrow_upward, color: Colors.black, size: 15),
+                                      SizedBox(width: 6.w),
+                                      Text('تحديد كنقطة البداية', style: AppTextStyles.madReg12(context, color: Colors.black)),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuDivider(height: 1,color: Color(0xffD6D6D6),),
+                                PopupMenuItem<String>(
+                                  value: 'select_end',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.arrow_downward, color: Colors.black, size: 15),
+                                      SizedBox(width: 6.w),
+                                      Text('تحديد كنقطة النهاية', style: AppTextStyles.madReg12(context, color: Colors.black)),
+                                    ],
+                                  ),
+                                ),
                               ],
                             );
 
@@ -356,7 +596,8 @@ class _QuranViewPageState extends State<QuranViewPage>
                                 gravity: ToastGravity.BOTTOM,
                                 fontSize: 16.0,
                               );
-                            } else if (result == 'tafseer')
+                            }
+                            else if (result == 'tafseer')
                             {
                               cubit.getVerseTafseer(
                                 sora:  widget.jsonData[getPageData(
@@ -477,6 +718,25 @@ class _QuranViewPageState extends State<QuranViewPage>
                                 if (mounted) isPlaying.value = false;
                               });
                             }
+                            else if (result == 'select_start') {
+                              setState(() {
+                                startVerse = i;
+                              });
+                              Fluttertoast.showToast(msg: "تم تحديد بداية المقطع عند الآية $i");
+                            } else if (result == 'select_end') {
+                              if (startVerse==null){
+                                Fluttertoast.showToast(msg: "من فضلك اختر البداية اولاً");
+                                return;
+                              }
+                              setState(() {
+                                endVerse = i;
+                              });
+                              Fluttertoast.showToast(msg: "تم تحديد نهاية المقطع عند الآية $i");
+
+                              if (startVerse != null && endVerse != null) {
+                                _showDownloadDialog(e["surah"], startVerse!, endVerse!,isDark);
+                              }
+                            }
                           },
 
                     text: getVerseQCF(e["surah"], i).replaceAll(' ', ''),
@@ -488,8 +748,8 @@ class _QuranViewPageState extends State<QuranViewPage>
                               : Colors.transparent,
                       fontFamily:
                           "QCF_P${pageIndex.toString().padLeft(3, "0")}",
-                      fontSize: 23.sp,
-                      height: 1.95.h,
+                        fontSize: 23.sp,
+                      height: 1.8.h,
                       wordSpacing: 20,
                     ),
                   ),
@@ -643,7 +903,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                         ),
                         if (pageIndex == 1 || pageIndex == 2)
                           SliverToBoxAdapter(
-                            child: SizedBox(height: screenSize.height * .15),
+                            child: SizedBox(height: screenSize.height * .001),
                           ),
                         SliverFillRemaining(
                           hasScrollBody: false,
@@ -677,4 +937,6 @@ class _QuranViewPageState extends State<QuranViewPage>
       ),
     );
   }
+
 }
+

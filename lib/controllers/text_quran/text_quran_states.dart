@@ -31,6 +31,7 @@ class TextQuranPlayingState extends TextQuranStates {}
 class TextQuranPausedState extends TextQuranStates {}
 
 class TextQuranStoppedState extends TextQuranStates {}
+class ChangeFilterState extends TextQuranStates {}
 
 class TextQuranVerseChangedState extends TextQuranStates {
   final String verseText;

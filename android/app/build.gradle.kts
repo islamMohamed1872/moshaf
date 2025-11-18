@@ -10,12 +10,24 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val envFile = rootProject.file("../.env")
+var googleMapsApiKey = ""
+
+if (envFile.exists()) {
+    envFile.forEachLine { line ->
+        if (line.startsWith("GOOGLE_MAPS_API_KEY=")) {
+            googleMapsApiKey = line.split("=")[1].trim()
+        }
+    }
+}
+
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
+
 android {
     namespace = "com.afaqalspl.moshaf"
     compileSdk = 36
@@ -39,7 +51,8 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
-
+        // ✅ Kotlin style manifest placeholders
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey
     }
     signingConfigs {
         create("release") {

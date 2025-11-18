@@ -181,7 +181,7 @@ class HomeCubit extends Cubit<HomeStates>{
 
       if (await PrayerTimesCubit().shouldFetchNewTimes()) {
         await PrayerTimesCubit().fetchPrayerTimes(); // Fetch new times if outdated
-        await PrayerTimesCubit().scheduleDoaaNotifications(); // Fetch new times if outdated
+        // await PrayerTimesCubit().scheduleDoaaNotifications(); // Fetch new times if outdated
       } else {
         await PrayerTimesCubit().loadCachedPrayerTimes(); // Load from cache if still valid
       }

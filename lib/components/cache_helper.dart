@@ -27,7 +27,17 @@ class CacheHelper
   })
   async{
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-    return   sharedPreferences.get(key );
+    final value = sharedPreferences.get(key);
+    // ✅ Try to decode JSON if it's a stringified object
+    if (value is String) {
+      try {
+        final decoded = jsonDecode(value);
+        return decoded;
+      } catch (_) {
+        return value; // plain string
+      }
+    }
+    return value;
   }
 
   static Future<bool> saveData({
@@ -42,6 +52,9 @@ class CacheHelper
     if (value is int){
       return await sharedPreferences.setInt(key, value);
     }
+    if(value is double){
+      return await sharedPreferences.setDouble(key, value);
+    }
     if (value is bool){
       return await sharedPreferences.setBool(key, value);
     }
@@ -49,7 +62,7 @@ class CacheHelper
       {
         return await sharedPreferences.setStringList(key, value);
       }
-    return await sharedPreferences.setDouble(key, value);
+    return await sharedPreferences.setString(key, jsonEncode(value));
   }
   static Future<bool> removeData({required String key, })
   async{
