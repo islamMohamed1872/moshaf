@@ -4,8 +4,6 @@ import 'package:easy_localization/easy_localization.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_textstyles.dart';
-import '../../../controllers/theme/theme_cubit.dart';
-
 
 class AzkarHeader extends StatelessWidget {
   final String title;
@@ -14,28 +12,50 @@ class AzkarHeader extends StatelessWidget {
   final Color? iconColor;
   final bool isDark;
 
-   const AzkarHeader({
+  const AzkarHeader({
     Key? key,
     required this.title,
     this.onBack,
     this.showBorder = true,
     this.iconColor,
-    required this.isDark
+    required this.isDark,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // 🔹 GOLD MODE
+    final gold = AppColors.isGoldMode;
+
+    final borderClr = gold
+        ? const Color(AppColors.goldBorder)
+        : Color(
+      isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders,
+    );
+
+    final textClr = gold
+        ? const Color(AppColors.goldText)
+        : (isDark ? Colors.white : Colors.black);
+
+    final iconClr = iconColor ??
+        (gold
+            ? const Color(AppColors.goldPrimary)
+            : (isDark ? Colors.white : Colors.black));
 
     return Padding(
-      padding:
-      const EdgeInsetsDirectional.symmetric(horizontal: 20.0, vertical: 10),
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 20.0, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          /// Title
           Text(
             title,
-            style: AppTextStyles.madReg16(context,color: isDark?Colors.white:Colors.black),
+            style: AppTextStyles.madReg16(
+              context,
+              color: textClr,
+            ),
           ),
+
+          /// Back button
           InkWell(
             onTap: onBack ?? () => Navigator.pop(context),
             child: Container(
@@ -50,7 +70,7 @@ class AzkarHeader extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: showBorder
                     ? Border.all(
-                  color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerDarkBorders),
+                  color: borderClr,
                 )
                     : null,
               ),
@@ -59,7 +79,7 @@ class AzkarHeader extends StatelessWidget {
                   context.locale.languageCode == "ar"
                       ? Icons.arrow_forward_ios
                       : Icons.arrow_back_ios,
-                  color: iconColor ??(isDark? Colors.white:Colors.black),
+                  color: iconClr,
                 ),
               ),
             ),

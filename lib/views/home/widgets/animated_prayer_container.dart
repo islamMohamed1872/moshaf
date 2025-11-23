@@ -59,7 +59,19 @@ class AnimatedPrayerContainerState extends State<AnimatedPrayerContainer>
 
   @override
   Widget build(BuildContext context) {
-    final color = Color(AppColors.mainGreen);
+    final progressColor = AppColors.isGoldMode
+        ? const Color(AppColors.goldPrimary)
+        : Color(AppColors.mainGreen);
+
+    final borderColor = AppColors.isGoldMode
+        ? const Color(AppColors.goldBorder)
+        : (widget.isDark
+        ? Color(AppColors.containerDarkBorders)
+        : Color(AppColors.containerLightBorders));
+
+    final textColor = AppColors.isGoldMode
+        ? const Color(AppColors.goldText)
+        : (widget.isDark ? Colors.white : Colors.black);
 
     return AnimatedOpacity(
       opacity: _visible ? 1 : 0,
@@ -68,7 +80,6 @@ class AnimatedPrayerContainerState extends State<AnimatedPrayerContainer>
       child: AnimatedSize(
         duration: const Duration(milliseconds: 600),
         curve: Curves.easeInOut,
-        alignment: Alignment.topCenter,
         child: _collapsed
             ? const SizedBox.shrink()
             : FadeTransition(
@@ -79,32 +90,32 @@ class AnimatedPrayerContainerState extends State<AnimatedPrayerContainer>
               return Container(
                 width: double.infinity,
                 height: 55.h,
-                margin: EdgeInsetsDirectional.only(bottom: 20.h),
+                margin: EdgeInsets.only(bottom: 20.h),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: widget.isDark
-                        ? Color(AppColors.containerDarkBorders)
-                        : Color(AppColors.containerLightBorders),
+                    color: borderColor,   // 🟡 FIX
                     width: 2,
                   ),
                 ),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    /// Animated progress border
                     Positioned.fill(
                       child: CustomPaint(
                         painter: _ProgressBorderPainter(
                           progress: _controller.value,
-                          color: color,
+                          color: progressColor,  // 🟡 FIX
                         ),
                       ),
                     ),
 
+                    // TEXT COLORS
                     Padding(
                       padding: EdgeInsets.symmetric(
-                          vertical: 7.h, horizontal: 10.w),
+                        vertical: 7.h,
+                        horizontal: 10.w,
+                      ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -114,26 +125,26 @@ class AnimatedPrayerContainerState extends State<AnimatedPrayerContainer>
                             children: [
                               Text(
                                 "صلاة ${widget.prayerName} بعد",
-                                style: AppTextStyles.madMd12(context,
-                                    color: widget.isDark
-                                        ? Colors.white
-                                        : Colors.black),
+                                style: AppTextStyles.madMd12(
+                                  context,
+                                  color: textColor,  // 🟡 FIX
+                                ),
                               ),
                               Text(
                                 widget.remainingTime,
-                                style: AppTextStyles.madMd12(context,
-                                    color: widget.isDark
-                                        ? Colors.white
-                                        : Colors.black),
+                                style: AppTextStyles.madMd12(
+                                  context,
+                                  color: textColor,  // 🟡 FIX
+                                ),
                               ),
                             ],
                           ),
                           Text(
                             "${widget.dayName} ${widget.hijriDate} - ${widget.date}",
-                            style: AppTextStyles.madMd12(context,
-                                color: widget.isDark
-                                    ? Colors.white
-                                    : Colors.black),
+                            style: AppTextStyles.madMd12(
+                              context,
+                              color: textColor,  // 🟡 FIX
+                            ),
                           ),
                         ],
                       ),
@@ -147,6 +158,7 @@ class AnimatedPrayerContainerState extends State<AnimatedPrayerContainer>
       ),
     );
   }
+
 }
 
 

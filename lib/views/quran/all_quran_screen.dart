@@ -25,17 +25,32 @@ class AllQuranScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
+    final gold = AppColors.isGoldMode;
+
     return BlocBuilder<TextQuranCubit, TextQuranStates>(
       builder: (context, state) {
         final cubit = TextQuranCubit.get(context);
         final filteredSurahs = cubit.getFilteredSurahs();
+
+        // Colors
+        final borderClr = gold
+            ? const Color(AppColors.goldBorder)
+            : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders);
+
+        final textClr = gold
+            ? const Color(AppColors.goldText)
+            : (isDark ? Colors.white : Colors.black);
+
+        final backIconClr = gold
+            ? const Color(AppColors.goldAccent)
+            : Colors.white;
 
         return Scaffold(
           body: SafeArea(
             child: Column(
               spacing: 10,
               children: [
-                // 🔹 HEADER AREA
+                // ░░░░░░ HEADER ░░░░░░
                 Stack(
                   alignment: AlignmentGeometry.center,
                   children: [
@@ -45,6 +60,8 @@ class AllQuranScreen extends StatelessWidget {
                       width: double.infinity,
                       fit: BoxFit.cover,
                     ),
+
+                    // Gradient overlay (supports Gold)
                     Container(
                       width: double.infinity,
                       height: 220.h,
@@ -54,11 +71,15 @@ class AllQuranScreen extends StatelessWidget {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.black.withOpacity(0),
-                            isDark ? const Color(0xFF151515) : Colors.white,
+                            gold
+                                ? const Color(AppColors.goldBackground)
+                                : (isDark ? const Color(0xFF151515) : Colors.white),
                           ],
                         ),
                       ),
                     ),
+
+                    // Top row: Play - Surah Number - Filter
                     Positioned(
                       top: 0,
                       right: 0,
@@ -69,42 +90,44 @@ class AllQuranScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             InkWell(
-                              onTap: () {
-                                cubit.togglePlayPause(cubit.savedSora);
-                              },
+                              onTap: () => cubit.togglePlayPause(cubit.savedSora),
                               child: Icon(
                                 cubit.isPlaying
                                     ? FontAwesomeIcons.pause
                                     : FontAwesomeIcons.play,
                                 size: 20.w,
-                                color: Colors.white,
+                                color: gold ? const Color(AppColors.goldAccent) : Colors.white,
                               ),
                             ),
+
                             RichText(
                               text: TextSpan(
                                 text: cubit.savedSora == 0
                                     ? "1"
                                     : cubit.savedSora.toString(),
                                 style: AppTextStyles.arsura24(context,
-                                    color: Colors.white),
+                                    color: gold ? const Color(AppColors.goldAccent) : Colors.white),
                               ),
                             ),
-                            // 🔹 NEW FILTER BUTTON
+
                             InkWell(
-                              onTap: () =>
-                                  _showFilterDialog(context,isDark),
+                              onTap: () => _showFilterDialog(context, isDark),
                               child: Container(
                                 padding: EdgeInsets.all(8.w),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: gold
+                                      ? const Color(AppColors.goldPrimary).withOpacity(0.2)
+                                      : Colors.white.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                      color: Colors.white.withOpacity(0.3)),
+                                      color: gold
+                                          ? const Color(AppColors.goldBorder)
+                                          : Colors.white.withOpacity(0.3)),
                                 ),
                                 child: Icon(
                                   FontAwesomeIcons.filter,
                                   size: 16.w,
-                                  color: Colors.white,
+                                  color: gold ? const Color(AppColors.goldAccent) : Colors.white,
                                 ),
                               ),
                             ),
@@ -112,8 +135,8 @@ class AllQuranScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // ... (rest of your Positioned items)
-                    // No change here
+
+                    // ░░ CLICKABLE CURRENT VERSE ░░
                     Positioned(
                       right: 10,
                       left: 10,
@@ -122,9 +145,11 @@ class AllQuranScreen extends StatelessWidget {
                           cubit.stop();
                           await AudioServices().player.clearAudioSources();
                           cubit.soraNumber = cubit.savedSora;
+
                           navigateTo(
                             context,
                             QuranViewPage(
+                              navigatedFromRecitation: false,
                               shouldHighlightText: true,
                               highlightVerse: cubit.savedVerse.toString(),
                               jsonData: cubit.suraJsonData,
@@ -141,60 +166,63 @@ class AllQuranScreen extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.arsura24(context,
-                              color: Colors.white),
+                              color: gold ? const Color(AppColors.goldAccent) : Colors.white),
                         ),
                       ),
                     ),
+
+                    // ░░ PLACE OF REVELATION (MAKKI / MADANI) ░░
                     Positioned(
                       bottom: 0,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 9.w, vertical: 3.h),
+                            padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 3.h),
                             decoration: cubit.placeOfRevelation == "مكية"
                                 ? BoxDecoration(
                               borderRadius: BorderRadius.circular(45),
                               border: Border.all(
-                                color: Color(isDark
-                                    ? AppColors.containerDarkBorders
-                                    : AppColors.containerLightBorders),
+                                color: gold
+                                    ? const Color(AppColors.goldBorder)
+                                    : borderClr,
                               ),
                             )
                                 : null,
                             child: Text(
                               "مكية",
                               style: AppTextStyles.madMd12(context,
-                                  color: isDark
-                                      ? Colors.white
-                                      : Colors.black),
+                                  color: gold
+                                      ? const Color(AppColors.goldText)
+                                      : textClr),
                             ),
                           ),
+
                           Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 9.w, vertical: 3.h),
+                            padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 3.h),
                             decoration: cubit.placeOfRevelation == "مدنية"
                                 ? BoxDecoration(
                               borderRadius: BorderRadius.circular(45),
                               border: Border.all(
-                                color: Color(isDark
-                                    ? AppColors.containerDarkBorders
-                                    : AppColors.containerLightBorders),
+                                color: gold
+                                    ? const Color(AppColors.goldBorder)
+                                    : borderClr,
                               ),
                             )
                                 : null,
                             child: Text(
                               "مدنية",
                               style: AppTextStyles.madMd12(context,
-                                  color: isDark
-                                      ? Colors.white
-                                      : Colors.black),
+                                  color: gold
+                                      ? const Color(AppColors.goldText)
+                                      : textClr),
                             ),
                           ),
                         ],
                       ),
                     ),
+
+                    // BACK BUTTON
                     Positioned(
                       left: 20,
                       child: InkWell(
@@ -203,22 +231,20 @@ class AllQuranScreen extends StatelessWidget {
                           width: 30.w,
                           height: 30.w,
                           padding: EdgeInsetsDirectional.only(
-                            start: context.locale.languageCode == "ar"
-                                ? 0
-                                : 7.w,
+                            start: context.locale.languageCode == "ar" ? 0 : 7.w,
                             top: 5,
                             bottom: 5,
                           ),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white),
+                            border: Border.all(color: backIconClr),
                           ),
                           child: FittedBox(
                             child: Icon(
                               context.locale.languageCode == "ar"
                                   ? Icons.arrow_forward_ios
                                   : Icons.arrow_back_ios,
-                              color: Colors.white,
+                              color: backIconClr,
                             ),
                           ),
                         ),
@@ -227,16 +253,14 @@ class AllQuranScreen extends StatelessWidget {
                   ],
                 ),
 
-                // 🔹 DIVIDER
+                // DIVIDER
                 Container(
                   width: double.infinity,
                   height: 1,
-                  color: Color(isDark
-                      ? AppColors.containerDarkBorders
-                      : AppColors.containerLightBorders),
+                  color: borderClr,
                 ),
 
-                // 🔹 FILTERED LIST
+                // ░░░ FILTERED SURA LIST ░░░
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 15.w),
@@ -244,11 +268,11 @@ class AllQuranScreen extends StatelessWidget {
                       itemCount: filteredSurahs.length,
                       itemBuilder: (context, index) {
                         final surahNum = filteredSurahs[index];
+
                         return CustomSorahContainer(
                           isDark: isDark,
                           placeOfRevelation:
-                          quran.getPlaceOfRevelation(surahNum) ==
-                              "Makkah"
+                          quran.getPlaceOfRevelation(surahNum) == "Makkah"
                               ? "مكية"
                               : "مدنية",
                           verseCount: quran.getVerseCount(surahNum),
@@ -257,12 +281,16 @@ class AllQuranScreen extends StatelessWidget {
                             CacheHelper.saveData(
                                 key: "lastRead",
                                 value: DateTime.now().toString());
+
                             cubit.stop();
                             await AudioServices().player.clearAudioSources();
+
                             cubit.soraNumber = surahNum;
+
                             navigateTo(
                               context,
                               QuranViewPage(
+                                navigatedFromRecitation: false,
                                 shouldHighlightText: false,
                                 highlightVerse: "",
                                 jsonData: cubit.suraJsonData,
@@ -270,9 +298,29 @@ class AllQuranScreen extends StatelessWidget {
                               ),
                             );
                           },
+                          onRowPressed: () async {
+                            CacheHelper.saveData(
+                                key: "lastRead",
+                                value: DateTime.now().toString());
+
+                            cubit.stop();
+                            await AudioServices().player.clearAudioSources();
+
+                            cubit.soraNumber = surahNum;
+
+                            navigateTo(
+                              context,
+                              QuranViewPage(
+                                navigatedFromRecitation: false,
+                                shouldHighlightText: false,
+                                highlightVerse: "",
+                                jsonData: cubit.suraJsonData,
+                                pageNumber: getPageNumber(surahNum, 1),
+                              ),
+                            );
+                          } ,
                           onListenPressed: () {
-                            AudioQuranCubit.get(context).sorahNumber =
-                                surahNum;
+                            AudioQuranCubit.get(context).sorahNumber = surahNum;
                             cubit.soraNumber = surahNum;
                             navigateTo(context, AudioScreen());
                           },
@@ -290,10 +338,9 @@ class AllQuranScreen extends StatelessWidget {
     );
   }
 
-  // 🔹 MODAL FILTER DIALOG
-  void _showFilterDialog(BuildContext context, bool isDark) {
-    final cubit = TextQuranCubit.get(context);
 
+  // 🔹 MODAL FILTER DIALOG
+  void _showFilterDialog(BuildContext context, bool isDarkFromParent) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -301,23 +348,39 @@ class AllQuranScreen extends StatelessWidget {
       builder: (_) {
         return BlocBuilder<TextQuranCubit, TextQuranStates>(
           builder: (context, state) {
+            final cubit = context.watch<TextQuranCubit>();
+
+            final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
+            final gold = AppColors.isGoldMode;
+
+            final bgColor = gold
+                ? const Color(AppColors.goldBackground)
+                : (isDark ? const Color(0xFF151515) : Colors.white);
+
+            final borderClr = gold
+                ? const Color(AppColors.goldBorder)
+                : Color(isDark
+                ? AppColors.containerDarkBorders
+                : AppColors.containerLightBorders);
+
+            final textClr = gold
+                ? const Color(AppColors.goldText)
+                : (isDark ? Colors.white : Colors.black);
+
+            final subtitleClr = gold
+                ? const Color(AppColors.goldText)
+                : (isDark ? Colors.white70 : Colors.black54);
+
             return Container(
               height: MediaQuery.of(context).size.height * 0.65,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF151515) : Colors.white,
-                borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(25)),
-                border: Border.all(
-                  color: Color(
-                    isDark
-                        ? AppColors.containerDarkBorders
-                        : AppColors.containerLightBorders,
-                  ),
-                ),
+                color: bgColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+                border: Border.all(color: borderClr),
               ),
               child: Column(
                 children: [
-                  // Handle bar
+                  /// Handle bar
                   Container(
                     margin: EdgeInsets.only(top: 12.h),
                     width: 40.w,
@@ -327,61 +390,56 @@ class AllQuranScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
+
                   SizedBox(height: 20.h),
 
-                  // Title
+                  /// Title
                   Text(
                     "تصفية حسب",
-                    style: AppTextStyles.madB20(context,
-                        color: isDark ? Colors.white : Colors.black),
+                    style: AppTextStyles.madB20(context, color: textClr),
                   ),
+
                   SizedBox(height: 20.h),
 
-                  // Filter Type Tabs
+                  /// Tabs
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 15.w),
                     child: Row(
                       children: [
-                        Expanded(
-                          child: _buildFilterTab(context, "الكل", "all", isDark),
-                        ),
+                        Expanded(child: _buildFilterTab(context, "الكل", "all", isDark)),
                         SizedBox(width: 10.w),
-                        Expanded(
-                          child: _buildFilterTab(context, "رقم السورة", "surah", isDark),
-                        ),
+                        Expanded(child: _buildFilterTab(context, "رقم السورة", "surah", isDark)),
                         SizedBox(width: 10.w),
-                        Expanded(
-                          child: _buildFilterTab(context, "الجزء", "juz", isDark),
-                        ),
+                        Expanded(child: _buildFilterTab(context, "الجزء", "juz", isDark)),
                       ],
                     ),
                   ),
+
                   SizedBox(height: 20.h),
 
-                  // Dynamic Content (auto rebuilds)
+                  /// Dynamic Content
                   Expanded(
                     child: cubit.filterType == "surah"
-                        ? _buildNumberPicker(context,cubit, isDark)
+                        ? _buildNumberPicker(context, cubit, isDark)
                         : cubit.filterType == "juz"
-                        ? _buildJuzPicker(context,cubit, isDark)
+                        ? _buildJuzPicker(context, cubit, isDark)
                         : Center(
                       child: Text(
                         "عرض جميع السور",
-                        style: AppTextStyles.madReg16(context,
-                            color: isDark
-                                ? Colors.white70
-                                : Colors.black54),
+                        style: AppTextStyles.madReg16(context, color: subtitleClr),
                       ),
                     ),
                   ),
 
-                  // Apply Button
+                  /// Apply Button
                   Padding(
                     padding: EdgeInsets.all(15.w),
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(AppColors.mainGreen),
+                        backgroundColor: gold
+                            ? const Color(AppColors.goldPrimary)
+                            : const Color(AppColors.mainGreen),
                         minimumSize: Size(double.infinity, 50.h),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -389,7 +447,8 @@ class AllQuranScreen extends StatelessWidget {
                       ),
                       child: Text(
                         "تطبيق التصفية",
-                        style: AppTextStyles.madB16(context, color: Colors.white),
+                        style: AppTextStyles.madB16(context,
+                            color: gold ? Colors.white : Colors.white),
                       ),
                     ),
                   ),
@@ -404,41 +463,47 @@ class AllQuranScreen extends StatelessWidget {
 
 
 
+
   Widget _buildFilterTab(BuildContext context, String title, String type, bool isDark) {
-    final cubit = TextQuranCubit.get(context);
+    final cubit = context.watch<TextQuranCubit>();
+
+    final gold = AppColors.isGoldMode;
     final isSelected = cubit.filterType == type;
+
+    final borderClr = isSelected
+        ? (gold ? const Color(AppColors.goldPrimary) : const Color(AppColors.mainGreen))
+        : (gold
+        ? const Color(AppColors.goldBorder)
+        : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders));
+
+    final bgClr = isSelected
+        ? (gold ? const Color(AppColors.goldPrimary) : const Color(AppColors.mainGreen))
+        : Colors.transparent;
+
+    final textClr = isSelected
+        ? Colors.white
+        : (gold ? const Color(AppColors.goldText) : (isDark ? Colors.white : Colors.black));
+
     return InkWell(
       onTap: () => cubit.setFilterType(type),
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 12.h),
         decoration: BoxDecoration(
-          color: isSelected ? Color(AppColors.mainGreen) : Colors.transparent,
+          color: bgClr,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected
-                ? Color(AppColors.mainGreen)
-                : Color(
-              isDark
-                  ? AppColors.containerDarkBorders
-                  : AppColors.containerLightBorders,
-            ),
-          ),
+          border: Border.all(color: borderClr),
         ),
-        child: Text(
-          title,
-          textAlign: TextAlign.center,
-          style: AppTextStyles.madB14(context,
-              color: isSelected
-                  ? Colors.white
-                  : (isDark ? Colors.white : Colors.black)),
+        child: Center(
+          child: Text(title, style: AppTextStyles.madB14(context, color: textClr)),
         ),
       ),
     );
   }
 
 
-  Widget _buildNumberPicker(
-      BuildContext context, TextQuranCubit cubit, bool isDark) {
+  Widget _buildNumberPicker(BuildContext context, TextQuranCubit cubit, bool isDark) {
+    final gold = AppColors.isGoldMode;
+
     return GridView.builder(
       padding: EdgeInsets.symmetric(horizontal: 15.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -450,29 +515,30 @@ class AllQuranScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final num = index + 1;
         final selected = cubit.selectedSurah == num;
+
+        final borderClr = selected
+            ? (gold ? const Color(AppColors.goldPrimary) : const Color(AppColors.mainGreen))
+            : (gold
+            ? const Color(AppColors.goldBorder)
+            : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders));
+
+        final bgClr =
+        selected ? (gold ? const Color(AppColors.goldPrimary) : Color(AppColors.mainGreen)) : Colors.transparent;
+
+        final textClr = selected
+            ? Colors.white
+            : (gold ? const Color(AppColors.goldText) : (isDark ? Colors.white : Colors.black));
+
         return InkWell(
           onTap: () => cubit.setSelectedSurah(num),
           child: Container(
             decoration: BoxDecoration(
-              color: selected
-                  ? Color(AppColors.mainGreen)
-                  : Colors.transparent,
+              color: bgClr,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: selected
-                      ? Color(AppColors.mainGreen)
-                      : Color(isDark
-                      ? AppColors.containerDarkBorders
-                      : AppColors.containerLightBorders)),
+              border: Border.all(color: borderClr),
             ),
             child: Center(
-              child: Text(
-                num.toString(),
-                style: AppTextStyles.madB14(context,
-                    color: selected
-                        ? Colors.white
-                        : (isDark ? Colors.white : Colors.black)),
-              ),
+              child: Text(num.toString(), style: AppTextStyles.madB14(context, color: textClr)),
             ),
           ),
         );
@@ -480,8 +546,10 @@ class AllQuranScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildJuzPicker(
-      BuildContext context, TextQuranCubit cubit, bool isDark) {
+
+  Widget _buildJuzPicker(BuildContext context, TextQuranCubit cubit, bool isDark) {
+    final gold = AppColors.isGoldMode;
+
     return GridView.builder(
       padding: EdgeInsets.symmetric(horizontal: 15.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -493,34 +561,35 @@ class AllQuranScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final juz = index + 1;
         final selected = cubit.selectedJuz == juz;
+
+        final borderClr = selected
+            ? (gold ? const Color(AppColors.goldPrimary) : const Color(AppColors.mainGreen))
+            : (gold
+            ? const Color(AppColors.goldBorder)
+            : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders));
+
+        final bgClr =
+        selected ? (gold ? const Color(AppColors.goldPrimary) : Color(AppColors.mainGreen)) : Colors.transparent;
+
+        final textClr = selected
+            ? Colors.white
+            : (gold ? const Color(AppColors.goldText) : (isDark ? Colors.white : Colors.black));
+
         return InkWell(
           onTap: () => cubit.setSelectedJuz(juz),
           child: Container(
             decoration: BoxDecoration(
-              color: selected
-                  ? Color(AppColors.mainGreen)
-                  : Colors.transparent,
+              color: bgClr,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: selected
-                    ? Color(AppColors.mainGreen)
-                    : Color(isDark
-                    ? AppColors.containerDarkBorders
-                    : AppColors.containerLightBorders),
-              ),
+              border: Border.all(color: borderClr),
             ),
             child: Center(
-              child: Text(
-                juz.toString(),
-                style: AppTextStyles.madB16(context,
-                    color: selected
-                        ? Colors.white
-                        : (isDark ? Colors.white : Colors.black)),
-              ),
+              child: Text(juz.toString(), style: AppTextStyles.madB16(context, color: textClr)),
             ),
           ),
         );
       },
     );
   }
+
 }

@@ -22,11 +22,6 @@ class QiblahCompassScreen extends StatefulWidget {
 
 class _QiblahCompassScreenState extends State<QiblahCompassScreen>
     with WidgetsBindingObserver {
-
-
-
-
-
   @override
   void initState() {
     super.initState();
@@ -40,10 +35,6 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
     super.dispose();
   }
 
-
-
-
-
   bool _isPointingAtKaabah(double qiblahAngle) {
     final normalizedAngle = qiblahAngle.abs() % 360;
     return normalizedAngle < 15 || normalizedAngle > 345;
@@ -52,78 +43,121 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
+    final gold = AppColors.isGoldMode;
+
+    // ---- GOLD COLORS ----
+    final borderClr = gold
+        ? const Color(AppColors.goldBorder)
+        : Color(isDark
+        ? AppColors.containerDarkBorders
+        : AppColors.containerLightBorders);
+
+    final textClr =
+    gold ? const Color(AppColors.goldText) : (isDark ? Colors.white : Colors.black);
+
+    final needleOnColor = gold
+        ? const Color(AppColors.goldPrimary)
+        : const Color(0xff116A3E);
+
+    final needleOffColor = gold
+        ? const Color(AppColors.goldBackground)
+        : const Color(0xff3E3E3E);
+
+    final bottomBarClr = gold
+        ? const Color(AppColors.goldPrimary)
+        : const Color(AppColors.mainGreen);
+
     return Scaffold(
       body: SafeArea(
         child: StreamBuilder<QiblahDirection>(
           stream: QiblahCubit.get(context).locationStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.green),
+              return Center(
+                child: CircularProgressIndicator(
+                  color: gold ? const Color(AppColors.goldPrimary) : Colors.green,
+                ),
               );
             }
 
             if (!snapshot.hasData) {
-              return const Center(child: Text("جاري انتظار بيانات البوصلة..."));
+              return Center(child: Text("جاري انتظار بيانات البوصلة...", style: TextStyle(color: textClr)));
             }
 
             final qiblahDirection = snapshot.data!;
             final angle = (qiblahDirection.qiblah * (math.pi / 180) * -1);
-            final isPointingAtKaabah =
-            _isPointingAtKaabah(qiblahDirection.qiblah);
+            final isPointingAtKaabah = _isPointingAtKaabah(qiblahDirection.qiblah);
 
             return Padding(
               padding: const EdgeInsets.all(14.0),
               child: Column(
                 children: [
-                  Header(title: "تحديد القبلة",isDark: isDark,iconColor: isDark?Colors.white:Colors.black,),
-                  SizedBox(
-                    height: 25.h,),
+                  Header(
+                    title: "تحديد القبلة",
+                    isDark: isDark,
+                    iconColor: textClr,
+                  ),
+                  SizedBox(height: 25.h),
+
+                  // LOCATION ROW
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsetsDirectional.symmetric(horizontal: 20,vertical: 15),
+                    padding: EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 15),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
+                      border: Border.all(color: borderClr),
                     ),
                     child: Row(
                       spacing: 5,
                       children: [
-                        Icon(Icons.location_on_outlined,size: 25.w,),
-                        Text(QiblahCubit.get(context).address,
-                          style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
+                        Icon(Icons.location_on_outlined, size: 25.w, color: textClr),
+                        Text(
+                          QiblahCubit.get(context).address,
+                          style: AppTextStyles.madReg14(context, color: textClr),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(
-                    height: 8,
-                  ),
-                  Expanded(child: Container(
+
+                  SizedBox(height: 8),
+
+                  // COMPASS UI
+                  Expanded(
+                    child: Container(
                       width: double.infinity,
-                      padding: EdgeInsetsDirectional.symmetric(horizontal: 20,vertical: 15),
+                      padding: EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 15),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders)),
+                        border: Border.all(color: borderClr),
                       ),
-                      child: _buildCompassUI(angle, isPointingAtKaabah))),
-                  SizedBox(
-                    height: 30.h,
-                  ),
-                  Container(
-                    width: double.infinity,
-                    padding:const  EdgeInsets.symmetric(vertical: 18),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: Color(isPointingAtKaabah?AppColors.mainGreen:0xff3E3E3E),
-                    ),
-                    child: Center(
-                      child: Text(isPointingAtKaabah?"تم تحديد القبلة":"تحديد القبلة",
-                        style: AppTextStyles.madB14(context,color: Colors.white),
+                      child: _buildCompassUI(
+                        angle,
+                        isPointingAtKaabah,
+                        needleOnColor,
+                        needleOffColor,
+                        textClr,
+                        gold,
                       ),
                     ),
                   ),
 
+                  SizedBox(height: 30.h),
+
+                  // BOTTOM STATUS BAR
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: isPointingAtKaabah ? bottomBarClr : needleOffColor,
+                    ),
+                    child: Center(
+                      child: Text(
+                        isPointingAtKaabah ? "تم تحديد القبلة" : "تحديد القبلة",
+                        style: AppTextStyles.madB14(context, color: Colors.white),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -133,17 +167,25 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
     );
   }
 
-  Widget _buildCompassUI(double angle, bool isPointingAtKaabah) {
+  Widget _buildCompassUI(
+      double angle,
+      bool isPointingAtKaabah,
+      Color needleOn,
+      Color needleOff,
+      Color textClr,
+      bool gold,
+      ) {
     return Stack(
       alignment: Alignment.center,
       children: [
-        Positioned(top: 20.h, child: _buildDirectionText("شمال")),
-        Positioned(bottom: 20.h, child: _buildDirectionText("اسفل")),
-        Positioned(left: 25.w, child: _buildDirectionText("يسار")),
-        Positioned(right: 25.w, child: _buildDirectionText("يمين")),
+        Positioned(top: 20.h, child: _buildDirectionText("شمال", textClr)),
+        Positioned(bottom: 20.h, child: _buildDirectionText("جنوب", textClr)),
+        Positioned(left: 25.w, child: _buildDirectionText("غرب", textClr)),
+        Positioned(right: 25.w, child: _buildDirectionText("شرق", textClr)),
+
+        // ROTATING NEEDLE
         Transform.rotate(
           angle: angle,
-          origin: Offset.zero,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -153,8 +195,8 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isPointingAtKaabah
-                        ? [Color(0xff116A3E), Color(0xff17472F)]
-                        : [Color(0xff3E3E3E), Color(0xff3E3E3E)],
+                        ? [needleOn, needleOn.withOpacity(0.7)]
+                        : [needleOff, needleOff],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -163,20 +205,26 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
               SizedBox(
                 width: 40.w,
                 height: 40.w,
-                child: Image.asset("assets/images/user_pin.png"),
+                child: Image.asset("assets/images/user_pin.png",
+                    color: gold ? const Color(AppColors.goldText) : null),
               ),
             ],
           ),
         ),
+
+        // KAABA ICON
         Positioned(
           top: 90.h,
           child: CircleAvatar(
             radius: 40,
-            backgroundColor: Colors.green.shade900,
+            backgroundColor: gold
+                ? const Color(AppColors.goldPrimary)
+                : Colors.green.shade900,
             child: Image.asset(
               'assets/images/kaabah.png',
               width: 50,
               height: 50,
+              color: gold ? const Color(AppColors.goldText) : null,
             ),
           ),
         ),
@@ -184,8 +232,8 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
     );
   }
 
-  Widget _buildDirectionText(String text) => Text(
+  Widget _buildDirectionText(String text, Color textClr) => Text(
     text,
-    style: AppTextStyles.madL16(context,color: Color(0xff3E3E3E)),
+    style: AppTextStyles.madL16(context, color: textClr.withOpacity(0.7)),
   );
 }

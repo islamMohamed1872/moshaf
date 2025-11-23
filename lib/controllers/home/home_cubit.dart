@@ -16,12 +16,14 @@ import 'package:moshaf/controllers/azkar/azkar_cubit.dart';
 import 'package:moshaf/views/azkar/prays_screen.dart';
 import 'package:moshaf/views/haj_and_omrah/omrah_screen.dart';
 import 'package:moshaf/views/mosque_location/mosque_location_screen.dart';
+import 'package:moshaf/views/podcasts/podcasts_screen.dart';
 import 'package:moshaf/views/pray_teaching/pray_instructions_screen.dart';
 import 'package:moshaf/views/prayer_times/prayer_times_screen.dart';
 import 'package:moshaf/views/qiblah/qiblah_on_boarding_screen.dart';
 import 'package:moshaf/views/quran/all_quran_screen.dart';
 import 'package:moshaf/views/quran_radio/quran_radio_screen.dart';
 import 'package:moshaf/views/ramadan/ramadan_screen.dart';
+import 'package:moshaf/views/recitation/recitation_screen.dart';
 import 'package:moshaf/views/search/search_screen.dart';
 import 'package:moshaf/views/tasbeeh/tasbeeh_screen.dart';
 import 'package:moshaf/views/wodoo_teaching/wodoo_instructions_screen.dart';
@@ -64,6 +66,8 @@ class HomeCubit extends Cubit<HomeStates>{
     {"image": "assets/images/zakah.png", "title": "حساب زكاة المال"},
     {"image": "assets/images/radio.png", "title": "اذاعة القرآن الكريم"},
     {"image": "assets/images/search.png", "title": "بحث"},
+    {"image": "assets/images/podcast.png", "title": "بودكاست"},
+    {"image": "assets/images/holy.png", "title": "الوِرد"},
   ];
 
   void navigateToFeature(BuildContext context, int index,bool isDark) {
@@ -110,6 +114,12 @@ class HomeCubit extends Cubit<HomeStates>{
         break;
       case 13:
         navigateTo(context, SearchScreen());
+        break;
+      case 14:
+        navigateTo(context, PodcastsScreen());
+        break;
+      case 15:
+        navigateTo(context, RecitationScreen());
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
@@ -180,7 +190,7 @@ class HomeCubit extends Cubit<HomeStates>{
           '(${pos.latitude}, ${pos.longitude})');
 
       if (await PrayerTimesCubit().shouldFetchNewTimes()) {
-        await PrayerTimesCubit().fetchPrayerTimes(); // Fetch new times if outdated
+        await PrayerTimesCubit().fetchPrayerTimesNoInternet(); // Fetch new times if outdated
         // await PrayerTimesCubit().scheduleDoaaNotifications(); // Fetch new times if outdated
       } else {
         await PrayerTimesCubit().loadCachedPrayerTimes(); // Load from cache if still valid

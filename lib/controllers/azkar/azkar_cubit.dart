@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moshaf/components/components.dart';
@@ -222,7 +223,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
     final azkarMotafareqa = AzkarConstants.azkarMotafareqa;
     final prayerTimes = PrayerTimesCubit.get(context).prayerTimes;
     if(prayerTimes.isEmpty){
-     await PrayerTimesCubit.get(context).fetchPrayerTimes();
+     await PrayerTimesCubit.get(context).fetchPrayerTimesNoInternet();
     }
 
     // 🔹 1. Check if just after any prayer time
@@ -318,5 +319,19 @@ class AzkarCubit extends Cubit<AzkarStates> {
     }
   }
 
+  bool isSwipeView = false;
 
+  void toggleViewMode() {
+    isSwipeView = !isSwipeView;
+    emit(ChangeViewModeState());
+  }
+
+  PageController pageController = PageController();
+
+  int currentSwipeIndex = 0;
+
+  void changeSwipeIndex(int idx) {
+    currentSwipeIndex = idx;
+    emit(ChangeSwipeIndexState()); // create state class
+  }
 }

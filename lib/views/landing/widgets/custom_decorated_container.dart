@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:moshaf/constants/app_colors.dart';
-
 import '../../../constants/app_textstyles.dart';
 
 class CustomDecoratedContainer extends StatelessWidget {
@@ -19,11 +18,16 @@ class CustomDecoratedContainer extends StatelessWidget {
     required this.onPressed,
     this.borderColor,
     this.height,
-    required this.isDark
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final useBorderColor =
+        borderColor ?? AppColors.getBorderColor(isDark: isDark);
+
+    final textColor = AppColors.getTextColor(isDark: isDark);
+
     return InkWell(
       borderRadius: BorderRadius.circular(8.r),
       onTap: onPressed,
@@ -33,19 +37,21 @@ class CustomDecoratedContainer extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 10.h),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(
-            color: borderColor ?? Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
-          ),
+          border: Border.all(color: useBorderColor),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           spacing: 10.w,
           children: [
-            if(imagePath != null)
-            Image.asset(imagePath!, height: 22.h),
+            if (imagePath != null)
+              Image.asset(imagePath!, height: 22.h),
+
             Text(
               text,
-              style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),
+              style: AppTextStyles.madReg14(
+                context,
+                color: textColor,
+              ),
             ),
           ],
         ),

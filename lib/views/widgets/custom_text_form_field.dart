@@ -12,7 +12,7 @@ class CustomTextField extends StatelessWidget {
   final bool obscureText;
   final Color? fillColor;
   final IconData? suffixIcon;
-  final VoidCallback? onSuffixPressed; // 👈 nullable callback
+  final VoidCallback? onSuffixPressed;
 
   const CustomTextField({
     super.key,
@@ -29,68 +29,55 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final borderColor = AppColors.getBorderColor(isDark: isDark);
+    final textColor = AppColors.getTextColor(isDark: isDark);
+    final primaryColor = AppColors.getPrimaryColor();
+
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
-      cursorColor: Color(AppColors.mainGreen),
+      cursorColor: primaryColor,
       validator: validator,
       style: AppTextStyles.madReg12(
         context,
-        color:isDark ?Colors.white:Colors.black,
+        color: textColor,
       ),
       decoration: InputDecoration(
         filled: fillColor != null,
         fillColor: fillColor,
+
         hintText: hintText,
         hintStyle: AppTextStyles.madReg12(
           context,
-          color: Color(
-            isDark
-                ? AppColors.containerDarkBorders
-                : 0xff4F4F4F,
-          ),
+          color: borderColor.withOpacity(0.7),
         ),
 
-        // ✅ Add suffix icon only if provided
         suffixIcon: suffixIcon != null
             ? IconButton(
           icon: Icon(
             suffixIcon,
-            color: Color(
-              isDark
-                  ? AppColors.containerDarkBorders
-                  : 0xff4F4F4F,
-            ),
+            color: borderColor,
           ),
-          onPressed: onSuffixPressed, // 👈 nullable
+          onPressed: onSuffixPressed,
         )
             : null,
 
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(
-            color: Color(
-              isDark
-                  ? AppColors.containerDarkBorders
-                  : AppColors.containerLightBorders,
-            ),
-          ),
+          borderSide: BorderSide(color: borderColor),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(color: Color(AppColors.mainGreen)),
-        ),
+
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.r),
-          borderSide: BorderSide(
-            color: Color(
-              isDark
-                  ? AppColors.containerDarkBorders
-                  : AppColors.containerLightBorders,
-            ),
-          ),
+          borderSide: BorderSide(color: borderColor),
         ),
+
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10.r),
+          borderSide: BorderSide(color: primaryColor, width: 1.8),
+        ),
+
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.r),
           borderSide: const BorderSide(color: Colors.red),

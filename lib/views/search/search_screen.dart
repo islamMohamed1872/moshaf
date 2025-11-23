@@ -117,12 +117,30 @@ class SearchScreen extends StatelessWidget {
                                 : "مدنية",
                             verseCount: quran.getVerseCount(suraNumber),
                             sorahIndex: suraNumberInQuran-1,
+                            onRowPressed:  () async{
+                              CacheHelper.saveData(key: "lastRead", value: DateTime.now().toString());
+                              cubit.stop();
+                              await AudioServices().player.clearAudioSources();
+                              cubit.soraNumber = suraNumber;
+                              navigateTo(context, QuranViewPage(
+                                navigatedFromRecitation: false,
+                                shouldHighlightText: false,
+                                highlightVerse: "",
+                                jsonData: cubit.suraJsonData,
+                                pageNumber: quran.getPageNumber(
+                                  suraNumberInQuran,
+                                  1,
+                                ),
+                              ),
+                              );
+                            },
                             onReadPressed: () async{
                               CacheHelper.saveData(key: "lastRead", value: DateTime.now().toString());
                               cubit.stop();
                               await AudioServices().player.clearAudioSources();
                               cubit.soraNumber = suraNumber;
                               navigateTo(context, QuranViewPage(
+                                navigatedFromRecitation: false,
                                 shouldHighlightText: false,
                                 highlightVerse: "",
                                 jsonData: cubit.suraJsonData,
@@ -164,6 +182,7 @@ class SearchScreen extends StatelessWidget {
                                 int pageNumber = quran.getPageNumber(cubit.soraNumber!, verseNumber);
                                 navigateTo(context, QuranViewPage(
                                   shouldHighlightText: false,
+                                  navigatedFromRecitation: false,
                                   highlightVerse: "$verseNumber",
                                   jsonData: cubit.suraJsonData,
                                   pageNumber: pageNumber,

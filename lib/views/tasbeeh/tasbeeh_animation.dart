@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:moshaf/controllers/tasbeeh/tasbeeh_cubit.dart';
 
+import '../../constants/app_colors.dart';
+
 
 
 class TasbeehAnimation extends StatefulWidget {
@@ -197,7 +199,8 @@ class _TasbeehScreenState extends State<TasbeehAnimation>
 
 /// Painter that draws path + beads with glossy style and a slight rotation based on path tangent
 class _ClusterTasbeehPainter extends CustomPainter {
-  final List<double> transientTs; // t values during painting (can be <0 or >1 while animating)
+  final List<double> transientTs;
+
   _ClusterTasbeehPainter({
     required this.transientTs,
   });
@@ -207,10 +210,41 @@ class _ClusterTasbeehPainter extends CustomPainter {
     final width = size.width;
     final centerY = size.height * 0.45;
 
+    // Check if gold mode enabled
+    final bool isGold = AppColors.isGoldMode;
+
+    // Colors for both modes
+    final Color rimColor = isGold
+        ? const Color(AppColors.goldPrimary)        // Gold rim
+        : const Color(0xFF0B6A3A);                  // Green rim
+
+    final List<Color> innerGradientColors = isGold
+        ? [
+      const Color(AppColors.goldAccent),      // Golden bright core
+      const Color(AppColors.goldPrimary),     // Deep gold outside
+    ]
+        : [
+      const Color(0xFF22C55E),                // bright green
+      const Color(0xFF0B6A3A),                // dark outer green
+    ];
+
+    final Color shadowColor = isGold
+        ? Colors.brown.withOpacity(0.22)            // warm gold shadow
+        : Colors.black.withOpacity(0.18);
+
+    final Color highlightColor = isGold
+        ? Colors.white.withOpacity(0.25)            // stronger highlight for metals
+        : Colors.white.withOpacity(0.18);
+
+    final Color threadColor = isGold
+        ? const Color(AppColors.goldBorder)         // golden thread
+        : Colors.grey.shade800.withOpacity(0.7);
+
     // --- path (sine curve)
     final path = Path();
     const waves = 1.0;
     final amplitude = size.height * 0.045;
+
     for (double x = 0; x <= width; x++) {
       final t = x / width;
       final y = centerY + sin(t * 2 * pi * waves - 0.28) * amplitude;
@@ -223,72 +257,73 @@ class _ClusterTasbeehPainter extends CustomPainter {
 
     // draw thread
     final threadPaint = Paint()
-      ..color = Colors.grey.shade800.withOpacity(0.7)
+      ..color = threadColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.2
       ..strokeCap = StrokeCap.round;
+
     canvas.drawPath(path, threadPaint);
 
+    // Compute bead positions
     final metric = path.computeMetrics().first;
     const beadDiameter = 30.0;
     final beadRadius = beadDiameter / 2;
 
-    // sort beads by transient t so they are drawn left->right
+    // draw in left->right order
     final indexed = List<int>.generate(transientTs.length, (i) => i);
     indexed.sort((a, b) => transientTs[a].compareTo(transientTs[b]));
 
     for (final idx in indexed) {
       final t = transientTs[idx];
-      // skip beads far outside visible range for efficiency
       if (t < -0.5 || t > 1.5) continue;
 
       final sampleT = t.clamp(0.0, 1.0);
       final offsetAlong = metric.length * sampleT;
+
       final tangent = metric.getTangentForOffset(offsetAlong);
       if (tangent == null) continue;
+
       final pos = tangent.position;
 
-      // small perpendicular offset so bead looks like sitting on thread
+      // perpendicular offset
       final perp = Offset(-tangent.vector.dy, tangent.vector.dx);
       final perpNorm = perp / (perp.distance == 0 ? 1 : perp.distance);
-      final sitOffset = perpNorm * 2.6;
-      final beadCenter = pos + sitOffset;
+      final beadCenter = pos + perpNorm * 2.6;
 
-      // Draw bead with rotation based on tangent direction
+      // draw bead
       canvas.save();
       canvas.translate(beadCenter.dx, beadCenter.dy);
       final angle = tangent.vector.direction;
-      final rotation = angle * 0.18; // subtle rotation
+      final rotation = angle * 0.18;
       canvas.rotate(rotation);
 
-      // draw shadow (screen-aligned): undo rotation
+      // shadow (screen-aligned)
       canvas.save();
       canvas.rotate(-rotation);
-      final shadowPaint = Paint()..color = Colors.black.withOpacity(0.18);
+      final shadowPaint = Paint()..color = shadowColor;
       canvas.drawCircle(const Offset(4, 6), beadRadius * 1.02, shadowPaint);
       canvas.restore();
 
-      // --- GREEN RIM (matches your asset) ---
-      final rimPaint = Paint()..color = const Color(0xFF0B6A3A);
+      // outer rim
+      final rimPaint = Paint()..color = rimColor;
       canvas.drawCircle(Offset.zero, beadRadius, rimPaint);
 
-      // --- INNER GREEN GLOSSY GRADIENT ---
-      // Center bright green, darker outer
-      final innerRect = Rect.fromCircle(center: Offset.zero, radius: beadRadius * 0.86);
+      // glossy gradient
+      final innerRect =
+      Rect.fromCircle(center: Offset.zero, radius: beadRadius * 0.86);
+
       final grad = RadialGradient(
         center: const Alignment(-0.35, -0.4),
         radius: 0.9,
-        colors: [
-          const Color(0xFF22C55E), // bright center green
-          const Color(0xFF0B6A3A), // darker outer green
-        ],
+        colors: innerGradientColors,
         stops: const [0.10, 1.0],
       );
+
       final shaderPaint = Paint()..shader = grad.createShader(innerRect);
       canvas.drawCircle(Offset.zero, beadRadius * 0.86, shaderPaint);
 
-      // specular highlight (top-left small oval) — slightly bluish-white like asset
-      final highlight = Paint()..color = Colors.white.withOpacity(0.18);
+      // top highlight
+      final highlight = Paint()..color = highlightColor;
       final highlightRect = Rect.fromCenter(
         center: Offset(-beadRadius * 0.18, -beadRadius * 0.28),
         width: beadRadius * 0.7,
@@ -296,11 +331,12 @@ class _ClusterTasbeehPainter extends CustomPainter {
       );
       canvas.drawOval(highlightRect, highlight);
 
-      // inner shadow ring for depth
+      // inner shadow ring
       final innerShadow = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = beadRadius * 0.12
-        ..color = Colors.black.withOpacity(0.12);
+        ..color = Colors.black.withOpacity(isGold ? 0.15 : 0.12);
+
       canvas.drawCircle(Offset.zero, beadRadius * 0.72, innerShadow);
 
       canvas.restore();
@@ -316,3 +352,4 @@ class _ClusterTasbeehPainter extends CustomPainter {
     return false;
   }
 }
+

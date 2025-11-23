@@ -99,7 +99,8 @@ class SettingsCubit extends Cubit<SettingsStates>{
        'Prayer Times ($audioFileName)',
        channelDescription: 'Prayer time notifications',
        importance: Importance.max,
-       priority: Priority.high,
+       priority: Priority.max,
+       autoCancel: false,
        playSound: true,
        sound: RawResourceAndroidNotificationSound(audioFileName),
      );

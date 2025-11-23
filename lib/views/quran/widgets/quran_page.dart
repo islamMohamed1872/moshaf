@@ -24,6 +24,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../components/const.dart';
+import '../../../controllers/recitation/recitation_cubit.dart';
 import '../../../controllers/text_quran/text_quran_states.dart';
 import '../../../controllers/theme/theme_cubit.dart';
 import 'basmallah.dart';
@@ -34,6 +35,7 @@ class QuranViewPage extends StatefulWidget {
   final dynamic jsonData;
   final bool shouldHighlightText;
   final dynamic highlightVerse;
+  final bool navigatedFromRecitation;
 
   const QuranViewPage({
     Key? key,
@@ -41,6 +43,7 @@ class QuranViewPage extends StatefulWidget {
     required this.jsonData,
     required this.shouldHighlightText,
     required this.highlightVerse,
+    required this.navigatedFromRecitation
   }) : super(key: key);
 
   @override
@@ -57,6 +60,9 @@ class _QuranViewPageState extends State<QuranViewPage>
   int index = 0;
   int? startVerse;
   int? endVerse;
+  int? minPage;
+  int? maxPage;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -64,6 +70,13 @@ class _QuranViewPageState extends State<QuranViewPage>
   void initState() {
     super.initState();
     index = widget.pageNumber;
+    if (widget.navigatedFromRecitation) {
+      final recitationCubit = RecitationCubit.get(context);
+      final range = recitationCubit.getDailyReadingRange();
+
+      minPage = range['startPage'];
+      maxPage = range['endPage'];
+    }
     _pageController = PageController(initialPage: index);
     highlightVerseNotifier = ValueNotifier<int?>(
       int.tryParse(widget.highlightVerse ?? ''),
@@ -95,38 +108,78 @@ class _QuranViewPageState extends State<QuranViewPage>
     isPlaying.dispose();
     super.dispose();
   }
-  Future<void> _showDownloadDialog(int surah, int start, int end, bool isDark) async {
-    showDialog<String>(
+  Future<Future<String?>> _showDownloadDialog(
+      int surah,
+      int start,
+      int end,
+      bool isDark,
+      ) async
+  {
+
+    final gold = AppColors.isGoldMode;
+
+    final bgColor = gold
+        ? const Color(AppColors.goldBackground)
+        : (isDark ? Color(AppColors.scaffoldBg) : Colors.white);
+
+    final titleColor = gold
+        ? const Color(AppColors.goldText)
+        : (isDark ? Colors.white : Colors.black);
+
+    final textColor = gold
+        ? const Color(AppColors.goldText)
+        : (isDark ? Colors.white70 : Colors.black87);
+
+    final cancelBtnBg = gold
+        ? const Color(AppColors.goldBorder).withOpacity(.2)
+        : Colors.grey.shade200;
+
+    final cancelBtnText = gold
+        ? const Color(AppColors.goldText)
+        : Colors.black;
+
+    final downloadBtnBg = gold
+        ? const Color(AppColors.goldPrimary)
+        : Color(AppColors.mainGreen);
+
+    return showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? Color(AppColors.scaffoldBg) : Colors.white,
+        backgroundColor: bgColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
+          side: gold
+              ? const BorderSide(color: Color(AppColors.goldBorder), width: 1)
+              : BorderSide.none,
         ),
+
         title: Text(
           "تحميل المقاطع المختارة",
           textAlign: TextAlign.center,
           style: AppTextStyles.madB14(
             context,
-            color: isDark ? Colors.white : Colors.black,
+            color: titleColor,
           ),
         ),
+
         content: Text(
           "هل تريد تحميل الآيات من $start إلى $end من سورة ${quran.getSurahNameArabic(surah)}؟",
           textAlign: TextAlign.center,
           style: AppTextStyles.madReg12(
             context,
-            color: isDark ? Colors.white70 : Colors.black87,
+            color: textColor,
           ),
         ),
+
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
+
           // Cancel Button
           TextButton(
             style: TextButton.styleFrom(
-              backgroundColor: Colors.grey.shade200,
-              foregroundColor: Colors.black,
+              backgroundColor: cancelBtnBg,
+              foregroundColor: cancelBtnText,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -135,19 +188,23 @@ class _QuranViewPageState extends State<QuranViewPage>
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               "إلغاء",
-              style: AppTextStyles.madReg14(context, color: Colors.black),
+              style: AppTextStyles.madReg14(context, color: cancelBtnText),
             ),
           ),
 
           // Download Button
           TextButton.icon(
-            icon: const Icon(Icons.download, size: 18, color: Colors.white),
+            icon: Icon(
+              Icons.download,
+              size: 18,
+              color: gold ? Colors.white : Colors.white,
+            ),
             label: Text(
               "تحميل",
               style: AppTextStyles.madReg14(context, color: Colors.white),
             ),
             style: TextButton.styleFrom(
-              backgroundColor: Color(AppColors.mainGreen),
+              backgroundColor: downloadBtnBg,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               shape: RoundedRectangleBorder(
@@ -172,112 +229,177 @@ class _QuranViewPageState extends State<QuranViewPage>
       final tempDir = await getTemporaryDirectory();
       final List<String> files = [];
 
-      // 🔹 Step 1: Download each verse
+      // -------------------------------------------------------------
+      // 🔹 Step 1: Download Each Verse
+      // -------------------------------------------------------------
       for (int i = start; i <= end; i++) {
         final url = quran.getAudioURLByVerse(surah, i, "ar.abdulbasitmurattal");
         final savePath = "${tempDir.path}/verse_$i.mp3";
 
         await dio.download(url, savePath);
         files.add(savePath);
+
         debugPrint("✅ Downloaded verse $i");
       }
 
-      // 🔹 Step 2: Combine into single MP3 file
-      final surahName = quran.getSurahNameArabic(surah).replaceAll(' ', '_');
-      final combinedFileName = "سورة_${surahName}_من_$startإلى_$end.mp3";
+      // -------------------------------------------------------------
+      // 🔹 Step 2: Prepare output file name
+      // -------------------------------------------------------------
+      final surahNameArabic = quran.getSurahNameArabic(surah);
+      final sanitizedSurahName = surahNameArabic.replaceAll(" ", "_");
 
-      // Prefer system Downloads directory
-      Directory? downloadsDir;
+      final combinedFileName =
+          "سورة_${sanitizedSurahName}_من_${start}_الى_${end}.mp3";
+
+      // -------------------------------------------------------------
+      // 🔹 Step 3: Resolve a safe Downloads directory
+      // -------------------------------------------------------------
+      Directory downloadsDir;
+
       if (Platform.isAndroid) {
         downloadsDir = Directory('/storage/emulated/0/Download');
+
+        if (!downloadsDir.existsSync()) {
+          downloadsDir = await getExternalStorageDirectory() ??
+              await getApplicationDocumentsDirectory();
+        }
       } else {
         downloadsDir = await getApplicationDocumentsDirectory();
       }
 
       final combinedPath = "${downloadsDir.path}/$combinedFileName";
+
+      // -------------------------------------------------------------
+      // 🔹 Step 4: Merge all the audio files
+      // -------------------------------------------------------------
       await _combineAudioFiles(files, combinedPath);
 
-      // 🔹 Step 3: Remove temp files
+      // -------------------------------------------------------------
+      // 🔹 Step 5: Remove temp files
+      // -------------------------------------------------------------
       for (final path in files) {
         try {
           await File(path).delete();
-        } catch (e) {
-          debugPrint("⚠️ Could not delete $path: $e");
-        }
+        } catch (_) {}
       }
 
+      // -------------------------------------------------------------
+      // 🔹 Step 6: Success Toast + Share Dialog
+      // -------------------------------------------------------------
       Fluttertoast.showToast(
         msg: "✅ تم التحميل بنجاح! \n📥 تم حفظ الملف في مجلد التنزيلات.",
         toastLength: Toast.LENGTH_LONG,
       );
-      // 🔹 Show share dialog
-      _showShareDialog(combinedPath, surahName, start, end);
 
-      debugPrint("🎧 Combined file saved at $combinedPath");
+      _showShareDialog(combinedPath, surahNameArabic, start, end);
+
+      debugPrint("🎧 Combined file saved at: $combinedPath");
+
     } catch (e, s) {
-      debugPrint("❌ Error downloading/combining: $e\n$s");
+      debugPrint("❌ Download/Combine Error: $e\n$s");
       Fluttertoast.showToast(msg: "حدث خطأ أثناء التحميل");
     }
   }
 
   Future<void> _combineAudioFiles(List<String> inputPaths, String outputPath) async {
-    final outputFile = File(outputPath).openWrite();
+    final output = File(outputPath).openWrite();
+
+    bool isFirst = true;
 
     for (final path in inputPaths) {
-      final bytes = await File(path).readAsBytes();
-      outputFile.add(bytes);
+      final file = File(path);
+      final bytes = await file.readAsBytes();
+
+      if (isFirst) {
+        // Write full file including ID3 header
+        output.add(bytes);
+        isFirst = false;
+      } else {
+        // Skip ID3 header in subsequent MP3 files
+        int skip = _getID3HeaderSize(bytes);
+        output.add(bytes.sublist(skip));
+      }
     }
 
-    await outputFile.close();
+    await output.close();
   }
 
+  int _getID3HeaderSize(List<int> bytes) {
+    if (bytes.length < 10) return 0;
+
+    // Check for "ID3" signature: 0x49 0x44 0x33
+    if (bytes[0] == 0x49 && bytes[1] == 0x44 && bytes[2] == 0x33) {
+      // Size is stored in bytes 6–9 (syncsafe integer)
+      int size = (bytes[6] << 21) |
+      (bytes[7] << 14) |
+      (bytes[8] << 7) |
+      bytes[9];
+
+      // Header is 10 bytes + tag size
+      return size + 10;
+    }
+
+    return 0;
+  }
+
+
   void _showShareDialog(String filePath, String surahName, int start, int end) {
-    final isDark = context.read<ThemeCubit>().isDark;
+    final themeCubit = context.read<ThemeCubit>();
+    final isDark = themeCubit.isDark;
+    final isGold = AppColors.isGoldMode;
+
+    final bgColor = isGold
+        ? const Color(AppColors.goldBackground)
+        : (isDark ? Color(AppColors.scaffoldBg) : Colors.white);
+
+    final textColor = isGold
+        ? const Color(AppColors.goldText)
+        : (isDark ? Colors.white : Colors.black);
+
+    final borderColor = isGold
+        ? const Color(AppColors.goldBorder)
+        : (isDark ? Colors.white10 : Colors.black12);
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? Color(AppColors.scaffoldBg) : Colors.white,
+        backgroundColor: bgColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: borderColor),
         ),
         title: Text(
           "تم التحميل بنجاح",
           textAlign: TextAlign.center,
-          style: AppTextStyles.madB14(
-            context,
-            color: isDark ? Colors.white : Colors.black,
-          ),
+          style: AppTextStyles.madB14(context, color: textColor),
         ),
         content: Text(
-          "تم حفظ الملف: \nسورة $surahName من $start إلى $end\n\nهل ترغب بمشاركته على واتساب؟",
+          "تم حفظ الملف:\n"
+              "سورة $surahName من $start إلى $end\n\n"
+              "هل ترغب بمشاركته على واتساب؟",
           textAlign: TextAlign.center,
-          style: AppTextStyles.madReg12(
-            context,
-            color: isDark ? Colors.white70 : Colors.black87,
-          ),
+          style: AppTextStyles.madReg12(context,
+              color: isGold ? const Color(AppColors.goldText) : (isDark ? Colors.white70 : Colors.black87)),
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
-          // Close button
+          /// ❌ Close button
           TextButton(
             style: TextButton.styleFrom(
-              backgroundColor: Colors.grey.shade200,
-              foregroundColor: Colors.black,
+              backgroundColor: isGold ? const Color(0xFFE6C87A) : Colors.grey.shade200,
+              foregroundColor: textColor,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               "إغلاق",
-              style: AppTextStyles.madReg14(context, color: Colors.black),
+              style: AppTextStyles.madReg14(context, color: textColor),
             ),
           ),
 
-          // Share to WhatsApp
+          /// 📤 Share to WhatsApp
           TextButton.icon(
             icon: const Icon(Icons.share, size: 18, color: Colors.white),
             label: Text(
@@ -285,19 +407,28 @@ class _QuranViewPageState extends State<QuranViewPage>
               style: AppTextStyles.madReg14(context, color: Colors.white),
             ),
             style: TextButton.styleFrom(
-              backgroundColor: Color(0xFF25D366), // WhatsApp green
+              backgroundColor: const Color(0xFF25D366),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              await Share.shareXFiles(
-                [XFile(filePath)],
-                text: "🎧 سورة $surahName من $start إلى $end",
-              );
+
+              final file = File(filePath);
+              if (!file.existsSync()) {
+                Fluttertoast.showToast(msg: "⚠️ ملف الصوت غير موجود.");
+                return;
+              }
+
+              try {
+                await Share.shareXFiles(
+                  [XFile(filePath)],
+                  text: "🎧 سورة $surahName من $start إلى $end",
+                );
+              } catch (e) {
+                Fluttertoast.showToast(msg: "⚠️ تعذرت المشاركة");
+              }
             },
           ),
         ],
@@ -440,6 +571,20 @@ class _QuranViewPageState extends State<QuranViewPage>
     final widget2 = BlocBuilder<TextQuranCubit, TextQuranStates>(
       builder: (context, state) {
         final cubit = TextQuranCubit.get(context);
+        final isDark = context.read<ThemeCubit>().isDark;
+        final gold = AppColors.isGoldMode;
+
+        final popupBg = gold
+            ? const Color(AppColors.goldBackground)
+            : (isDark ? Colors.black : Colors.white);
+
+        final popupText = gold
+            ? const Color(AppColors.goldText)
+            : (isDark ? Colors.white : Colors.black);
+
+        final popupBorder = gold
+            ? const Color(AppColors.goldBorder)
+            : const Color(0xffD6D6D6);
         return ValueListenableBuilder(
           valueListenable: highlightVerseNotifier,
           builder: (context, dynamic highlighted, _) {
@@ -477,271 +622,193 @@ class _QuranViewPageState extends State<QuranViewPage>
                   }
                 }
 
-
+                final screenHeight = MediaQuery.of(context).size.height;
+// Dynamic line height (makes full page fit)
+                final dynamicHeight = screenHeight * 0.0021.h;
                 spans.add(
                   TextSpan(
                     recognizer:
-                        TapGestureRecognizer()
-                          ..onTapDown = (TapDownDetails details) async {
-                            highlightVerseNotifier.value = i;
+                    LongPressGestureRecognizer()
+                      ..onLongPressStart = (LongPressStartDetails details) async {
+                        highlightVerseNotifier.value = i;
 
-                            // Get the tap position relative to the overlay
-                            final RenderBox overlay =
-                                Overlay.of(context).context.findRenderObject()
-                                    as RenderBox;
-                            final Offset tapPosition = details.globalPosition;
+                        // Get overlay for positioning
+                        final RenderBox overlay =
+                        Overlay.of(context).context.findRenderObject() as RenderBox;
+                        final Offset tapPosition = details.globalPosition;
 
-                            // 🔹 Show popup menu at the tap position
-                            final result = await showMenu<String>(
-                              context: context,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(20),
-                                ),
+                        // 🔹 Show popup menu
+                        final result = await showMenu<String>(
+                          context: context,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: popupBorder),
+                          ),
+                          color: popupBg,
+                          position: RelativeRect.fromLTRB(
+                            tapPosition.dx,
+                            tapPosition.dy,
+                            overlay.size.width - tapPosition.dx,
+                            overlay.size.height - tapPosition.dy,
+                          ),
+                          items: [
+                            PopupMenuItem<String>(
+                              value: 'tafseer',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.menu_book_outlined, color: popupText, size: 15),
+                                  SizedBox(width: 6.w),
+                                  Text('تفسير',
+                                      style: AppTextStyles.madReg12(context, color: popupText)),
+                                ],
                               ),
-                              color: Colors.white,
-                              position: RelativeRect.fromLTRB(
-                                tapPosition.dx,
-                                tapPosition.dy,
-                                overlay.size.width - tapPosition.dx,
-                                overlay.size.height - tapPosition.dy,
+                            ),
+                            PopupMenuDivider(height: 1, color: popupBorder),
+
+                            PopupMenuItem<String>(
+                              value: 'save',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.bookmark_border, color: popupText, size: 15),
+                                  SizedBox(width: 6.w),
+                                  Text('حفظ الآيه',
+                                      style: AppTextStyles.madReg12(context, color: popupText)),
+                                ],
                               ),
-                              items: [
-                                PopupMenuItem<String>(
-                                  value: 'tafseer',
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.menu_book_outlined,color: Colors.black,size: 15,),
-                                      SizedBox(width: 6.w),
-                                      Text(
-                                        'تفسير',
-                                        textDirection: TextDirection.rtl,
-                                        style: AppTextStyles.madReg12(context,color: Colors.black),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuDivider(height: 1,color: Color(0xffD6D6D6),),
-                                PopupMenuItem<String>(
-                                  value: 'save',
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.bookmark_border,color: Colors.black,size: 15,),
-                                      SizedBox(width: 6.w),
-                                      Text(
-                                        'حفظ الآيه',
-                                        textDirection: TextDirection.rtl,
-                                        style: AppTextStyles.madReg12(context,color: Colors.black),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuDivider(height: 1,color: Color(0xffD6D6D6),),
-                                PopupMenuItem<String>(
-                                  value: 'play',
-                                  child: Row(
-                                    children: [
-                                      const Icon(FontAwesomeIcons.circlePlay,color: Colors.black,size: 15,),
-                                      SizedBox(width: 6.w),
-                                      Text(
-                                        'تشغيل',
-                                        textDirection: TextDirection.rtl,
-                                        style: AppTextStyles.madReg12(context,color: Colors.black),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuDivider(height: 1,color: Color(0xffD6D6D6),),
-                                PopupMenuItem<String>(
-                                  value: 'select_start',
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.arrow_upward, color: Colors.black, size: 15),
-                                      SizedBox(width: 6.w),
-                                      Text('تحديد كنقطة البداية', style: AppTextStyles.madReg12(context, color: Colors.black)),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuDivider(height: 1,color: Color(0xffD6D6D6),),
-                                PopupMenuItem<String>(
-                                  value: 'select_end',
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.arrow_downward, color: Colors.black, size: 15),
-                                      SizedBox(width: 6.w),
-                                      Text('تحديد كنقطة النهاية', style: AppTextStyles.madReg12(context, color: Colors.black)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            );
+                            ),
+                            PopupMenuDivider(height: 1, color: popupBorder),
 
-                            // 🔹 Handle menu selection
-                            if (result == 'save') {
-                              cubit.saveLastRead(
-                                page: pageIndex,
-                                verse: i,
-                                sora:
-                                    widget.jsonData[getPageData(
-                                          pageIndex,
-                                        )[0]["surah"] -
-                                        1]["number"],
-                              );
+                            PopupMenuItem<String>(
+                              value: 'play',
+                              child: Row(
+                                children: [
+                                  Icon(FontAwesomeIcons.circlePlay, color: popupText, size: 15),
+                                  SizedBox(width: 6.w),
+                                  Text('تشغيل',
+                                      style: AppTextStyles.madReg12(context, color: popupText)),
+                                ],
+                              ),
+                            ),
+                            PopupMenuDivider(height: 1, color: popupBorder),
 
-                              Fluttertoast.showToast(
-                                msg: " تم حفظ تقدمك بنجاح",
-                                toastLength: Toast.LENGTH_SHORT,
-                                backgroundColor:isDark?Colors.white:Colors.black,
-                                textColor: isDark?Colors.black:Colors.white,
-                                gravity: ToastGravity.BOTTOM,
-                                fontSize: 16.0,
-                              );
-                            }
-                            else if (result == 'tafseer')
-                            {
-                              cubit.getVerseTafseer(
-                                sora:  widget.jsonData[getPageData(
-                                  pageIndex,
-                                )[0]["surah"] -
-                                    1]["number"],
-                                verse: i,
-                              );
-                              final tafseer = await cubit.stream
-                                  .where((state) => state is GetVerseTafseerSuccessState)
-                                  .map((state) => cubit.verseTafseer)
-                                  .first;
-                              if (context.mounted) {
-                                navigateTo(context, TafseerScreen(ayah: i, tafseer: tafseer,sorah:  widget.jsonData[getPageData(
-                                  pageIndex,
-                                )[0]["surah"] -
-                                    1]["number"],));
-                                // navigateTo(context, TafseerScreen(ayah: Text(
-                                //   getVerseQCF(
-                                //     e["surah"],
-                                //     i,
-                                //   ).replaceAll(' ', ''),
-                                //   style: TextStyle(
-                                //     fontSize: 20,
-                                //     color: Color(AppColors.mainGreen),
-                                //     fontFamily:
-                                //     "QCF_P${pageIndex.toString().padLeft(3, "0")}",
-                                //   ),
-                                //   textDirection: TextDirection.rtl,
-                                // )
-                                //     , tafseer: tafseer));
-                                // showModalBottomSheet(
-                                //   context: context,
-                                //   backgroundColor: Colors.white,
-                                //   shape: const RoundedRectangleBorder(
-                                //     borderRadius: BorderRadius.vertical(
-                                //       top: Radius.circular(20),
-                                //     ),
-                                //   ),
-                                //   enableDrag: true,
-                                //   builder: (context) {
-                                //     return Padding(
-                                //       padding: const EdgeInsets.all(16.0),
-                                //       child: SingleChildScrollView(
-                                //         child: Column(
-                                //           mainAxisSize: MainAxisSize.min,
-                                //           crossAxisAlignment:
-                                //               CrossAxisAlignment.center,
-                                //           children: [
-                                //             Container(
-                                //               width: 50,
-                                //               height: 5,
-                                //               margin: const EdgeInsets.only(
-                                //                 bottom: 12,
-                                //               ),
-                                //               decoration: BoxDecoration(
-                                //                 color: Colors.grey[400],
-                                //                 borderRadius:
-                                //                     BorderRadius.circular(2.5),
-                                //               ),
-                                //             ),
-                                //             Text(
-                                //               getVerseQCF(
-                                //                 e["surah"],
-                                //                 i,
-                                //               ).replaceAll(' ', ''),
-                                //               style: TextStyle(
-                                //                 fontSize: 18,
-                                //                 color: Colors.black,
-                                //                 fontFamily:
-                                //                     "QCF_P${pageIndex.toString().padLeft(3, "0")}",
-                                //               ),
-                                //               textDirection: TextDirection.rtl,
-                                //             ),
-                                //             const SizedBox(height: 12),
-                                //             Text(
-                                //               tafseer,
-                                //               style: const TextStyle(
-                                //                 fontSize: 16,
-                                //                 height: 1.6,
-                                //                 color: Colors.black87,
-                                //               ),
-                                //               textAlign: TextAlign.justify,
-                                //               textDirection: TextDirection.rtl,
-                                //             ),
-                                //             const SizedBox(height: 20),
-                                //           ],
-                                //         ),
-                                //       ),
-                                //     );
-                                //   },
-                                // );
-                              }
-                            }
-                            else if(result =="play"){
-                              final player = AudioServices().player;
-                              final url = quran.getAudioURLByVerse(e["surah"], i, "ar.abdulbasitmurattal");
+                            PopupMenuItem<String>(
+                              value: 'select_start',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.arrow_upward, color: popupText, size: 15),
+                                  SizedBox(width: 6.w),
+                                  Text('تحديد كنقطة البداية',
+                                      style: AppTextStyles.madReg12(context, color: popupText)),
+                                ],
+                              ),
+                            ),
+                            PopupMenuDivider(height: 1, color: popupBorder),
 
-                              await player.setAudioSource(
-                                AudioSource.uri(
-                                  Uri.parse(url),
-                                  tag: MediaItem(
-                                    id: 'verse_audio_${e["surah"]}_$i',
-                                    album: 'Quran',
-                                    title: 'سورة ${getSurahNameArabic(e["surah"])} - آية $i',
-                                    artist: 'عبد الباسط عبد الصمد',
-                                  ),
-                                ),
-                              );
+                            PopupMenuItem<String>(
+                              value: 'select_end',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.arrow_downward, color: popupText, size: 15),
+                                  SizedBox(width: 6.w),
+                                  Text('تحديد كنقطة النهاية',
+                                      style: AppTextStyles.madReg12(context, color: popupText)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
 
-                              isPlaying.value = true;
-                              await player.play();
+                        // ==========================
+                        // 🔹 Handle Actions
+                        // ==========================
 
-                              // 👇 Wait for verse to finish or stop
-                              player.processingStateStream.firstWhere((state) =>
-                              state == ProcessingState.completed ||
-                                  !isPlaying.value).then((_) {
-                                if (mounted) isPlaying.value = false;
-                              });
-                            }
-                            else if (result == 'select_start') {
-                              setState(() {
-                                startVerse = i;
-                              });
-                              Fluttertoast.showToast(msg: "تم تحديد بداية المقطع عند الآية $i");
-                            } else if (result == 'select_end') {
-                              if (startVerse==null){
-                                Fluttertoast.showToast(msg: "من فضلك اختر البداية اولاً");
-                                return;
-                              }
-                              setState(() {
-                                endVerse = i;
-                              });
-                              Fluttertoast.showToast(msg: "تم تحديد نهاية المقطع عند الآية $i");
+                        if (result == 'save') {
+                          cubit.saveLastRead(
+                            page: pageIndex,
+                            verse: i,
+                            sora: widget.jsonData[
+                            getPageData(pageIndex)[0]["surah"] - 1]["number"],
+                          );
 
-                              if (startVerse != null && endVerse != null) {
-                                _showDownloadDialog(e["surah"], startVerse!, endVerse!,isDark);
-                              }
-                            }
-                          },
+                          Fluttertoast.showToast(
+                            msg: " تم حفظ تقدمك بنجاح",
+                            backgroundColor: isDark ? Colors.white : Colors.black,
+                            textColor: isDark ? Colors.black : Colors.white,
+                          );
+                        }
 
-                    text: getVerseQCF(e["surah"], i).replaceAll(' ', ''),
+                        else if (result == 'tafseer') {
+                          cubit.getVerseTafseer(
+                            sora: widget.jsonData[
+                            getPageData(pageIndex)[0]["surah"] - 1]["number"],
+                            verse: i,
+                          );
+
+                          final tafseer = await cubit.stream
+                              .where((state) => state is GetVerseTafseerSuccessState)
+                              .map((state) => cubit.verseTafseer)
+                              .first;
+
+                          if (!context.mounted) return;
+
+                          navigateTo(
+                            context,
+                            TafseerScreen(
+                              ayah: i,
+                              tafseer: tafseer,
+                              sorah: widget.jsonData[
+                              getPageData(pageIndex)[0]["surah"] - 1]["number"],
+                            ),
+                          );
+                        }
+
+                        else if (result == 'play') {
+                          final player = AudioServices().player;
+                          final url = quran.getAudioURLByVerse(
+                              e["surah"], i, "ar.abdulbasitmurattal");
+
+                          await player.setAudioSource(
+                            AudioSource.uri(
+                              Uri.parse(url),
+                              tag: MediaItem(
+                                id: 'verse_audio_${e["surah"]}_$i',
+                                album: 'Quran',
+                                title: 'سورة ${getSurahNameArabic(e["surah"])} - آية $i',
+                                artist: 'عبد الباسط عبد الصمد',
+                              ),
+                            ),
+                          );
+
+                          isPlaying.value = true;
+                          await player.play();
+
+                          player.processingStateStream.firstWhere((state) =>
+                          state == ProcessingState.completed || !isPlaying.value).then((_) {
+                            if (mounted) isPlaying.value = false;
+                          });
+                        }
+
+                        else if (result == 'select_start') {
+                          setState(() => startVerse = i);
+                          Fluttertoast.showToast(msg: "تم تحديد بداية المقطع عند الآية $i");
+                        }
+
+                        else if (result == 'select_end') {
+                          if (startVerse == null) {
+                            Fluttertoast.showToast(msg: "من فضلك اختر البداية اولاً");
+                            return;
+                          }
+                          setState(() => endVerse = i);
+                          Fluttertoast.showToast(msg: "تم تحديد نهاية المقطع عند الآية $i");
+
+                          if (startVerse != null && endVerse != null) {
+                            _showDownloadDialog(e["surah"], startVerse!, endVerse!, isDark);
+                          }
+                        }
+                      },
+                      text: getVerseQCF(e["surah"], i).replaceAll(' ', ''),
                     style: TextStyle(
-                      color:isDark? Colors.white:Colors.black,
+                      color:gold? Color(AppColors.goldText): isDark? Colors.white:Colors.black,
                       backgroundColor:
                           highlighted == i
                               ? HexColor("998300").withValues(alpha: 0.2)
@@ -749,7 +816,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                       fontFamily:
                           "QCF_P${pageIndex.toString().padLeft(3, "0")}",
                         fontSize: 23.sp,
-                      height: 1.8.h,
+                      height: dynamicHeight, //1.8.h
                       wordSpacing: 20,
                     ),
                   ),
@@ -776,6 +843,20 @@ class _QuranViewPageState extends State<QuranViewPage>
     super.build(context);
     final screenSize = MediaQuery.of(context).size;
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
+    final gold = AppColors.isGoldMode;
+
+    // Colors
+    final borderClr = gold
+        ? const Color(AppColors.goldBorder)
+        : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders);
+
+    final textClr = gold
+        ? const Color(AppColors.goldText)
+        : (isDark ? Colors.white : Colors.black);
+
+    final backIconClr = gold
+        ? const Color(AppColors.goldAccent)
+        : (isDark ? Colors.white : Colors.black);
 
     return Scaffold(
       body: SafeArea(
@@ -787,6 +868,18 @@ class _QuranViewPageState extends State<QuranViewPage>
             scrollDirection: Axis.horizontal,
             allowImplicitScrolling: true,
             onPageChanged: (a) async{
+              if (widget.navigatedFromRecitation) {
+                if (a < minPage!) {
+                  _pageController.jumpToPage(minPage!);
+                  Fluttertoast.showToast(msg: "هذه بداية وِردك اليوم");
+                  return;
+                }
+                if (a > maxPage!) {
+                  _pageController.jumpToPage(maxPage!);
+                  Fluttertoast.showToast(msg: "هذه نهاية وِردك اليوم");
+                  return;
+                }
+              }
               selectedSpan = "";
               index = a;
               if (index <= 0) return;
@@ -811,8 +904,6 @@ class _QuranViewPageState extends State<QuranViewPage>
                   ),
                 );
               }
-
-
               return Stack(
                 children: [
                   Positioned(
@@ -822,6 +913,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                     child: Image.asset(
                       "assets/images/quran_bg.png",
                       // fit: BoxFit.fitHeight,
+                      color: AppColors.isGoldMode? Color(AppColors.goldPrimary):null,
                     ),
                   ),
                   Positioned(
@@ -846,6 +938,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
+                              // 🔹 BACK BUTTON
                               InkWell(
                                 onTap: () async {
                                   await AudioServices().player.clearAudioSources();
@@ -864,17 +957,25 @@ class _QuranViewPageState extends State<QuranViewPage>
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: Color(isDark
+                                      color: gold
+                                          ? const Color(AppColors.goldBorder)
+                                          : Color(isDark
                                           ? AppColors.containerDarkBorders
                                           : AppColors.containerLightBorders),
                                     ),
                                   ),
                                   child: FittedBox(
-                                    child: Icon(Icons.arrow_back_ios,
-                                        color: isDark ? Colors.white : Colors.black),
+                                    child: Icon(
+                                      Icons.arrow_back_ios,
+                                      color: gold
+                                          ? const Color(AppColors.goldText)
+                                          : (isDark ? Colors.white : Colors.black),
+                                    ),
                                   ),
                                 ),
                               ),
+
+                              // 🔹 HEADER TITLE
                               Expanded(
                                 child: HeaderWidget(
                                   e: widget.jsonData[getPageData(pageIndex)[0]["surah"]],
@@ -882,6 +983,8 @@ class _QuranViewPageState extends State<QuranViewPage>
                                   isDark: isDark,
                                 ),
                               ),
+
+                              // 🔹 PLAY / PAUSE BUTTON
                               ValueListenableBuilder<bool>(
                                 valueListenable: isPlaying,
                                 builder: (context, playing, _) {
@@ -893,7 +996,9 @@ class _QuranViewPageState extends State<QuranViewPage>
                                     child: Icon(
                                       playing ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
                                       size: 20.w,
-                                      color: isDark ? Colors.white : Colors.black,
+                                      color: gold
+                                          ? const Color(AppColors.goldPrimary)
+                                          : (isDark ? Colors.white : Colors.black),
                                     ),
                                   );
                                 },

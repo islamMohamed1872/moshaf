@@ -32,3 +32,10 @@ class AuthSignInWithAppleErrorState extends AuthStates {
   final String error;
   AuthSignInWithAppleErrorState(this.error);
 }
+
+class AuthForgetPasswordLoadingState extends AuthStates {}
+class AuthForgetPasswordSuccessState extends AuthStates {}
+class AuthForgetPasswordErrorState extends AuthStates {
+  final String errorMessage;
+  AuthForgetPasswordErrorState(this.errorMessage);
+}

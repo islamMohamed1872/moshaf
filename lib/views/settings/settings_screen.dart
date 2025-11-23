@@ -37,12 +37,9 @@ class SettingsScreen extends StatelessWidget {
                   SizedBox(
                     height: 15.h,
                   ),
-                  /// 🔘 Light / Dark Mode Toggle
+                  /// 🔘 Light / Dark / Gold Mode Toggle
                   Container(
-                    padding: EdgeInsetsDirectional.symmetric(
-                      horizontal: 4,
-                      vertical: 4
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                     decoration: BoxDecoration(
                       color: isDark
                           ? const Color(0xff1C1C1C)
@@ -54,23 +51,22 @@ class SettingsScreen extends StatelessWidget {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              ThemeCubit.get(context).toggleTheme();
+                              CacheHelper.putBoolean(key: 'isDark', value: false);
+                              AppColors.isGoldMode = false;
+                              ThemeCubit.get(context).setTheme(ThemeMode.light);
                             },
                             child: Container(
-                              padding: EdgeInsetsDirectional.symmetric(
-                                horizontal: 10,
-                                vertical: 5
-                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 5),
                               decoration: BoxDecoration(
-                                color: !isDark
-                                    ? Color(0xff6C6C71)
+                                color: !isDark && !AppColors.isGoldMode
+                                    ? const Color(0xff6C6C71)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(25),
                               ),
                               alignment: Alignment.center,
                               child: Text(
                                 "الوضع الفاتح",
-                                style: AppTextStyles.madMd14(context,color: Colors.white),
+                                style: AppTextStyles.madMd14(context, color: Colors.white),
                               ),
                             ),
                           ),
@@ -79,15 +75,13 @@ class SettingsScreen extends StatelessWidget {
                           child: GestureDetector(
                             onTap: () {
                               CacheHelper.putBoolean(key: 'isDark', value: true);
-                              context.read<ThemeCubit>().setTheme(ThemeMode.dark);
+                              AppColors.isGoldMode = false;
+                              ThemeCubit.get(context).setTheme(ThemeMode.dark);
                             },
                             child: Container(
-                              padding: EdgeInsetsDirectional.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5
-                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 5),
                               decoration: BoxDecoration(
-                                color: isDark
+                                color: isDark && !AppColors.isGoldMode
                                     ? Colors.white.withValues(alpha: 0.1)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(25),
@@ -95,7 +89,32 @@ class SettingsScreen extends StatelessWidget {
                               alignment: Alignment.center,
                               child: Text(
                                 "الوضع الداكن",
-                                style: AppTextStyles.madMd14(context,color: Colors.white),
+                                style: AppTextStyles.madMd14(context, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              CacheHelper.putBoolean(key: 'isDark', value: false);
+                              ThemeCubit.get(context).enableGoldTheme();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 5),
+                              decoration: BoxDecoration(
+                                color: AppColors.isGoldMode
+                                    ? const Color(AppColors.goldPrimary)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "الوضع الذهبي",
+                                style: AppTextStyles.madMd14(
+                                  context,
+                                  color: AppColors.isGoldMode ? Colors.white : Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -103,6 +122,7 @@ class SettingsScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 20),
 
                   /// ⚙️ Settings Items

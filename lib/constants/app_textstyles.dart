@@ -19,6 +19,17 @@ class AppTextStyles {
     fontSize: 12.sp,
     color: color ?? _getTextColor(context),
   );
+  static TextStyle madReg10(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "madReg",
+    fontSize: 10.sp,
+    color: color ?? _getTextColor(context),
+  );
+
+  static TextStyle madReg20(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "madReg",
+    fontSize: 20.sp,
+    color: color ?? _getTextColor(context),
+  );
 
   static TextStyle madReg16(BuildContext context, {Color? color}) => TextStyle(
     fontFamily: "madReg",
@@ -112,6 +123,18 @@ class AppTextStyles {
     color: color ?? _getTextColor(context),
   );
 
+  static TextStyle madB32(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "madB",
+    fontSize: 32.sp,
+    color: color ?? _getTextColor(context),
+  );
+
+  static TextStyle madB24(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "madB",
+    fontSize: 24.sp,
+    color: color ?? _getTextColor(context),
+  );
+
   static TextStyle madB12(BuildContext context, {Color? color}) => TextStyle(
     fontFamily: "madB",
     fontSize: 12.sp,
@@ -143,6 +166,12 @@ class AppTextStyles {
   );
 
   static TextStyle madB16(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "madB",
+    fontSize: 16.sp,
+    color: color ?? _getTextColor(context),
+  );
+
+  static TextStyle madB18(BuildContext context, {Color? color}) => TextStyle(
     fontFamily: "madB",
     fontSize: 16.sp,
     color: color ?? _getTextColor(context),

@@ -151,14 +151,6 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
     var data = jsonDecode(jsonString);
     suraJsonData = data;
     emit(LoadJsonAssetState());
-    addFilteredData();
-  }
-
-  addFilteredData() async {
-    // await Future.delayed(const Duration(milliseconds: 600));
-      filteredData = suraJsonData;
-      isLoading = false;
-      emit(AddFilteredDataState());
   }
 
   int homeCount = 20;

@@ -27,7 +27,7 @@ class _QuranRadioScreenState extends State<QuranRadioScreen> {
   // 🎙️ Available radio stations
   final Map<String, String> radioStations = {
     "إذاعة القرآن الكريم - مصر": "https://stream.radiojar.com/8s5u5tpdtwzuv",
-    "إذاعة القرآن الكريم - السعودية": "https://stream.radiojar.com/0tpy1h0kxtzuv", // example link
+    "إذاعة القرآن الكريم - السعودية": "https://stream.radiojar.com/0tpy1h0kxtzuv",
   };
 
   late String selectedStationName;
@@ -60,9 +60,8 @@ class _QuranRadioScreenState extends State<QuranRadioScreen> {
 
   Future<void> _initRadio(String url) async {
     try {
-      setState(() {
-        isLoading = true;
-      });
+      setState(() => isLoading = true);
+
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
 
@@ -90,13 +89,8 @@ class _QuranRadioScreenState extends State<QuranRadioScreen> {
     }
   }
 
-  void _togglePlayPause() async {
-    if (isPlaying) {
-      await _player.pause();
-    } else {
-      await _player.play();
-    }
-  }
+  void _togglePlayPause() async =>
+      isPlaying ? await _player.pause() : await _player.play();
 
   void _changeStation(String newStation) async {
     if (selectedStationName == newStation) return;
@@ -117,9 +111,9 @@ class _QuranRadioScreenState extends State<QuranRadioScreen> {
     super.dispose();
   }
 
-  Widget _buildWaveBars(BuildContext context, bool isDark) {
+  // 🌊 Wave bars (gold mode supported)
+  Widget _buildWaveBars(BuildContext context, bool isDark, Color primaryColor) {
     final totalBars = (40.w).floor();
-
 
     return Stack(
       alignment: Alignment.center,
@@ -138,8 +132,8 @@ class _QuranRadioScreenState extends State<QuranRadioScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Color(AppColors.mainGreen).withOpacity(opacity),
-                    Color(AppColors.mainGreen).withOpacity(opacity * 0.6),
+                    primaryColor.withOpacity(opacity),
+                    primaryColor.withOpacity(opacity * 0.6),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -158,16 +152,21 @@ class _QuranRadioScreenState extends State<QuranRadioScreen> {
                 .scaleY(begin: 1, end: 0.3);
           }),
         ),
+
+        // frequency label
         Container(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
           decoration: BoxDecoration(
-            color: (isDark ? Colors.black : Colors.white).withOpacity(0.7),
+            color: AppColors.getBackgroundColor(isDark: isDark)
+                .withOpacity(0.7),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             selectedStationName.contains("السعودية") ? "100" : "98.2",
-            style: AppTextStyles.madMd50(context,
-                color: isDark ? Colors.white : Colors.black),
+            style: AppTextStyles.madMd50(
+              context,
+              color: AppColors.getTextColor(isDark: isDark),
+            ),
           ),
         ),
       ],
@@ -177,15 +176,22 @@ class _QuranRadioScreenState extends State<QuranRadioScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
-    print(selectedStationUrl);
+
+    final gold = AppColors.isGoldMode;
+    final bgColor = AppColors.getBackgroundColor(isDark: isDark);
+    final textColor = AppColors.getTextColor(isDark: isDark);
+    final borderColor = AppColors.getBorderColor(isDark: isDark);
+    final primaryColor = AppColors.getPrimaryColor();
+
     return Scaffold(
+      backgroundColor: bgColor,
       body: SafeArea(
         child: Container(
           width: double.infinity,
           height: double.infinity,
           decoration: BoxDecoration(
-            image: DecorationImage(
-              image: const AssetImage("assets/images/mosque_background.png"),
+            image: const DecorationImage(
+              image: AssetImage("assets/images/mosque_background.png"),
               fit: BoxFit.contain,
               opacity: 0.15,
               alignment: Alignment.bottomCenter,
@@ -202,34 +208,31 @@ class _QuranRadioScreenState extends State<QuranRadioScreen> {
                     _player.stop();
                     Navigator.pop(context);
                   },
-                  iconColor: isDark ? Colors.white : Colors.black,
+                  iconColor: textColor,
                 ),
+
                 SizedBox(height: 50.h),
 
-                // 🔽 Dropdown for station selection
+                // 🔽 Station dropdown
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                   decoration: BoxDecoration(
-                    border: Border.all(
-                        color: Color(isDark
-                            ? AppColors.containerDarkBorders
-                            : AppColors.containerLightBorders)),
+                    border: Border.all(color: borderColor),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: selectedStationName,
-                      dropdownColor:
-                      isDark ? const Color(0xFF1C1C1C) : Colors.white,
+                      dropdownColor: bgColor,
                       isExpanded: true,
-                      icon: Icon(Icons.keyboard_arrow_down,
-                          color: isDark ? Colors.white : Colors.black),
-                      style: AppTextStyles.madB16(context,
-                          color: isDark ? Colors.white : Colors.black),
+                      icon: Icon(Icons.keyboard_arrow_down, color: textColor),
+                      style: AppTextStyles.madB16(context, color: textColor),
                       items: radioStations.keys.map((name) {
                         return DropdownMenuItem<String>(
                           value: name,
-                          child: Text(name),
+                          child: Text(name,
+                              style: TextStyle(color: textColor)),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -243,30 +246,32 @@ class _QuranRadioScreenState extends State<QuranRadioScreen> {
 
                 Text(
                   selectedStationName,
-                  style: AppTextStyles.madB20(context,
-                      color: isDark ? Colors.white : Colors.black),
+                  style:
+                  AppTextStyles.madB20(context, color: textColor),
                 ),
                 SizedBox(height: 10.h),
                 Text(
                   "بث مباشر للقرآن الكريم",
                   style: AppTextStyles.madReg14(context,
-                      color: Colors.grey.shade500),
+                      color: textColor.withOpacity(0.6)),
                 ),
+
                 SizedBox(height: 50.h),
 
                 if (isLoading)
-                  const CircularProgressIndicator(color: Colors.greenAccent)
+                  CircularProgressIndicator(color: primaryColor)
                 else if (isPlaying)
-                  _buildWaveBars(context, isDark)
+                  _buildWaveBars(context, isDark, primaryColor)
                 else
                   const SizedBox(height: 60),
 
                 const Spacer(),
 
+                // ▶ Play / Pause Button
                 Container(
                   padding: EdgeInsets.all(20.w),
                   decoration: BoxDecoration(
-                    color: Color(AppColors.mainGreen),
+                    color: primaryColor,
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
@@ -278,14 +283,18 @@ class _QuranRadioScreenState extends State<QuranRadioScreen> {
                     onPressed: isLoading ? null : _togglePlayPause,
                   ),
                 ),
+
                 const Spacer(),
+
                 Text(
                   selectedStationName.contains("السعودية")
-                      ?"© جميع الحقوق محفوظة - إذاعة القرآن الكريم السعودية\nهيئة الإذاعة والتلفزيون السعودية (SBA)"
-                      :  "© جميع الحقوق محفوظة - إذاعة القرآن الكريم المصرية\nهيئة الإذاعة والتلفزيون المصرية",
-                  style: AppTextStyles.madReg12(context, color: Colors.grey),
+                      ? "© جميع الحقوق محفوظة - إذاعة القرآن الكريم السعودية\nهيئة الإذاعة والتلفزيون السعودية (SBA)"
+                      : "© جميع الحقوق محفوظة - إذاعة القرآن الكريم المصرية\nهيئة الإذاعة والتلفزيون المصرية",
+                  style: AppTextStyles.madReg12(context,
+                      color: textColor.withOpacity(0.6)),
                   textAlign: TextAlign.center,
                 ),
+
                 SizedBox(height: 20.h),
               ],
             ),

@@ -16,6 +16,7 @@ import 'package:home_widget/home_widget.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:moshaf/utils/prayer_calculator.dart';
 import 'package:moshaf/controllers/prayer_times/prayer_times_states.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:timezone/timezone.dart' as tz;
@@ -265,28 +266,140 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   }
 
   /// Fetch prayer times and populate internal state
-  Future<void> fetchPrayerTimes() async {
+  // Future<void> fetchPrayerTimes() async {
+  //   emit(GetPrayerTimesLoadingState());
+  //   try {
+  //     final pos = await _determinePosition();
+  //     final times = await computePrayerTimesAuto(
+  //       lat: 24.7136,
+  //       lng: 46.6753,
+  //       date: DateTime.now(),
+  //     );
+  //
+  //     print("🔵 الفجر ${times['الفجر']}");
+  //     print("🟡 الظهر ${times['الظهر']}");
+  //     print("🟠 العصر ${times['العصر']}");
+  //     print("🔴 المغرب ${times['المغرب']}");
+  //     print("⚫ العشاء ${times['العشاء']}");
+  //
+  //     final url =
+  //         'http://api.aladhan.com/v1/timings?latitude=${pos.latitude}&longitude=${pos.longitude}';
+  //     final res = await _dio.get(url);
+  //
+  //     if (res.statusCode == 200) {
+  //
+  //       final data = Map<String, dynamic>.from(res.data['data']['timings']);
+  //       // print(res.data['data']);
+  //       // store as DateTime objects keyed by Arabic names
+  //       prayerTimes.clear();
+  //       prayerTimes['الفجر'] = _parseApiTimeToToday(data['Fajr'] ?? '00:00');
+  //       prayerTimes['الشروق'] = _parseApiTimeToToday(data['Sunrise'] ?? '00:00');
+  //       prayerTimes['الظهر'] = _parseApiTimeToToday(data['Dhuhr'] ?? '00:00');
+  //       prayerTimes['العصر'] = _parseApiTimeToToday(data['Asr'] ?? '00:00');
+  //       prayerTimes['المغرب'] = _parseApiTimeToToday(data['Maghrib'] ?? '00:00');
+  //       prayerTimes['العشاء'] = _parseApiTimeToToday(data['Isha'] ?? '00:00');
+  //       prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
+  //       prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
+  //
+  //       // prayerTimes['الفجر'] = DateTime.now().add(Duration(minutes: 1));
+  //       // prayerTimes['الشروق'] = _parseApiTimeToToday(data['Sunrise'] ?? '00:00');
+  //       // prayerTimes['الظهر'] = DateTime.now().add(Duration(minutes: 3));
+  //       // prayerTimes['العصر'] = DateTime.now().add(Duration(minutes: 6));
+  //       // prayerTimes['المغرب'] = DateTime.now().add(Duration(minutes: 9));
+  //       // prayerTimes['العشاء'] = DateTime.now().add(Duration(minutes: 12));
+  //       // prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
+  //       // prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
+  //
+  //       // print(prayerTimes);
+  //       // dates
+  //       _setDates(datetime: DateTime.now());
+  //
+  //       CacheHelper.saveData(key: 'last_prayer_update',value:  DateTime.now().toIso8601String());
+  //
+  //
+  //       // find upcoming prayer & start timer
+  //       _updateUpcomingPrayer();
+  //       _startRemainingTimeUpdater();
+  //       CacheHelper.saveMap(
+  //         key: 'cached_prayer_times',
+  //         myMap: prayerTimes.map((k, v) => MapEntry(k, v.toIso8601String())),
+  //       );
+  //
+  //       CacheHelper.saveMap(
+  //         key: 'cached_prayer_upcoming',
+  //         myMap: {'upComingPrayer': upComingPrayer},
+  //       );
+  //
+  //       await scheduleAllPrayerNotifications();
+  //       if(Platform.isIOS){
+  //         await updateWidgetsData();
+  //         // 🎯 Start Live Activity for the next prayer
+  //         final nextTime = prayerTimes[upComingPrayer];
+  //         if (nextTime != null) {
+  //           await startPrayerActivity(prayer: upComingPrayer, prayerTime: nextTime);
+  //           await updatePrayerCountdown();
+  //         }
+  //       }
+  //       else{
+  //         final nextTime = prayerTimes[upComingPrayer];
+  //         updatePrayerWidget(
+  //           upcomingPrayer: upComingPrayer,
+  //           upcomingTime: nextTime!,
+  //           allPrayers: prayerTimes
+  //         );
+  //         await scheduleNextPrayerWidgetUpdate(prayerTimes);
+  //       }
+  //       // final now = DateTime.now();
+  //       // await _scheduleAllPrayerNotifications({
+  //       //   'Fajr': now.add(const Duration(minutes: 1)),
+  //       //   'Dhuhr': now.add(const Duration(minutes: 2)),
+  //       //   'Asr': now.add(const Duration(minutes: 3)),
+  //       //   'Maghrib': now.add(const Duration(minutes: 4)),
+  //       //   'Isha': now.add(const Duration(minutes: 5)),
+  //       // });
+  //
+  //       emit(GetPrayerTimesSuccessState());
+  //     } else {
+  //       loadCachedPrayerTimes();
+  //       emit(GetPrayerTimesErrorState());
+  //     }
+  //   } catch (e) {
+  //     print(e);
+  //     loadCachedPrayerTimes();
+  //     emit(GetPrayerTimesErrorState());
+  //   }
+  // }
+
+  Future<void> fetchPrayerTimesNoInternet() async {
     emit(GetPrayerTimesLoadingState());
     try {
       final pos = await _determinePosition();
-      final url =
-          'http://api.aladhan.com/v1/timings?latitude=${pos.latitude}&longitude=${pos.longitude}';
-      final res = await _dio.get(url);
+      final times = await computePrayerTimesAuto(
+        lat: pos.latitude,
+        lng: pos.longitude,
+        date: DateTime.now(),
+      );
 
-      if (res.statusCode == 200) {
+      print("🔵 الفجر ${times['الفجر']}");
+      print("🟡 الظهر ${times['الظهر']}");
+      print("🟠 العصر ${times['العصر']}");
+      print("🔴 المغرب ${times['المغرب']}");
+      print("⚫ العشاء ${times['العشاء']}");
 
-        final data = Map<String, dynamic>.from(res.data['data']['timings']);
+
+      if (times.isNotEmpty) {
+
         // print(res.data['data']);
         // store as DateTime objects keyed by Arabic names
         prayerTimes.clear();
-        prayerTimes['الفجر'] = _parseApiTimeToToday(data['Fajr'] ?? '00:00');
-        prayerTimes['الشروق'] = _parseApiTimeToToday(data['Sunrise'] ?? '00:00');
-        prayerTimes['الظهر'] = _parseApiTimeToToday(data['Dhuhr'] ?? '00:00');
-        prayerTimes['العصر'] = _parseApiTimeToToday(data['Asr'] ?? '00:00');
-        prayerTimes['المغرب'] = _parseApiTimeToToday(data['Maghrib'] ?? '00:00');
-        prayerTimes['العشاء'] = _parseApiTimeToToday(data['Isha'] ?? '00:00');
-        prayerTimes['منتصف الليل'] = _parseApiTimeToToday(data['Midnight'] ?? '00:00');
-        prayerTimes['الثلث الاخير'] = _parseApiTimeToToday(data['Lastthird'] ?? '00:00');
+        prayerTimes['الفجر'] = times['الفجر']!;
+        prayerTimes['الشروق'] = times['الشروق']!;
+        prayerTimes['الظهر'] = times['الظهر']!;
+        prayerTimes['العصر'] = times['العصر']!;
+        prayerTimes['المغرب'] = times['المغرب']!;
+        prayerTimes['العشاء'] = times['العشاء']!;
+        prayerTimes['منتصف الليل'] = times['منتصف الليل']!;
+        prayerTimes['الثلث الاخير'] = times['الثلث الاخير']!;
 
         // prayerTimes['الفجر'] = DateTime.now().add(Duration(minutes: 1));
         // prayerTimes['الشروق'] = _parseApiTimeToToday(data['Sunrise'] ?? '00:00');
@@ -604,12 +717,13 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           'Prayer Times ($audioFileName)',
           channelDescription: 'Prayer time notifications',
           importance: Importance.max,
-          priority: Priority.high,
+          priority: Priority.max,
+          autoCancel: false,
           playSound: true,
           sound: RawResourceAndroidNotificationSound(audioFileName),
         );
 
-        final notifDetails = NotificationDetails(android: androidDetails);
+        final notifDetails = NotificationDetails(android: androidDetails,);
 
         try {
           await flutterLocalNotificationsPlugin.zonedSchedule(

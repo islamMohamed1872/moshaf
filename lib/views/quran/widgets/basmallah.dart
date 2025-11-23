@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-
+import 'package:moshaf/constants/app_colors.dart';
 
 class Basmallah extends StatefulWidget {
-  int index;
+  final int index;
   final bool isDark;
-   Basmallah({super.key, required this.index ,required this.isDark});
+
+  const Basmallah({
+    super.key,
+    required this.index,
+    required this.isDark,
+  });
 
   @override
   State<Basmallah> createState() => _BasmallahState();
@@ -13,22 +18,27 @@ class Basmallah extends StatefulWidget {
 class _BasmallahState extends State<Basmallah> {
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    return SizedBox(width: screenSize.width,
+    final size = MediaQuery.of(context).size;
+
+    // GOLD MODE COLOR
+    final gold = AppColors.isGoldMode;
+    final basmalaColor = gold
+        ? const Color(AppColors.goldPrimary)
+        : (widget.isDark ? Colors.white : Colors.black);
+
+    return SizedBox(
+      width: size.width,
       child: Padding(
         padding: EdgeInsets.only(
-            left: (screenSize.width * .2),
-            right: (screenSize.width * .2),
-            top: 
-            8,
-            bottom: 2
-            ),
-        child:
-
-      Image.asset(
+          left: size.width * .2,
+          right: size.width * .2,
+          top: 8,
+          bottom: 2,
+        ),
+        child: Image.asset(
           "assets/images/Basmala.png",
-          color:widget.isDark?Colors.white:Colors.black,
-          width: MediaQuery.of(context).size.width*.4,
+          color: basmalaColor,
+          width: size.width * .4,
         ),
       ),
     );

@@ -15,74 +15,117 @@ class MosqueLocationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
+    final gold = AppColors.isGoldMode;
+
+    // ---- GOLD COLORS ----
+    final borderClr = gold
+        ? const Color(AppColors.goldBorder)
+        : Color(isDark
+        ? AppColors.containerDarkBorders
+        : AppColors.containerLightBorders);
+
+    final textClr =
+    gold ? const Color(AppColors.goldText) : (isDark ? Colors.white : Colors.black);
+
+    final bgBoxClr = gold
+        ? const Color(AppColors.goldAccent)
+        : (isDark
+        ? const Color(0xff3E3E3E).withOpacity(0.8)
+        : const Color(0xffBFBFBF));
+
     return Scaffold(
-      body: SafeArea(child: Padding(
-        padding: const EdgeInsets.all(15.0),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsetsDirectional.symmetric(
-                horizontal: 20.0,
-                vertical: 10,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Spacer(),
-                  InkWell(
-                    onTap: () async{
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      padding: EdgeInsetsDirectional.symmetric(
-                          vertical: 6,horizontal: 19
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(38),
-                        border: Border.all(
-                          color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(15.0),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsetsDirectional.symmetric(
+                  horizontal: 20.0,
+                  vertical: 10,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Spacer(),
+                    InkWell(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: EdgeInsetsDirectional.symmetric(
+                          vertical: 6,
+                          horizontal: 19,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(38),
+                          border: Border.all(color: borderClr),
+                        ),
+                        child: Text(
+                          "رجوع",
+                          style: AppTextStyles.madReg14(
+                            context,
+                            color: textClr,
+                          ),
                         ),
                       ),
-                      child: Text("رجوع",style: AppTextStyles.madReg14(context,color: isDark?Colors.white:Colors.black),),
                     ),
-                  ),
+                  ],
+                ),
+              ),
 
-                ],
+              const Spacer(),
+
+              // Image
+              Image.asset(
+                "assets/images/mosque_location.png",
+                width: 340.w,
+                // color: gold ? const Color(AppColors.goldPrimary) : null,
               ),
-            ),
-            const Spacer(),
-            Image.asset("assets/images/mosque_location.png",width: 340.w,),
-            const Spacer(),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 19,vertical: 26),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color:isDark? Color(0xff3E3E3E).withValues(alpha: 0.8):Color(0xffBFBFBF),
-              ),
-              child:  Column(
-                spacing: 10.h,
-                children: [
-                  Text("المساجد القريبة",
-                    style: AppTextStyles.madB20(context,color: isDark?Colors.white:Colors.black),
-                  ),
-                  Text(" إِنَّمَا يَعْمُرُ مَسَاجِدَ اللَّهِ مَنْ آمَنَ بِاللَّهِ وَالْيَوْمِ الْآخِرِ وَأَقَامَ الصَّلَاةَ وَآتَى الزَّكَاةَ وَلَمْ يَخْشَ إِلَّا اللَّهَ فَعَسَى أُولَئِكَ أَنْ يَكُونُوا مِنَ الْمُهْتَدِينَُ",
-                    style: AppTextStyles.madReg16(context,color: isDark?Colors.white:Colors.black),
-                    textAlign: TextAlign.center,
-                  ),
-                  CustomGreenButton(
+
+              const Spacer(),
+
+              // BOTTOM BOX
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 19, vertical: 26),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: bgBoxClr,
+                ),
+                child: Column(
+                  spacing: 10.h,
+                  children: [
+                    Text(
+                      "المساجد القريبة",
+                      style: AppTextStyles.madB20(
+                        context,
+                        color: textClr,
+                      ),
+                    ),
+                    Text(
+                      " إِنَّمَا يَعْمُرُ مَسَاجِدَ اللَّهِ مَنْ آمَنَ بِاللَّهِ وَالْيَوْمِ الْآخِرِ وَأَقَامَ الصَّلَاةَ وَآتَى الزَّكَاةَ وَلَمْ يَخْشَ إِلَّا اللَّهَ فَعَسَى أُولَئِكَ أَنْ يَكُونُوا مِنَ الْمُهْتَدِينَُ",
+                      style: AppTextStyles.madReg16(
+                        context,
+                        color: textClr,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    // GOLD BUTTON AUTO SWITCH
+                    CustomGreenButton(
                       text: "اعثر على أقرب مسجد إلى موقعك",
                       onTap: () {
                         navigateTo(context, MasjidLocatorScreen());
                       },
-                  )
-                ],
+                      // Force gold color on button if applicable
+                      color: gold?Color(AppColors.goldPrimary):null,
+                    ),
+                  ],
+                ),
               ),
-            ),
-
-          ],
+            ],
+          ),
         ),
-      )),
+      ),
     );
   }
 }

@@ -37,6 +37,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'controllers/recitation/recitation_cubit.dart';
 import 'firebase_options.dart';
 
 
@@ -54,7 +55,7 @@ Future<void> callbackFetchPrayerTimes() async {
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation(tz.local.name));
     final cubit = PrayerTimesCubit();
-    await cubit.fetchPrayerTimes();
+    await cubit.fetchPrayerTimesNoInternet();
     await cubit.close();
     print("✅ iOS: Prayer times fetched via WorkManager");
   } catch (e) {
@@ -125,7 +126,7 @@ void fetchPrayerTimesAlarm() async {
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation(tz.local.name));
     final cubit = PrayerTimesCubit();
-    await cubit.fetchPrayerTimes();
+    await cubit.fetchPrayerTimesNoInternet();
     // await cubit.scheduleDoaaNotifications();
     await cubit.close();
   }
@@ -497,12 +498,13 @@ class MyApp extends StatelessWidget {
       designSize: const Size(392.72727272727275, 800.7272727272727),
       child: MultiBlocProvider(
         providers: [
-          BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimes()),
+          BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimesNoInternet()),
           BlocProvider(create: (context) => HomeCubit()..requestLocationPermissions()..requestOverlay()..getFirstTime(),lazy: false,),
           BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()),
           BlocProvider(create: (context) => SettingsCubit()..getNotificationsState()),
           BlocProvider(create: (context) => ThemeCubit()..getThemeMode(),lazy: false,),
           BlocProvider(create: (context) => QiblahCubit()),
+          BlocProvider(create: (context) => RecitationCubit()..initializeRecitation()..loadJsonAsset()),
           BlocProvider(create: (context) => AuthCubit()),
           BlocProvider(create: (context) => AzkarCubit()),
           BlocProvider(create: (context) => AudioQuranCubit()),
@@ -516,13 +518,18 @@ class MyApp extends StatelessWidget {
              debugShowCheckedModeBanner: false,
              themeMode: themeMode,
              theme: ThemeData(
-               scaffoldBackgroundColor: Colors.white,
-               appBarTheme: const AppBarTheme(
-                 backgroundColor: Color(0xFF151515),
-                 systemOverlayStyle: SystemUiOverlayStyle(
-                   statusBarColor: Color(0xFF151515),
-                   statusBarIconBrightness: Brightness.dark, // white icons on dark bg
-                   statusBarBrightness: Brightness.dark, // for iOS
+               brightness: AppColors.isGoldMode ? Brightness.light : Brightness.light,
+               scaffoldBackgroundColor: AppColors.isGoldMode
+                   ? const Color(AppColors.goldBackground)
+                   : Colors.white,
+               primaryColor: AppColors.isGoldMode
+                   ? const Color(AppColors.goldPrimary)
+                   : const Color(AppColors.mainGreen),
+               textTheme: TextTheme(
+                 bodyMedium: TextStyle(
+                   color: AppColors.isGoldMode
+                       ? const Color(AppColors.goldText)
+                       : Colors.black,
                  ),
                ),
              ),

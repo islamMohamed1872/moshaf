@@ -185,6 +185,7 @@ class QuranPage extends StatelessWidget {
                             onTap: () {
                               cubit.soraNumber = suraNumberInQuran;
                               navigateTo(context, QuranViewPage(
+                                navigatedFromRecitation: false,
                                 shouldHighlightText: false,
                                 highlightVerse: "",
                                 jsonData: cubit.suraJsonData,

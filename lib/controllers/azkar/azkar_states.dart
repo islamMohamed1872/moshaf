@@ -11,4 +11,6 @@ class AzkarPlayChangedState extends AzkarStates {}
 class GetZekrBasedOnTimeState extends AzkarStates {}
 class AzkarScreenLoaded extends AzkarStates {}
 class GetRandomDuaa extends AzkarStates {}
+class ChangeViewModeState extends AzkarStates {}
+class ChangeSwipeIndexState extends AzkarStates {}
 

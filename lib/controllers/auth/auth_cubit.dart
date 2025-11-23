@@ -104,7 +104,25 @@ class AuthCubit extends Cubit<AuthStates>{
       emit(RegisterWithEmailAndPasswordErrorState(message));
     }
   }
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  Future<void> sendPasswordReset(String email) async {
+    emit(AuthForgetPasswordLoadingState());
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+
+      emit(AuthForgetPasswordSuccessState());
+    } catch (error) {
+      String message = "حدث خطأ أثناء إرسال رابط إعادة التعيين.";
+
+      if (error is FirebaseAuthException) {
+        message = firebaseAuthErrorMessage(error.code, fallback: error.message);
+      }
+
+      emit(AuthForgetPasswordErrorState(message));
+    }
+  }
+
 
   Future<void> signInWithGoogle() async {
     emit(AuthSignInWithGoogleLoadingState());

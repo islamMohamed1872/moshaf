@@ -91,149 +91,156 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
+    return BlocBuilder<ThemeCubit, ThemeMode>(
+      builder: (context, themeState) {
+        final themeCubit = ThemeCubit.get(context);
+        final isDark = themeCubit.isDark;
 
-    return BlocBuilder<HomeCubit, HomeStates>(
-      builder: (context, state) {
-        final cubit = HomeCubit.get(context);
+        final borderClr = AppColors.isGoldMode
+            ? const Color(AppColors.goldBorder)
+            : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders);
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (cubit.isFirstTime == true) {
-            _showFirstTimeDialog(context, cubit,isDark);
-          }
-        });
+        final textClr = AppColors.isGoldMode
+            ? const Color(AppColors.goldText)
+            : (isDark ? Colors.white : Colors.black);
 
-        return Scaffold(
-          body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    "assets/images/mostakeem_logo.png",
-                    width: 250.w,
-                  ),
-                  SizedBox(height: 25.h),
-                  Expanded(child: SingleChildScrollView(child: Column(
+        final iconClr = AppColors.isGoldMode
+            ? const Color(AppColors.goldPrimary)
+            : const Color(AppColors.mainGreen);
+
+        return BlocBuilder<HomeCubit, HomeStates>(
+          builder: (context, state) {
+            final cubit = HomeCubit.get(context);
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (cubit.isFirstTime == true) {
+                _showFirstTimeDialog(context, cubit, isDark);
+              }
+            });
+
+            return Scaffold(
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(15.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-
-                      BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
-                        builder: (context, state) {
-                          final cubit = PrayerTimesCubit.get(context);
-                          return AnimatedPrayerContainer(
-                            isDark: isDark,
-                            prayerName: cubit.upComingPrayer,
-                            remainingTime: cubit.remainingTime,
-                            dayName: cubit.getDayName(),
-                            hijriDate: cubit.hijriDate,
-                            date: cubit.date,
-                          );
-                        },
+                      Image.asset(
+                        "assets/images/mostakeem_logo.png",
+                        width: 250.w,
                       ),
+                      SizedBox(height: 25.h),
 
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(children: [
 
-                      /// ✅ Grid section
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: cubit.gridItems.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 15.h,
-                          crossAxisSpacing: 15.w,
-                          childAspectRatio: 1.3.h,
-                        ),
-                        itemBuilder: (context, index) {
-                          final item = cubit.gridItems[index];
-                          return InkWell(
-                            onTap: () => cubit.navigateToFeature(context, index,isDark),
-                            borderRadius: BorderRadius.circular(10),
-                            splashColor: Color(AppColors.mainGreen).withOpacity(0.1),
-                            child: Container(
-                              padding: EdgeInsetsDirectional.symmetric(
-                                vertical: 10.h,
-                                horizontal: 20.w,
+                            BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
+                              builder: (context, state) {
+                                final c = PrayerTimesCubit.get(context);
+                                return AnimatedPrayerContainer(
+                                  isDark: isDark,
+                                  prayerName: c.upComingPrayer,
+                                  remainingTime: c.remainingTime,
+                                  dayName: c.getDayName(),
+                                  hijriDate: c.hijriDate,
+                                  date: c.date,
+                                );
+                              },
+                            ),
+
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: cubit.gridItems.length,
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 15.h,
+                                crossAxisSpacing: 15.w,
+                                childAspectRatio: 1.3.h,
                               ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Expanded(
-                                    child: Image.asset(
-                                      item["image"]!,
-                                      fit: BoxFit.contain,
-                                      width: 50.w,
-                                      height: 50.w,
+                              itemBuilder: (context, index) {
+                                final item = cubit.gridItems[index];
+                                return InkWell(
+                                  onTap: () => cubit.navigateToFeature(context, index, isDark),
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    padding: EdgeInsetsDirectional.symmetric(
+                                      vertical: 10.h,
+                                      horizontal: 20.w,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: borderClr),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: Image.asset(
+                                            item["image"]!,
+                                            width: 50.w,
+                                            height: 50.w,
+                                          ),
+                                        ),
+                                        Text(
+                                          item["title"]!,
+                                          textAlign: TextAlign.center,
+                                          style: AppTextStyles.madB16(
+                                            context,
+                                            color: textClr,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  Text(
-                                    item["title"]!,
-                                    textAlign: TextAlign.center,
-                                    style: AppTextStyles.madB16(context,color: isDark? Colors.white:Colors.black),
-                                  ),
-                                ],
+                                );
+                              },
+                            ),
+
+                            SizedBox(height: 20.h),
+
+                            InkWell(
+                              onTap: () {
+                                navigateTo(context, SettingsScreen());
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: EdgeInsetsDirectional.symmetric(
+                                  vertical: 10.h,
+                                  horizontal: 20.w,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: borderClr),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  spacing: 5,
+                                  children: [
+                                    Icon(FontAwesomeIcons.gear, color: iconClr),
+                                    Text("الإعدادات",
+                                        style: AppTextStyles.madB16(context, color: textClr)),
+                                  ],
+                                ),
                               ),
                             ),
-                          );
-                        },
-                      ),
 
-                      SizedBox(height: 20.h),
-
-                      /// ✅ Settings Container (your exact design)
-                      InkWell(
-                        onTap: () {
-                          navigateTo(context, SettingsScreen());
-                        },
-                        borderRadius: BorderRadius.circular(10),
-                        splashColor: Color(AppColors.mainGreen).withOpacity(0.1),
-                        child: Container(
-                          padding: EdgeInsetsDirectional.symmetric(
-                            vertical: 10.h,
-                            horizontal: 20.w,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: Color(isDark?AppColors.containerDarkBorders:AppColors.containerLightBorders),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            spacing: 5,
-                            children: [
-                              Icon(
-                                FontAwesomeIcons.gear,
-                                color: Color(AppColors.mainGreen),
-                                size: 18.w,
-                              ),
-                              Text(
-                                "الإعدادات",
-                                textAlign: TextAlign.center,
-                                style: AppTextStyles.madB16(context,color: isDark? Colors.white:Colors.black),
-                              ),
-                            ],
-                          ),
+                            SizedBox(height: 20.h),
+                          ]),
                         ),
                       ),
-
-                      SizedBox(height: 20.h),
                     ],
-                  )))
-                ],
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
   }
+
 }
 
 
