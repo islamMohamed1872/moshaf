@@ -5,6 +5,7 @@ import 'package:moshaf/components/components.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_states.dart';
+import 'package:moshaf/views/qiblah/new_quiblah_screen.dart';
 import 'package:moshaf/views/qiblah/qiblah_screen.dart';
 import 'package:moshaf/views/widgets/custom_green_button.dart';
 
@@ -103,7 +104,7 @@ class QiblahOnBoardingScreen extends StatelessWidget {
       },
       listener: (context, state) {
         if (state is GetPermissionSuccessState) {
-          navigateTo(context, QiblahCompassScreen());
+          navigateTo(context, NewQuiblahScreen());
         }
       },
     );

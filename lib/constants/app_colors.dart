@@ -45,4 +45,30 @@ class AppColors {
     if (isGoldMode) return const Color(goldText);
     return isDark ? Colors.white : Colors.black;
   }
+
+  static Color lbText(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AppColors.getTextColor(isDark: isDark);
+  }
+
+  static Color lbBg(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AppColors.getBackgroundColor(isDark: isDark);
+  }
+
+  static Color lbBorder(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AppColors.getBorderColor(isDark: isDark);
+  }
+
+  static Color lbPrimary() {
+    return AppColors.getPrimaryColor();
+  }
+
+  static Color lbSubPanel(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (AppColors.isGoldMode) return const Color(0xffF5EAD0);
+    return isDark ? const Color(0xff232634) : const Color(0xffF5F5F5);
+  }
+
 }

@@ -1,5 +1,6 @@
 class AzkarConstants{
   static final Map<String, dynamic> azkarSabah = {
+    "id": "azkarSabah",
     "category": "أذكار الصباح",
     "azkar": [
       {
@@ -239,6 +240,7 @@ class AzkarConstants{
     ],
   };
   static final Map<String, dynamic> azkarMasaa = {
+    "id": "azkarMasaa",
     "category": "أذكار المساء",
     "azkar": [
       {
@@ -469,6 +471,7 @@ class AzkarConstants{
     ],
   };
   static final Map<String, dynamic> azkarBaadAlsalah = {
+    "id": "azkarBaadAlsalah",
     "category": "أذكار بعد الصلاة",
     "azkar": [
       {
@@ -529,6 +532,7 @@ class AzkarConstants{
     ],
   };
   static  final Map<String, dynamic> azkarAlIstiqaz = {
+    "id": "azkarAlIstiqaz",
     "category": "أذكار الاستيقاظ",
     "azkar": [
       {
@@ -549,6 +553,7 @@ class AzkarConstants{
     ],
   };
   static final Map<String, dynamic> azkarAlNawm = {
+    "id": "azkarAlNawm",
     "category": "أذكار النوم",
     "azkar": [
       {
@@ -639,6 +644,7 @@ class AzkarConstants{
     ],
   };
   static final Map<String, dynamic> azkarMotafareqa = {
+    "id": "azkarMotafareqa",
     "category": "أذكار متفرقة",
     "azkar": [
       {
@@ -860,6 +866,7 @@ class AzkarConstants{
     ]
   };
   static final Map<String, dynamic> azkarAlAdhan = {
+    "id": "azkarAlAdhan",
     "category": "أذكار الأذان",
     "azkar": [
       {
@@ -919,6 +926,7 @@ class AzkarConstants{
     ]
   };
   static final Map<String, dynamic> azkarAlMasjid = {
+    "id": "azkarAlMasjid",
     "category": "أذكار المسجد",
     "azkar": [
       {
@@ -942,6 +950,7 @@ class AzkarConstants{
     ]
   };
   static final Map<String, dynamic> azkarAlTaam = {
+    "id": "azkarAlTaam",
     "category": "أذكار الطعام",
     "azkar": [
       {
@@ -976,6 +985,7 @@ class AzkarConstants{
     ]
   };
   static final Map<String, dynamic> azkarAlWudu = {
+    "id": "azkarAlWudu",
     "category": "أذكار الوضوء",
     "azkar": [
       {
@@ -992,6 +1002,7 @@ class AzkarConstants{
     ]
   };
   static final Map<String, dynamic> azkarAlHajjWalUmrah = {
+    "id": "azkarAlHajjWalUmrah",
     "category": "أذكار الحج والعمرة",
     "azkar": [
       {
@@ -1090,6 +1101,7 @@ class AzkarConstants{
     ]
   };
   static final Map<String, dynamic> azkarAlManzil = {
+    "id": "azkarAlManzil",
     "category": "أذكار المنزل",
     "azkar": [
       {

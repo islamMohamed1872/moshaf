@@ -108,6 +108,9 @@ class SearchScreen extends StatelessWidget {
                             suraName = cubit.filteredData![index]["englishName"];
                             suraNumberInQuran = cubit.filteredData![index]["number"];
                           }
+                          else{
+                            suraNumberInQuran = index+1;
+                          }
                           return CustomSorahContainer(
                             isDark: isDark,
                             placeOfRevelation: quran.getPlaceOfRevelation(
@@ -152,8 +155,8 @@ class SearchScreen extends StatelessWidget {
                               );
                             },
                             onListenPressed: () {
-                              AudioQuranCubit.get(context).sorahNumber = suraNumber;
-                              cubit.soraNumber = suraNumber;
+                              AudioQuranCubit.get(context).sorahNumber = suraNumberInQuran;
+                              cubit.soraNumber = suraNumberInQuran;
                               navigateTo(context, AudioScreen());
                             },
                           );

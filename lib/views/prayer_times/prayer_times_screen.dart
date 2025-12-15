@@ -44,6 +44,7 @@ class PrayerTimesScreen extends StatelessWidget {
               onRefresh: () async {
                 cubit.prayerTimesForDay.clear();
                 cubit.prayerDayOffset = 0;
+                await cubit.resetLocation();
                 await cubit.fetchPrayerTimesNoInternet();
               },
               backgroundColor: isDark ? Colors.black : Colors.white,

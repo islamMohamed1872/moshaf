@@ -1,14 +1,20 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:moshaf/constants/app_const.dart';
 import 'package:moshaf/controllers/quran_audio/audio_quran_states.dart';
 
 import '../../components/audio_service.dart';
 import '../../components/const.dart';
+import '../../models/reciter_model.dart';
+import '../../services/mp3quran_service.dart';
+import '../../views/quran/widgets/ReciterPickerSheet.dart';
 
 class AudioQuranCubit extends Cubit<AudioQuranStates> {
   AudioQuranCubit() : super(AudioQuranInitialState()) {
@@ -31,12 +37,123 @@ class AudioQuranCubit extends Cubit<AudioQuranStates> {
   bool get canGoNext => sorahNumber < 114;
   bool get canGoPrev => sorahNumber > 1;
 
+
+  final Mp3QuranService _service = Mp3QuranService();
+
+  List<Reciter> reciters = [];
+  List<Reciter> visibleReciters = [];
+  Reciter? selectedReciter;
+  Moshaf? selectedMoshaf;
+
   // Simplified state management - only track playing state
   PlayerState _playerState = PlayerState.stopped;
 
   bool get isPlaying => _playerState == PlayerState.playing;
   bool get isPaused => _playerState == PlayerState.paused;
   bool get isStopped => _playerState == PlayerState.stopped;
+
+  Future<void> loadReciters({String lang = 'ar'}) async {
+    emit(GetDataLoadingState());
+    try {
+      reciters = await _service.getReciters(language: lang);
+      visibleReciters = List.from(reciters);
+
+
+      // default selection
+      selectedReciter = reciters.first;
+      selectedMoshaf = selectedReciter!.moshaf.first;
+
+      emit(GetDataSuccessState());
+    } catch (e) {
+      emit(GetDataErrorState());
+    }
+  }
+
+  String normalizeArabicLetter(String text) {
+    if (text.isEmpty) return '#';
+
+    final first = text.characters.first;
+
+    switch (first) {
+      case 'أ':
+      case 'إ':
+      case 'آ':
+        return 'ا';
+      default:
+        return first;
+    }
+  }
+
+  Map<String, List<Reciter>> getGroupedReciters() {
+    final Map<String, List<Reciter>> grouped = {
+      for (final letter in AppConstants.arabicAlphabet) letter: []
+    };
+
+    for (final reciter in visibleReciters) {
+      final letter = normalizeArabicLetter(reciter.name);
+      if (grouped.containsKey(letter)) {
+        grouped[letter]!.add(reciter);
+      }
+    }
+
+    // Remove empty sections
+    grouped.removeWhere((key, value) => value.isEmpty);
+
+    return grouped;
+  }
+
+  void searchSheikh(String query) {
+    final q = normalizeArabic(query);
+
+    if (q.isEmpty) {
+      visibleReciters = List.from(reciters);
+    } else {
+      visibleReciters = reciters.where((r) {
+        return normalizeArabic(r.name).contains(q);
+      }).toList();
+    }
+
+    emit(GetDataSuccessState());
+  }
+  String normalizeArabic(String text) {
+    return text
+        .replaceAll(RegExp(r'[أإآا]'), 'ا')
+        .replaceAll('ى', 'ي')
+        .replaceAll('ة', 'ه')
+        .replaceAll(RegExp(r'[\u064B-\u0652]'), '')
+        .trim();
+  }
+
+  void openReciterSelector(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const ReciterPickerSheet(),
+    );
+  }
+
+
+  void changeReciter(Reciter r) {
+    selectedReciter = r;
+    selectedMoshaf = r.moshaf.first;
+    stop();
+    emit(ChangeSelectedShiekhState());
+  }
+
+  String getAudioUrl() {
+    if (selectedMoshaf == null) {
+      throw Exception("No moshaf selected");
+    }
+
+    final server = selectedMoshaf!.server;
+    final surah = sorahNumber.toString().padLeft(3, '0');
+
+    return '$server$surah.mp3';
+  }
+
 
   void updatePlayerState(PlayerState state) {
     _playerState = state;
@@ -134,44 +251,8 @@ class AudioQuranCubit extends Cubit<AudioQuranStates> {
     ].join(":");
   }
 
-  String selecteShiekh = "مشاري راشد العفاسي";
-  String url = "";
-  final shiekhList = [
-    "أحمد العجمي",
-    "خالد الجليل",
-    "خالد القحطاني",
-    "عبد الباسط عبد الصمد",
-    "عبد الرحمن السديس",
-    "محمود علي البنا",
-    "محمد صديق المنشاوي",
-    "مشاري راشد العفاسي",
-    "ناصر القطامي",
-    "ياسر الدوسري"
-  ];
 
-  final Map<String, String> sheikhEditionCodes = {
-    "مشاري راشد العفاسي": "ar.alafasy",
-    "عبد الباسط عبد الصمد": "ar.abdulbasitmujawwad",
-    "محمود علي البنا": "ar.mahmoudalialbanna",
-    "محمد صديق المنشاوي": "ar.muhammadsiddiqalminshawimujawwad",
-    "عبد الرحمن السديس": "ar.sudaisshuraymnaeemsultan",
-    "أحمد العجمي": "ar.ahmedalajmi",
-    "خالد القحطاني": "ar.khaledalqahtani",
-    "ناصر القطامي": "ar.nasseralqatami",
-    "ياسر الدوسري": "ar.yasseraldossari",
-    "خالد الجليل": "ar.khalidaljalil"
-  };
 
-  String getQuranApiUrl() {
-    final edition = sheikhEditionCodes[selecteShiekh];
-    if (edition == null) {
-      throw Exception("Edition code not found for $selecteShiekh");
-    }
-    if (selecteShiekh == "ياسر الدوسري") {
-      return "https://server11.mp3quran.net/yasser/${sorahNumber.toString().padLeft(3, "0")}.mp3";
-    }
-    return "https://cdn.islamic.network/quran/audio-surah/128/$edition/$sorahNumber.mp3";
-  }
 
   void _setupListeners() {
     // Set up listeners once in constructor
@@ -212,84 +293,104 @@ class AudioQuranCubit extends Cubit<AudioQuranStates> {
     });
   }
 
-  Future<void> play() async {
+  MediaItem _mediaItem() {
+    return MediaItem(
+      id: '$sorahNumber',
+      album: selectedReciter?.name ?? '',
+      title: quranMap.entries
+          .firstWhere((e) => e.value == sorahNumber)
+          .key,
+      artUri: Uri.parse(
+        'https://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg',
+      ),
+    );
+  }
+
+  Future<bool> _urlExists(String url) async {
     try {
-      // If we're already playing, pause
-      if (isPlaying) {
-        print("isPlaying");
-        await player.pause();
-        updatePlayerState(PlayerState.paused);
-        emit(GetDataSuccessState());
-        return;
-      }
+      final response = await HttpClient()
+          .headUrl(Uri.parse(url))
+          .then((req) => req.close());
 
-      // If we're paused, resume
-      if (isPaused) {
-        await player.play();
-        updatePlayerState(PlayerState.playing);
-        emit(GetDataSuccessState());
-        return;
-      }
-
-      // If we're stopped, load and play new audio
-      emit(GetDataLoadingState());
-      String url = getQuranApiUrl();
-
-      final fileInfo = await DefaultCacheManager().getFileFromCache(url);
-      if(fileInfo== null){
-        DefaultCacheManager().downloadFile(url);
-      }
-      final source = fileInfo != null && fileInfo.file.existsSync()
-          ? AudioSource.uri(
-        Uri.file(fileInfo.file.path),
-        tag: MediaItem(
-          id: '$sorahNumber',
-          album: selecteShiekh,
-          title: quranMap.entries
-              .firstWhere((e) => e.value == sorahNumber)
-              .key,
-          artUri: Uri.parse(
-              'https://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg'),
-        ),
-      )
-          : AudioSource.uri(
-        Uri.parse(url),
-        tag: MediaItem(
-          id: '$sorahNumber',
-          album: selecteShiekh,
-          title: quranMap.entries
-              .firstWhere((e) => e.value == sorahNumber)
-              .key,
-          artUri: Uri.parse(
-              'https://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg'),
-        ),
-      );
-      print('URL: $url');
-      print('Is HTTP: ${url.startsWith('http:')}');
-      print('Cache file exists: ${fileInfo?.file.existsSync()}');
-      await player.setAudioSource(source);
-      print("✅ Audio source set successfully");
-
-      player.play();
-      updatePlayerState(PlayerState.playing);
-      _setupListeners();
-      emit(GetDataSuccessState());
-
-    } catch (e, s) {
-      print("❌ Player error: $e");
-      print(s);
-      updatePlayerState(PlayerState.stopped);
-      emit(GetDataErrorState());
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
     }
   }
 
-  void changeSelectedShiekh(String? value) {
-    selecteShiekh = value!;
+  void _handleAudioNotAvailable() {
     stop();
-    duration = Duration.zero;
-    position = Duration.zero;
-    emit(ChangeSelectedShiekhState());
+    emit(GetDataErrorState());
+
+    // Optional: show toast/snackbar
+    Fluttertoast.showToast(msg: "هذا القارئ لا يملك هذه السورة");
+
   }
+
+
+  Future<void> play() async {
+    try {
+      if (sorahNumber < 1 || selectedMoshaf == null) return;
+
+      // ⏸ Pause
+      if (isPlaying) {
+        await player.pause();
+        updatePlayerState(PlayerState.paused);
+        return;
+      }
+
+      // ▶ Resume
+      if (isPaused) {
+        await player.play();
+        updatePlayerState(PlayerState.playing);
+        return;
+      }
+
+      emit(GetDataLoadingState());
+
+      final url = getAudioUrl();
+      final cache = DefaultCacheManager();
+
+      // 🔍 Check URL availability first
+      final exists = await _urlExists(url);
+      if (!exists) {
+        _handleAudioNotAvailable();
+        return;
+      }
+
+      // 🔍 Check cache
+      final fileInfo = await cache.getFileFromCache(url);
+
+      late AudioSource source;
+
+      if (fileInfo != null && fileInfo.file.existsSync()) {
+        source = AudioSource.uri(
+          Uri.file(fileInfo.file.path),
+          tag: _mediaItem(),
+        );
+      } else {
+        source = AudioSource.uri(
+          Uri.parse(url),
+          tag: _mediaItem(),
+        );
+
+        // ⬇ Cache in background (safe)
+        cache.downloadFile(url).catchError((_) {});
+      }
+
+      await player.setAudioSource(source);
+      await player.play();
+
+      updatePlayerState(PlayerState.playing);
+      emit(GetDataSuccessState());
+
+    } catch (e, s) {
+      debugPrint("❌ Audio error: $e");
+      debugPrintStack(stackTrace: s);
+      _handleAudioNotAvailable();
+    }
+  }
+
 
   void stop() async {
     await player.stop();

@@ -18,7 +18,9 @@ import 'package:home_widget/home_widget.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/controllers/auth/auth_cubit.dart';
+import 'package:moshaf/controllers/daily_challenge/daily_challenge_cubit.dart';
 import 'package:moshaf/controllers/home/home_cubit.dart';
+import 'package:moshaf/controllers/leaderboard/leaderboard_cubit.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
 import 'package:moshaf/controllers/settings/settings_cubit.dart';
 import 'package:moshaf/controllers/theme/theme_cubit.dart';
@@ -270,8 +272,16 @@ Duration _calculateInitialDelay(int targetHour, int targetMinute) {
 /// ================================================
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final androidPlugin =
+  flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+      ln.AndroidFlutterLocalNotificationsPlugin>();
+  await androidPlugin?.requestNotificationsPermission();
+
+  await androidPlugin?.requestExactAlarmsPermission();
+
   await dotenv.load(fileName: ".env");
-  print("📦 GOOGLE_MAPS_API_KEY = ${dotenv.env['GOOGLE_MAPS_API_KEY']}");
+  // print("📦 GOOGLE_MAPS_API_KEY = ${dotenv.env['GOOGLE_MAPS_API_KEY']}");
   await ensureLocationPermission();
   callbackCheckQuranReminder();
 
@@ -422,9 +432,11 @@ Future<void> initializeService() async {
 /// OVERLAY APP ENTRY POINT (used when showing overlay)
 /// ================================================
 @pragma("vm:entry-point")
-void overlayMain() {
+void overlayMain() async{
   WidgetsFlutterBinding.ensureInitialized();
-
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(
     ScreenUtilInit(
       designSize: const Size(392.72727272727275, 800.7272727272727),
@@ -499,15 +511,17 @@ class MyApp extends StatelessWidget {
       child: MultiBlocProvider(
         providers: [
           BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimesNoInternet()),
-          BlocProvider(create: (context) => HomeCubit()..requestLocationPermissions()..requestOverlay()..getFirstTime(),lazy: false,),
+          BlocProvider(create: (context) => HomeCubit()..requestLocationOnce()..requestOverlay()..getFirstTime(),lazy: false,),
           BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()),
           BlocProvider(create: (context) => SettingsCubit()..getNotificationsState()),
           BlocProvider(create: (context) => ThemeCubit()..getThemeMode(),lazy: false,),
           BlocProvider(create: (context) => QiblahCubit()),
+          BlocProvider(create: (context) => LeaderboardCubit()),
+          BlocProvider(create: (context) => DailyChallengeCubit()),
           BlocProvider(create: (context) => RecitationCubit()..initializeRecitation()..loadJsonAsset()),
           BlocProvider(create: (context) => AuthCubit()),
           BlocProvider(create: (context) => AzkarCubit()),
-          BlocProvider(create: (context) => AudioQuranCubit()),
+          BlocProvider(create: (context) => AudioQuranCubit()..loadReciters()),
         ],
         child: BlocBuilder<ThemeCubit,ThemeMode>(
            builder: (context, themeMode) => MaterialApp(

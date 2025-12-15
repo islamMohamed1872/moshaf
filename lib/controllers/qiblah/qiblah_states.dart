@@ -15,6 +15,7 @@ class DenyPermissionState extends QiblahStates{}
 class OpenAppSettingsState extends QiblahStates{}
 
 class InitializeStreamState extends QiblahStates{}
+class QiblahStateUpdated extends QiblahStates{}
 
 class GetAddressLoadingState extends QiblahStates{}
 class GetAddressSuccessState extends QiblahStates{}

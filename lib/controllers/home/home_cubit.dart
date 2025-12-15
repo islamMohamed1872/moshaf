@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:bloc/bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,8 +14,11 @@ import 'package:moshaf/components/cache_helper.dart';
 import 'package:moshaf/components/components.dart';
 import 'package:moshaf/controllers/home/home_states.dart';
 import 'package:moshaf/controllers/azkar/azkar_cubit.dart';
+import 'package:moshaf/views/admin/add_challenge.dart';
 import 'package:moshaf/views/azkar/prays_screen.dart';
+import 'package:moshaf/views/daily_challenge/daily_challenge_screen.dart';
 import 'package:moshaf/views/haj_and_omrah/omrah_screen.dart';
+import 'package:moshaf/views/leaderboard/leaderboard_screen.dart';
 import 'package:moshaf/views/mosque_location/mosque_location_screen.dart';
 import 'package:moshaf/views/podcasts/podcasts_screen.dart';
 import 'package:moshaf/views/pray_teaching/pray_instructions_screen.dart';
@@ -66,8 +70,12 @@ class HomeCubit extends Cubit<HomeStates>{
     {"image": "assets/images/zakah.png", "title": "حساب زكاة المال"},
     {"image": "assets/images/radio.png", "title": "اذاعة القرآن الكريم"},
     {"image": "assets/images/search.png", "title": "بحث"},
-    {"image": "assets/images/podcast.png", "title": "بودكاست"},
+    {"image": "assets/images/podcast.png", "title": "مقاطع الفيديو"},
     {"image": "assets/images/holy.png", "title": "الوِرد"},
+    // {"image": "assets/images/bulb.png", "title": "لغز"},
+    // {"image": "assets/images/leaderboard.png", "title": "لوحة المتصدرين"},
+    // if(FirebaseAuth.instance.currentUser!=null&&FirebaseAuth.instance.currentUser!.email=="islam.mohamed1872@gmail.com")
+    // {"image": "assets/images/admin.png", "title": "admin"},
   ];
 
   void navigateToFeature(BuildContext context, int index,bool isDark) {
@@ -121,6 +129,15 @@ class HomeCubit extends Cubit<HomeStates>{
       case 15:
         navigateTo(context, RecitationScreen());
         break;
+      case 16:
+        navigateTo(context, DailyChallengeScreen());
+        break;
+      case 17:
+        navigateTo(context, LeaderboardScreen());
+        break;
+      case 18:
+        navigateTo(context, AdminAddChallengeScreen());
+        break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('لم يتم إضافة هذه الميزة بعد')),
@@ -151,60 +168,75 @@ class HomeCubit extends Cubit<HomeStates>{
     }
   }
 
-  Future<void> requestLocationPermissions() async {
+  Future<void> requestLocationOnce() async {
     try {
-      // Check if location services are enabled
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        // If disabled, we can prompt the user to enable it (optional)
-        await Geolocator.openLocationSettings();
-        throw Exception('Location services are disabled.');
+      // Check if location already initialized
+      final bool isInitialized =
+          await CacheHelper.getData(key: "location_initialized") ?? false;
+
+      if (isInitialized) {
+        // ✅ Use cached location silently
+        final cachedLat = await CacheHelper.getData(key: 'cached_latitude');
+        final cachedLon = await CacheHelper.getData(key: 'cached_longitude');
+
+        if (cachedLat != null && cachedLon != null) {
+          print('📦 Using cached location: ($cachedLat, $cachedLon)');
+          return;
+        }
+
+        // Edge case: flag true but cache missing → reset
+        await CacheHelper.saveData(key: "location_initialized", value: false);
       }
 
-      // Check current permission status
+      // 🚨 FIRST TIME ONLY — request permission
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        await Geolocator.openLocationSettings();
+        throw Exception('Location services disabled');
+      }
+
       LocationPermission permission = await Geolocator.checkPermission();
 
-      // Request permission if not granted
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          throw Exception('Location permission denied by user.');
+          throw Exception('Location permission denied');
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        // User has permanently denied permission
-        throw Exception('Location permission permanently denied.');
+        throw Exception('Location permission permanently denied');
       }
 
-      // If we reach here, permissions are granted → get current location
+      // 📍 Get location ONCE
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // Cache coordinates for later use
-      CacheHelper.saveData(key: 'cached_latitude', value: pos.latitude);
-      CacheHelper.saveData(key: 'cached_longitude', value: pos.longitude);
+      // 💾 Cache values
+      await CacheHelper.saveData(key: 'cached_latitude', value: pos.latitude);
+      await CacheHelper.saveData(key: 'cached_longitude', value: pos.longitude);
+      await CacheHelper.saveData(key: "location_initialized", value: true);
 
-      print('✅ Location permissions granted and cached successfully: '
-          '(${pos.latitude}, ${pos.longitude})');
+      print('✅ Location cached: (${pos.latitude}, ${pos.longitude})');
 
+      // Optional: trigger prayer times update ONCE
       if (await PrayerTimesCubit().shouldFetchNewTimes()) {
-        await PrayerTimesCubit().fetchPrayerTimesNoInternet(); // Fetch new times if outdated
-        // await PrayerTimesCubit().scheduleDoaaNotifications(); // Fetch new times if outdated
+        await PrayerTimesCubit().fetchPrayerTimesNoInternet();
       } else {
-        await PrayerTimesCubit().loadCachedPrayerTimes(); // Load from cache if still valid
+        await PrayerTimesCubit().loadCachedPrayerTimes();
       }
     } catch (e) {
-      print('⚠️ Error requesting location permissions: $e');
+      print('⚠️ Location init failed: $e');
 
-      // Try to fall back to cached location silently
+      // Fallback to cached location if exists
       final cachedLat = await CacheHelper.getData(key: 'cached_latitude');
       final cachedLon = await CacheHelper.getData(key: 'cached_longitude');
+
       if (cachedLat != null && cachedLon != null) {
-        print('📦 Using cached location: ($cachedLat, $cachedLon)');
+        print('📦 Fallback cached location: ($cachedLat, $cachedLon)');
       } else {
-        print('❌ No cached location available.');
+        print('❌ No cached location available');
       }
     }
   }

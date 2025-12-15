@@ -370,6 +370,55 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   //   }
   // }
 
+  Future<void> resetLocation() async {
+    try {
+
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        await Geolocator.openLocationSettings();
+        throw Exception('Location services disabled');
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permission denied');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permission permanently denied');
+      }
+
+      // 📍 Get location ONCE
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // 💾 Cache values
+      await CacheHelper.saveData(key: 'cached_latitude', value: pos.latitude);
+      await CacheHelper.saveData(key: 'cached_longitude', value: pos.longitude);
+      await CacheHelper.saveData(key: "location_initialized", value: true);
+
+      print('✅ Location cached: (${pos.latitude}, ${pos.longitude})');
+    } catch (e) {
+      print('⚠️ Location init failed: $e');
+
+      // Fallback to cached location if exists
+      final cachedLat = await CacheHelper.getData(key: 'cached_latitude');
+      final cachedLon = await CacheHelper.getData(key: 'cached_longitude');
+
+      if (cachedLat != null && cachedLon != null) {
+        print('📦 Fallback cached location: ($cachedLat, $cachedLon)');
+      } else {
+        print('❌ No cached location available');
+      }
+    }
+  }
+
+
   Future<void> fetchPrayerTimesNoInternet() async {
     emit(GetPrayerTimesLoadingState());
     try {

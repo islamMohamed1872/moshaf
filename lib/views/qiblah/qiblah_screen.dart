@@ -6,9 +6,11 @@ import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:moshaf/components/components.dart';
 import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
+import 'package:moshaf/views/home/home_screen.dart';
 
 import '../../controllers/theme/theme_cubit.dart';
 import '../widgets/header.dart';
@@ -60,7 +62,7 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
         : const Color(0xff116A3E);
 
     final needleOffColor = gold
-        ? const Color(AppColors.goldBackground)
+        ? const Color(AppColors.goldAccent)
         : const Color(0xff3E3E3E);
 
     final bottomBarClr = gold
@@ -96,6 +98,9 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
                     title: "تحديد القبلة",
                     isDark: isDark,
                     iconColor: textClr,
+                    onTap: (){
+                      navigateAndFinish(context, HomeScreen());
+                    },
                   ),
                   SizedBox(height: 25.h),
 
@@ -178,6 +183,16 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
     return Stack(
       alignment: Alignment.center,
       children: [
+        Positioned(
+            top: 20,
+            right: 0,
+            child: IconButton(
+                iconSize: 30.w,
+                color: textClr,
+                onPressed: (){
+                  Navigator.pop(context);
+                }, icon: Icon(FontAwesomeIcons.compass))),
+
         Positioned(top: 20.h, child: _buildDirectionText("شمال", textClr)),
         Positioned(bottom: 20.h, child: _buildDirectionText("جنوب", textClr)),
         Positioned(left: 25.w, child: _buildDirectionText("غرب", textClr)),
@@ -205,8 +220,7 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
               SizedBox(
                 width: 40.w,
                 height: 40.w,
-                child: Image.asset("assets/images/user_pin.png",
-                    color: gold ? const Color(AppColors.goldText) : null),
+                child: Image.asset("assets/images/user_pin.png",),
               ),
             ],
           ),
@@ -224,7 +238,6 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen>
               'assets/images/kaabah.png',
               width: 50,
               height: 50,
-              color: gold ? const Color(AppColors.goldText) : null,
             ),
           ),
         ),

@@ -19,6 +19,7 @@ import '../../components/components.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
 import '../../controllers/theme/theme_cubit.dart';
+import '../../models/reciter_model.dart';
 import 'widgets/quran_page.dart';
 
 class AudioScreen extends StatelessWidget {
@@ -152,31 +153,34 @@ class AudioScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(color: dropdownBorderClr),
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        hint: Text(
-                          'اختر القارئ',
-                          style: AppTextStyles.madReg14(context, color: dropdownTextClr),
-                        ),
-                        value: cubit.selecteShiekh,
-                        icon: Icon(Icons.keyboard_arrow_down_rounded, color: dropdownTextClr),
-                        dropdownColor: gold ? const Color(AppColors.goldBackground) : (isDark ? Color(AppColors.containerDarkBorders) : Colors.white),
-                        borderRadius: BorderRadius.circular(12.r),
-                        items: cubit.shiekhList.map((String name) {
-                          return DropdownMenuItem<String>(
-                            value: name,
-                            child: Text(
-                              name,
-                              style: AppTextStyles.madL14(context, color: dropdownTextClr),
+                    child: InkWell(
+                      onTap: () {
+                        cubit.openReciterSelector(context);
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric( vertical: 14),
+
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              cubit.selectedReciter?.name ?? 'اختر القارئ',
+                              style: AppTextStyles.madReg14(
+                                context,
+                                color: dropdownTextClr,
+                              ),
                             ),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          cubit.changeSelectedShiekh(newValue);
-                        },
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: dropdownTextClr,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+
+
                   ),
                   SizedBox(height: 30.h),
                   Expanded(

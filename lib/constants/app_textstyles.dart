@@ -111,6 +111,13 @@ class AppTextStyles {
     color: color ?? _getTextColor(context),
   );
 
+  static TextStyle madL18(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "madL",
+    fontSize: 18.sp,
+    color: color ?? _getTextColor(context),
+  );
+
+
   static TextStyle madL40(BuildContext context, {Color? color}) => TextStyle(
     fontFamily: "madL",
     fontSize: 40.sp,

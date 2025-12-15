@@ -22,171 +22,11 @@ class AzkarCubit extends Cubit<AzkarStates> {
   AzkarCubit() : super(AzkarInitialState());
   static AzkarCubit get(context) => BlocProvider.of(context);
 
-  final Dio _dio = Dio();
-  final player = AudioServices().player;
 
   // Data
   List<Map<String, dynamic>> azkar = [];
   List<dynamic> filteredAzkar = [];
 
-  // playback state
-  String? playingUrl; // full url currently playing
-  bool get isPlaying => player.playing;
-  bool get isPaused => !player.playing && player.processingState == ProcessingState.ready;
-
-  // SOURCE - JSON + audio served from the GitHub repo via jsDelivr CDN
-  // You can swap this base to your own hosting easily.
-  static const String _ghBase = 'https://cdn.jsdelivr.net/gh/rn0x/Adhkar-json';
-  static const String jsonUrl = '$_ghBase/adhkar.json';
-
-  /// load JSON (call once, e.g. in init)
-  Future<void> loadAzkar() async {
-    if(azkar.isNotEmpty) return;
-    emit(AzkarLoadingState());
-    try {
-      final resp = await _dio.get(jsonUrl);
-      final data = resp.data;
-      // repo returns a top-level array of categories
-      if (data is List) {
-        azkar = List<Map<String, dynamic>>.from(data);
-      } else if (data is Map && data.containsKey('azkar')) {
-        azkar = List<Map<String, dynamic>>.from(data['azkar']);
-      } else {
-        // fallback: try to parse as map of categories
-        throw Exception('Unexpected JSON format');
-      }
-      azkar[0]['array'] = azkarSabah['array'];
-      azkar[0]['category'] = azkarSabah['category'];
-      azkar.insert(1, azkarMasaa);
-
-      // optional: normalize audio fields or other cleanup here
-      filteredAzkar = List.from(azkar);
-      // Save to cache for offline use
-      await CacheHelper.saveMap(
-        key: 'cached_azkar',
-        myMap: {'data': azkar}, // wrap list in a map so saveMap can encode it
-      );
-      emit(AzkarLoadedState());
-    } catch (e) {
-      loadCachedAzkar();
-      emit(AzkarErrorState(e.toString()));
-    }
-  }
-  Future<bool> loadCachedAzkar() async {
-    final cached = await CacheHelper.getMap(key: 'cached_azkar');
-    if (cached != null && cached['data'] is List) {
-      azkar = List<Map<String, dynamic>>.from(cached['data']);
-      azkar[0]['array'] = azkarSabah['array'];
-      azkar[0]['category'] = azkarSabah['category'];
-      azkar.insert(1, azkarMasaa);
-
-      filteredAzkar = List.from(azkar);
-      emit(AzkarLoadedState());
-      return true;
-    }
-    return false;
-  }
-
-  void searchAzkar(String query) {
-    if (query.trim().isEmpty) {
-      filteredAzkar = List.from(azkar);
-    } else {
-      filteredAzkar = azkar.where((cat) {
-        final title = (cat['category'] ?? cat['title'] ?? '').toString();
-        return title.contains(query) ||
-            (cat['array'] as List).any((item) =>
-                (item['text'] ?? '').toString().contains(query));
-      }).toList();
-    }
-    emit(AzkarLoadedState());
-  }
-
-  /// Build a full URL for an audio path coming from the JSON.
-  /// JSON often contains "/audio/75.mp3" or "audio/75.mp3".
-  String fullAudioUrl(String relativePath) {
-    if (relativePath.trim().isEmpty) return relativePath;
-    if (relativePath.startsWith('http')) return relativePath;
-    final rp = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
-    return '$_ghBase/$rp';
-  }
-
-  /// Play/pause/toggle a given relative audio path.
-  /// categoryIndex and itemId optional - useful for UI highlighting.
-  void refresh(){
-    emit(AzkarLoadedState());
-  }
-  Future<void> playAudio(String relativePath) async {
-    emit(AzkarPlayChangedState());
-    final url = fullAudioUrl(relativePath);
-    try {
-      print(1);
-      // toggle if same url
-      if (playingUrl == url) {
-        // if currently playing -> pause; if paused -> resume
-        if (player.playing) {
-          print(2);
-          await player.pause();
-        } else {
-          print(3);
-          await player.play();
-        }
-        emit(AzkarPlayChangedState());
-        print(4);
-        return;
-      }
-
-      // new audio: stop previous, set new url, play
-      print(5);
-      await player.stop();
-      playingUrl = url;
-      final source =  AudioSource.uri(
-        Uri.parse(url),
-        tag: MediaItem(
-          id: 'اذكار',
-          title: 'اذكار',
-          artUri: Uri.parse(
-              'http://osoulfinancial.com/wp-content/uploads/2025/10/WhatsApp%20Image%202025-10-06%20at%2011.32.38.jpeg'),
-        ),
-      );
-
-      print(6);
-      await player.setAudioSource(source);
-      player.play();
-      print(7);
-
-      // emit play change and listen to finished state
-      emit(AzkarPlayChangedState());
-      print(8);
-
-      player.playerStateStream.listen((state) {
-        // update UI on changes
-        emit(AzkarPlayChangedState());
-        // if completed, clear playingUrl
-        if (state.processingState == ProcessingState.completed) {
-          print(9);
-          playingUrl = null;
-          emit(AzkarPlayChangedState());
-        }
-      });
-    } catch (e) {
-      playingUrl = null;
-      print(10);
-      print(e);
-      emit(AzkarErrorState('Audio error: $e'));
-    }
-  }
-
-  Future<void> stopAudio() async {
-    await player.stop();
-    playingUrl = null;
-    emit(AzkarPlayChangedState());
-  }
-
-  @override
-  Future<void> close() {
-    player.dispose();
-    return super.close();
-  }
 
   void decrementCount(Map<String, dynamic> item) {
     if (item['original_count'] == null) item["original_count"] = item['count'];
@@ -267,7 +107,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
     emit(GetZekrBasedOnTimeState());
     return;
   }
-  void navigateToRelatedAzkarScreen( context, String category) {
+  void navigateToRelatedAzkarScreen(BuildContext context, String category) async {
     final categories = {
       "أذكار الصباح": AzkarConstants.azkarSabah,
       "أذكار المساء": AzkarConstants.azkarMasaa,
@@ -283,10 +123,28 @@ class AzkarCubit extends Cubit<AzkarStates> {
       "أذكار المنزل": AzkarConstants.azkarAlManzil,
     };
 
-    final selected = categories[category];
-    if (selected != null) {
-      navigateTo(context, ZekrScreen(title: category, items: selected));
-    }
+    final original = categories[category];
+    print(category);
+    print(original);
+    if (original == null) return;
+
+    // ✅ DEEP COPY (critical)
+    final Map<String, dynamic> selected = {
+      ...original,
+      'azkar': List<Map<String, dynamic>>.from(
+        (original['azkar'] as List).map((e) => Map<String, dynamic>.from(e)),
+      ),
+    };
+
+
+    // ✅ now navigate safely
+    navigateTo(
+      context,
+      ZekrScreen(
+        title: category,
+        items: selected,
+      ),
+    );
   }
 
   String randomDoaa = "";
@@ -334,4 +192,105 @@ class AzkarCubit extends Cubit<AzkarStates> {
     currentSwipeIndex = idx;
     emit(ChangeSwipeIndexState()); // create state class
   }
+
+
+  final Map<String, List<int>> _azkarOrderCache = {}; // categoryId -> reordered indices
+
+  /// Save the current order of azkar items for a category
+  Future<void> saveZekrOrder(String categoryId, List<Map<String, dynamic>> orderedItems) async {
+    try {
+      // Create a mapping of original positions
+      final orderMap = <String, int>{};
+      for (int i = 0; i < orderedItems.length; i++) {
+        final item = orderedItems[i];
+        final itemId = item['id'] as String? ?? '${categoryId}_${item.hashCode}';
+        orderMap[itemId] = i;
+      }
+
+      // Save to cache
+      await CacheHelper.saveMap(
+        key: 'azkar_order_$categoryId',
+        myMap: orderMap,
+      );
+
+      _azkarOrderCache[categoryId] = orderedItems
+          .asMap()
+          .entries
+          .map((e) => e.key)
+          .toList();
+
+      print('✅ Saved order for category: $categoryId');
+    } catch (e) {
+      print('❌ Error saving azkar order: $e');
+    }
+  }
+
+  /// Load saved order for a category and reorder items
+  Future<List<Map<String, dynamic>>> loadZekrOrder(
+      String categoryId,
+      List<Map<String, dynamic>> originalItems,
+      ) async {
+    try {
+      final cached = await CacheHelper.getMap(key: 'azkar_order_$categoryId');
+
+      if (cached == null || cached.isEmpty) {
+        print('ℹ️ No saved order found for: $categoryId');
+        return originalItems;
+      }
+
+      // Create a map of itemId -> original item
+      final itemMap = <String, Map<String, dynamic>>{};
+      for (final item in originalItems) {
+        final itemId = item['id'] as String? ?? '${categoryId}_${item.hashCode}';
+        itemMap[itemId] = item;
+      }
+
+      // Reorder based on saved order
+      final reorderedItems = <Map<String, dynamic>>[];
+      cached.forEach((itemId, _) {
+        if (itemMap.containsKey(itemId)) {
+          reorderedItems.add(itemMap[itemId]!);
+        }
+      });
+
+      // Add any new items that weren't in saved order
+      for (final item in originalItems) {
+        final itemId = item['id'] as String? ?? '${categoryId}_${item.hashCode}';
+        if (!reorderedItems.any((e) => (e['id'] ?? e.hashCode) == itemId)) {
+          reorderedItems.add(item);
+        }
+      }
+
+      print('✅ Loaded saved order for category: $categoryId');
+      return reorderedItems;
+    } catch (e) {
+      print('❌ Error loading azkar order: $e');
+      return originalItems;
+    }
+  }
+
+  /// Clear saved order for a category (when user resets)
+  Future<void> clearZekrOrder(String categoryId) async {
+    try {
+      await CacheHelper.deleteData(key: 'azkar_order_$categoryId');
+      _azkarOrderCache.remove(categoryId);
+      print('✅ Cleared order for category: $categoryId');
+    } catch (e) {
+      print('❌ Error clearing azkar order: $e');
+    }
+  }
+
+  /// Clear all saved orders
+  Future<void> clearAllZekrOrders() async {
+    try {
+      for (final categoryId in _azkarOrderCache.keys.toList()) {
+        await clearZekrOrder(categoryId);
+      }
+      print('✅ Cleared all saved orders');
+    } catch (e) {
+      print('❌ Error clearing all orders: $e');
+    }
+  }
+
+
 }

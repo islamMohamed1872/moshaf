@@ -47,6 +47,7 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
       await loader.load();
 
       _loadedFonts.add(fontName); // mark as loaded
+      print(_loadedFonts.length);
       emit(GetFontSuccessState());
     } catch (e) {
       debugPrint("Failed to load font $fontName: $e");

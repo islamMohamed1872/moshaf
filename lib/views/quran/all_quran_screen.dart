@@ -79,7 +79,7 @@ class AllQuranScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // Top row: Play - Surah Number - Filter
+                    // Top row: Play - Surah Number - back
                     Positioned(
                       top: 0,
                       right: 0,
@@ -111,26 +111,30 @@ class AllQuranScreen extends StatelessWidget {
                             ),
 
                             InkWell(
-                              onTap: () => _showFilterDialog(context, isDark),
+                              onTap: () => Navigator.pop(context),
                               child: Container(
-                                padding: EdgeInsets.all(8.w),
-                                decoration: BoxDecoration(
-                                  color: gold
-                                      ? const Color(AppColors.goldPrimary).withOpacity(0.2)
-                                      : Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                      color: gold
-                                          ? const Color(AppColors.goldBorder)
-                                          : Colors.white.withOpacity(0.3)),
+                                width: 30.w,
+                                height: 30.w,
+                                padding: EdgeInsetsDirectional.only(
+                                  start: context.locale.languageCode == "ar" ? 0 : 7.w,
+                                  top: 5,
+                                  bottom: 5,
                                 ),
-                                child: Icon(
-                                  FontAwesomeIcons.filter,
-                                  size: 16.w,
-                                  color: gold ? const Color(AppColors.goldAccent) : Colors.white,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: backIconClr),
+                                ),
+                                child: FittedBox(
+                                  child: Icon(
+                                    context.locale.languageCode == "ar"
+                                        ? Icons.arrow_forward_ios
+                                        : Icons.arrow_back_ios,
+                                    color: backIconClr,
+                                  ),
                                 ),
                               ),
                             ),
+
                           ],
                         ),
                       ),
@@ -222,30 +226,28 @@ class AllQuranScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // BACK BUTTON
+                    // FILTER BUTTON
                     Positioned(
                       left: 20,
+                      bottom: 0,
                       child: InkWell(
-                        onTap: () => Navigator.pop(context),
+                        onTap: () => _showFilterDialog(context, isDark),
                         child: Container(
-                          width: 30.w,
-                          height: 30.w,
-                          padding: EdgeInsetsDirectional.only(
-                            start: context.locale.languageCode == "ar" ? 0 : 7.w,
-                            top: 5,
-                            bottom: 5,
-                          ),
+                          padding: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: backIconClr),
+                            color: gold
+                                ? const Color(AppColors.goldPrimary).withOpacity(0.2)
+                                : Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: gold
+                                    ? const Color(AppColors.goldBorder)
+                                    : Colors.white.withOpacity(0.3)),
                           ),
-                          child: FittedBox(
-                            child: Icon(
-                              context.locale.languageCode == "ar"
-                                  ? Icons.arrow_forward_ios
-                                  : Icons.arrow_back_ios,
-                              color: backIconClr,
-                            ),
+                          child: Icon(
+                            FontAwesomeIcons.filter,
+                            size: 16.w,
+                            color: gold ? const Color(AppColors.goldAccent) : Colors.white,
                           ),
                         ),
                       ),
