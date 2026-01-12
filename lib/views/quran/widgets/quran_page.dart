@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart' as m;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -132,7 +135,8 @@ class _QuranViewPageState extends State<QuranViewPage>
       int start,
       int end,
       bool isDark,
-      ) async {
+      ) async
+  {
     final gold = AppColors.isGoldMode;
 
     final bgColor = gold
@@ -390,7 +394,8 @@ class _QuranViewPageState extends State<QuranViewPage>
   double getMushafLineHeight({
     required double availableHeight,
     required double fontSize,
-  }) {
+  })
+  {
     const mushafLines = 15;
     return availableHeight / (mushafLines * fontSize);
   }
@@ -483,7 +488,8 @@ class _QuranViewPageState extends State<QuranViewPage>
       int surah,
       int pageIndex,
       Map<String, dynamic> surahData,
-      ) async {
+      ) async
+  {
     final cubit = TextQuranCubit.get(context);
     final isDark = context.read<ThemeCubit>().isDark;
 
@@ -568,17 +574,229 @@ class _QuranViewPageState extends State<QuranViewPage>
 
           // ✅ show dialog and download
           await _showDownloadDialog(surah, start, end, isDark);
-
-          // optional reset after download dialog
-          // setState(() {
-          //   startVerse = null;
-          //   endVerse = null;
-          // });
         }
         break;
-
+      case 'share_image':
+        await shareAyahAsImage(
+          surah: surah,
+          verse: verseNumber,
+          pageIndex: pageIndex,
+        );
+        break;
     }
   }
+
+  Future<Uint8List> captureWidgetAsPng(
+      BuildContext context,
+      Widget widget, {
+        double pixelRatio = 3,
+        Size size = const Size(1000, 1000),
+      }) async {
+    final repaintKey = GlobalKey();
+
+    // ✅ SIMPLE: Just use WidgetsBinding to capture
+    late Uint8List bytes;
+
+    // Create widget that will be captured
+    final captureWidget = RepaintBoundary(
+      key: repaintKey,
+      child: SizedBox(
+        width: size.width,
+        height: size.height,
+        child: widget,
+      ),
+    );
+
+    // ✅ Insert into overlay temporarily
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (_) => Positioned(
+        left: -10000, // far off-screen
+        top: -10000,
+        child: SizedBox(
+          width: size.width,
+          height: size.height,
+          child: captureWidget,
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+
+    // ✅ Wait for widget to be laid out and painted
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    try {
+      // Multiple attempts with increasing delays
+      for (int attempt = 0; attempt < 50; attempt++) {
+        final boundary = repaintKey.currentContext?.findRenderObject()
+        as RenderRepaintBoundary?;
+
+        if (boundary == null || boundary.size.isEmpty) {
+          await Future.delayed(const Duration(milliseconds: 50));
+          continue;
+        }
+
+        if (boundary.debugNeedsPaint) {
+          await Future.delayed(const Duration(milliseconds: 50));
+          continue;
+        }
+
+        try {
+          final image = await boundary.toImage(pixelRatio: pixelRatio);
+          final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+          if (byteData != null) {
+            bytes = byteData.buffer.asUint8List();
+            print("✅ Captured at attempt $attempt");
+            break;
+          }
+        } catch (e) {
+          print("⚠️ Attempt $attempt capture failed: $e");
+          await Future.delayed(const Duration(milliseconds: 50));
+          continue;
+        }
+      }
+
+      entry.remove();
+      return bytes;
+    } catch (e) {
+      entry.remove();
+      print("❌ Capture failed: $e");
+      throw Exception("Failed to capture widget: $e");
+    }
+  }
+
+  Future<void> shareAyahAsImage({
+    required int surah,
+    required int verse,
+    required int pageIndex,
+  }) async {
+    try {
+      Fluttertoast.showToast(msg: "⏳ جاري إنشاء الصورة...");
+
+      // ✅ Ensure font is loaded
+      await QuranFontManager.instance.ensureFontLoaded(pageIndex);
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      final isDark = context.read<ThemeCubit>().isDark;
+      final gold = AppColors.isGoldMode;
+
+      final bgColor = gold
+          ? const Color(AppColors.goldBackground)
+          : (isDark ? const Color(AppColors.scaffoldBg) : Colors.white);
+
+      final textColor = isDark ? Colors.white : Colors.black;
+
+      // ✅ Build simple widget for capture
+      final widgetToShare = Scaffold(
+        body: Container(
+          width: 1000,
+          height: 1000,
+          padding: const EdgeInsets.all(48),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: bgColor,
+          ),
+          child: Stack(
+            children: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      getVerseQCF(surah, verse).replaceAll(' ', ''),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: "QCF_P${pageIndex.toString().padLeft(3, "0")}",
+                        fontSize: 60,
+                        height: 1.7,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    "سورة ${quran.getSurahNameArabic(surah)} • آية $verse",
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                bottom: 20,
+                right: 20,
+                child: ClipRRect(
+                    borderRadius: BorderRadius.circular(7),
+                    child: Image.asset("assets/images/logo.png",width: 70,height: 70,)),
+              )
+            ],
+          ),
+        ),
+      );
+
+      // ✅ Capture with timeout
+      final bytes = await captureWidgetAsPng(
+        context,
+        widgetToShare,
+        size: const Size(1000, 1000),
+        pixelRatio: 3,
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException("Widget capture took too long");
+        },
+      );
+
+      final dir = await getTemporaryDirectory();
+      final fileName = "ayah_${surah}_${verse}_${DateTime.now().millisecondsSinceEpoch}.png";
+      final file = File("${dir.path}/$fileName");
+
+      await file.writeAsBytes(bytes);
+
+      if (!file.existsSync()) {
+        throw Exception("File was not saved properly");
+      }
+
+      Fluttertoast.showToast(msg: "✅ تم إنشاء الصورة بنجاح");
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: "﴿ ${quran.getSurahNameArabic(surah)}:$verse ﴾",
+      );
+
+      // ✅ Cleanup after share
+      try {
+        await Future.delayed(const Duration(seconds: 2));
+        if (file.existsSync()) {
+          await file.delete();
+        }
+      } catch (_) {}
+
+    } on TimeoutException catch (e) {
+      print("❌ Timeout: $e");
+      Fluttertoast.showToast(
+        msg: "⚠️ انتظر قليلاً ثم حاول مجددا",
+        toastLength: Toast.LENGTH_LONG,
+      );
+    } catch (e) {
+      print("❌ Share ayah image error: $e");
+      Fluttertoast.showToast(
+        msg: "⚠️ حدث خطأ في مشاركة الآية",
+        toastLength: Toast.LENGTH_LONG,
+      );
+    }
+  }
+
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -969,6 +1187,21 @@ class _OptimizedPageBuilder extends StatelessWidget {
                         ],
                       ),
                     ),
+                    PopupMenuDivider(height: 1, color: popupBorder),
+                    PopupMenuItem<String>(
+                      value: 'share_image',
+                      child: Row(
+                        children: [
+                          Icon(Icons.image_outlined, color: popupText, size: 15),
+                          SizedBox(width: 6.w),
+                          Text(
+                            'مشاركة كصورة',
+                            style: AppTextStyles.madReg12(context, color: popupText),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   ],
                 );
 
