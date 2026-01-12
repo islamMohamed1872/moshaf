@@ -27,6 +27,21 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
 
 
   final Set<String> _loadedFonts = {};
+  bool fontsCached = false;
+
+  Future<void> checkFontsCached() async {
+    fontsCached = await CacheHelper.getData(
+      key: 'quran_fonts_cached',
+    ) ==
+        true;
+    emit(TextQuranCacheChecked());
+  }
+
+  bool isPageReady(int pageIndex) {
+    checkFontsCached();
+    loadQuranFontCached(pageIndex);
+    return isFontLoaded(pageIndex) && fontsCached;
+  }
 
   Future<void> loadQuranFontCached(int pageNumber) async {
     emit(GetFontLoadingState());

@@ -18,6 +18,7 @@ class SetIndexState extends TextQuranStates{}
 class ChangePageState extends TextQuranStates{}
 class SetSelectedVerseState extends TextQuranStates{}
 class GetFontLoadingState extends TextQuranStates{}
+class TextQuranCacheChecked extends TextQuranStates{}
 class GetFontSuccessState extends TextQuranStates{}
 class GetFontErrorState extends TextQuranStates{}
 class GetVerseTafseerLoadingState extends TextQuranStates{}

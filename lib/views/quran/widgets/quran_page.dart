@@ -811,10 +811,13 @@ class _QuranViewPageState extends State<QuranViewPage>
                               child: SizedBox(
                                 width: double.infinity,
                                 child: BlocBuilder<TextQuranCubit, TextQuranStates>(
-                                  builder: (context, state) => Skeletonizer(
-                                    enabled: !TextQuranCubit.get(context).isFontLoaded(pageIndex),
+                                  builder: (context, state) {
+                                    final cubit = TextQuranCubit.get(context);
+                                    return Skeletonizer(
+                                        enabled: !cubit.isPageReady(pageIndex),
                                     child: _buildPageWidget(pageIndex),
-                                  ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
