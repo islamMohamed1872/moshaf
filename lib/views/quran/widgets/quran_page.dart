@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/gestures.dart';
@@ -23,9 +24,9 @@ import 'package:quran/quran.dart' as quran;
 import 'package:share_plus/share_plus.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-import '../../../components/cache_helper.dart';
 import '../../../components/const.dart';
 import '../../../controllers/recitation/recitation_cubit.dart';
+import '../../../controllers/text_quran/quran_font_manager.dart';
 import '../../../controllers/text_quran/text_quran_states.dart';
 import '../../../controllers/theme/theme_cubit.dart';
 import 'basmallah.dart';
@@ -44,7 +45,7 @@ class QuranViewPage extends StatefulWidget {
     required this.jsonData,
     required this.shouldHighlightText,
     required this.highlightVerse,
-    required this.navigatedFromRecitation
+    required this.navigatedFromRecitation,
   }) : super(key: key);
 
   @override
@@ -56,13 +57,8 @@ class _QuranViewPageState extends State<QuranViewPage>
   late PageController _pageController;
   late ValueNotifier<dynamic> highlightVerseNotifier;
   ValueNotifier<bool> isPlaying = ValueNotifier(false);
+  final ValueNotifier<int> fontsVersion = ValueNotifier<int>(0);
 
-  // ✅ OPTIMIZED CACHING
-  final Map<int, Widget> _pageWidgetCache = {};
-  final Set<int> _fontLoadingInProgress = {};
-  int _lastCachedPage = 0;
-
-  String selectedSpan = "";
   int index = 0;
   int? startVerse;
   int? endVerse;
@@ -70,18 +66,19 @@ class _QuranViewPageState extends State<QuranViewPage>
   int? maxPage;
   int? _currentVerseIndex;
 
-  // ✅ PRECOMPUTE THEME COLORS
-  late Color popupBg, popupText, popupBorder;
-  late bool isDarkMode, isGoldMode;
-
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+
     index = widget.pageNumber;
-    _ensureAllQuranFontsCached(widget.pageNumber);
+
+    _pageController = PageController(initialPage: index);
+
+    // ✅ make sure initial page font is requested
+    QuranFontManager.instance.requestPriority(page: widget.pageNumber);
 
     if (widget.navigatedFromRecitation) {
       final recitationCubit = RecitationCubit.get(context);
@@ -90,7 +87,6 @@ class _QuranViewPageState extends State<QuranViewPage>
       maxPage = range['endPage'];
     }
 
-    _pageController = PageController(initialPage: index);
     highlightVerseNotifier = ValueNotifier<int?>(
       int.tryParse(widget.highlightVerse ?? ''),
     );
@@ -101,139 +97,63 @@ class _QuranViewPageState extends State<QuranViewPage>
       isPlaying.value = state.playing;
     });
 
-    // ✅ LOAD FONTS ASYNCHRONOUSLY WITHOUT BLOCKING
-    // _loadFontsAsync(index);
-
     if (widget.shouldHighlightText) {
       _startHighlightAnimation();
     }
   }
 
-  Future<void> _ensureAllQuranFontsCached(int currentPage) async {
-    final bool alreadyCached =
-        await CacheHelper.getData(key: 'quran_fonts_cached') == true;
-
-    if (alreadyCached) return;
-
-    final cubit = TextQuranCubit.get(context);
-
-    // 1️⃣ Ensure CURRENT page first (CRITICAL)
-    try {
-      await cubit.loadQuranFontCached(currentPage);
-    } catch (_) {}
-
-    // 2️⃣ Background download for the rest
-    Future.microtask(() async {
-      for (int page = 1; page <= totalPagesCount; page++) {
-        if (page == currentPage) continue;
-
-        try {
-          await cubit.loadQuranFontCached(page);
-        } catch (_) {}
-      }
-
-      await CacheHelper.saveData(
-        key: 'quran_fonts_cached',
-        value: true,
-      );
-    });
-  }
-
-
-  // ✅ ASYNC FONT LOADING (NON-BLOCKING)
-  // void _loadFontsAsync(int startPage) {
-  //   Future.microtask(() {
-  //     TextQuranCubit.get(context).loadQuranFontCached(startPage);
-  //
-  //     for (int i = startPage + 1; i <= startPage + 3 && i <= totalPagesCount; i++) {
-  //       if (!_fontLoadingInProgress.contains(i)) {
-  //         _fontLoadingInProgress.add(i);
-  //         Future.delayed(Duration(milliseconds: (i - startPage) * 50), () {
-  //           if (mounted) {
-  //             TextQuranCubit.get(context).loadQuranFontCached(i);
-  //           }
-  //         });
-  //       }
-  //     }
-  //   });
-  // }
-
   @override
   void dispose() {
     highlightVerseNotifier.dispose();
     isPlaying.dispose();
-    _pageWidgetCache.clear();
-    _fontLoadingInProgress.clear();
     super.dispose();
   }
 
-  // ✅ AGGRESSIVE CACHE MANAGEMENT
-  // void _tryCacheAhead(int currentPage) {
-  //   // Only cache if we've scrolled significantly
-  //   if ((currentPage - _lastCachedPage).abs() > 2) {
-  //     _lastCachedPage = currentPage;
-  //
-  //     // Remove far away pages from cache
-  //     final pagesToRemove = <int>[];
-  //     for (final page in _pageWidgetCache.keys) {
-  //       if ((page - currentPage).abs() > 10) {
-  //         pagesToRemove.add(page);
-  //       }
-  //     }
-  //
-  //     for (final page in pagesToRemove) {
-  //       _pageWidgetCache.remove(page);
-  //     }
-  //
-  //     // Cache current and next 3
-  //     for (int i = currentPage; i <= currentPage + 3 && i <= totalPagesCount; i++) {
-  //       if (!_pageWidgetCache.containsKey(i)) {
-  //         Future.microtask(() {
-  //           _pageWidgetCache[i] = _buildPageWidget(i);
-  //         });
-  //       }
-  //     }
-  //   }
-  // }
+  void _startHighlightAnimation() {
+    Timer.periodic(const Duration(milliseconds: 400), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final int? verseAsInt =
+      int.tryParse(widget.highlightVerse?.toString() ?? '');
+      highlightVerseNotifier.value =
+      highlightVerseNotifier.value == null ? verseAsInt : null;
 
-  // ✅ PRECOMPUTE THEME COLORS ONCE
-  void _updateThemeColors() {
-    final themeCubit = context.read<ThemeCubit>();
-    isDarkMode = themeCubit.isDark;
-    isGoldMode = AppColors.isGoldMode;
-
-    popupBg = isGoldMode
-        ? const Color(AppColors.goldBackground)
-        : (isDarkMode ? Colors.black : Colors.white);
-
-    popupText = isGoldMode
-        ? const Color(AppColors.goldText)
-        : (isDarkMode ? Colors.white : Colors.black);
-
-    popupBorder = isGoldMode
-        ? const Color(AppColors.goldBorder)
-        : const Color(0xffD6D6D6);
+      if (timer.tick >= 7) {
+        highlightVerseNotifier.value = null;
+        timer.cancel();
+      }
+    });
   }
 
   Future<String?> _showDownloadDialog(
-      int surah, int start, int end, bool isDark) async {
+      int surah,
+      int start,
+      int end,
+      bool isDark,
+      ) async {
     final gold = AppColors.isGoldMode;
+
     final bgColor = gold
         ? const Color(AppColors.goldBackground)
-        : (isDark ? Color(AppColors.scaffoldBg) : Colors.white);
+        : (isDark ? const Color(AppColors.scaffoldBg) : Colors.white);
+
     final titleColor = gold
         ? const Color(AppColors.goldText)
         : (isDark ? Colors.white : Colors.black);
+
     final textColor = gold
         ? const Color(AppColors.goldText)
         : (isDark ? Colors.white70 : Colors.black87);
-    final cancelBtnBg = gold
-        ? const Color(AppColors.goldBorder).withOpacity(.2)
-        : Colors.grey.shade200;
+
+    final cancelBtnBg =
+    gold ? const Color(AppColors.goldBorder).withOpacity(.2) : Colors.grey.shade200;
+
     final cancelBtnText = gold ? const Color(AppColors.goldText) : Colors.black;
-    final downloadBtnBg = gold
-        ? const Color(AppColors.goldPrimary)
-        : Color(AppColors.mainGreen);
+
+    final downloadBtnBg =
+    gold ? const Color(AppColors.goldPrimary) : const Color(AppColors.mainGreen);
 
     return showDialog<String>(
       context: context,
@@ -266,14 +186,17 @@ class _QuranViewPageState extends State<QuranViewPage>
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(ctx),
-            child: Text("إلغاء",
-                style: AppTextStyles.madReg14(context, color: cancelBtnText)),
+            child: Text(
+              "إلغاء",
+              style: AppTextStyles.madReg14(context, color: cancelBtnText),
+            ),
           ),
           TextButton.icon(
-            icon: Icon(Icons.download, size: 18,
-                color: gold ? Colors.white : Colors.white),
-            label: Text("تحميل",
-                style: AppTextStyles.madReg14(context, color: Colors.white)),
+            icon: const Icon(Icons.download, size: 18, color: Colors.white),
+            label: Text(
+              "تحميل",
+              style: AppTextStyles.madReg14(context, color: Colors.white),
+            ),
             style: TextButton.styleFrom(
               backgroundColor: downloadBtnBg,
               foregroundColor: Colors.white,
@@ -302,7 +225,6 @@ class _QuranViewPageState extends State<QuranViewPage>
         final savePath = "${tempDir.path}/verse_$i.mp3";
         await dio.download(url, savePath);
         files.add(savePath);
-        debugPrint("✅ Downloaded verse $i");
       }
 
       final surahNameArabic = quran.getSurahNameArabic(surah);
@@ -311,6 +233,7 @@ class _QuranViewPageState extends State<QuranViewPage>
           "سورة_${sanitizedSurahName}_من_${start}_الى_${end}.mp3";
 
       Directory downloadsDir;
+
       if (Platform.isAndroid) {
         downloadsDir = Directory('/storage/emulated/0/Download');
         if (!downloadsDir.existsSync()) {
@@ -324,6 +247,7 @@ class _QuranViewPageState extends State<QuranViewPage>
       final combinedPath = "${downloadsDir.path}/$combinedFileName";
       await _combineAudioFiles(files, combinedPath);
 
+      // cleanup temp verses
       for (final path in files) {
         try {
           await File(path).delete();
@@ -336,50 +260,57 @@ class _QuranViewPageState extends State<QuranViewPage>
       );
 
       _showShareDialog(combinedPath, surahNameArabic, start, end);
-      debugPrint("🎧 Combined file saved at: $combinedPath");
-    } catch (e, s) {
-      debugPrint("❌ Download/Combine Error: $e\n$s");
-      Fluttertoast.showToast(msg: "حدث خطأ أثناء التحميل");
+    } catch (e) {
+      Fluttertoast.showToast(msg: "❌ حدث خطأ أثناء التحميل");
     }
   }
 
+  /// ✅ combine MP3 files safely by removing ID3 headers except first file
   Future<void> _combineAudioFiles(List<String> inputPaths, String outputPath) async {
-    final output = File(outputPath).openWrite();
-    bool isFirst = true;
+    final out = File(outputPath).openWrite();
+    bool first = true;
 
-    for (final path in inputPaths) {
-      final file = File(path);
-      final bytes = await file.readAsBytes();
-      if (isFirst) {
-        output.add(bytes);
-        isFirst = false;
+    for (final p in inputPaths) {
+      final bytes = await File(p).readAsBytes();
+      if (bytes.isEmpty) continue;
+
+      if (first) {
+        out.add(bytes);
+        first = false;
       } else {
-        int skip = _getID3HeaderSize(bytes);
-        output.add(bytes.sublist(skip));
+        final skip = _getID3HeaderSize(bytes);
+        out.add(bytes.sublist(skip));
       }
     }
-    await output.close();
+
+    await out.close();
   }
 
   int _getID3HeaderSize(List<int> bytes) {
     if (bytes.length < 10) return 0;
+
+    // ID3 signature
     if (bytes[0] == 0x49 && bytes[1] == 0x44 && bytes[2] == 0x33) {
-      int size = (bytes[6] << 21) | (bytes[7] << 14) | (bytes[8] << 7) | bytes[9];
+      // syncsafe int size
+      final size =
+      (bytes[6] << 21) | (bytes[7] << 14) | (bytes[8] << 7) | bytes[9];
       return size + 10;
     }
     return 0;
   }
 
   void _showShareDialog(String filePath, String surahName, int start, int end) {
-    final themeCubit = context.read<ThemeCubit>();
-    final isDark = themeCubit.isDark;
+    final isDark = context.read<ThemeCubit>().isDark;
     final isGold = AppColors.isGoldMode;
+
     final bgColor = isGold
         ? const Color(AppColors.goldBackground)
-        : (isDark ? Color(AppColors.scaffoldBg) : Colors.white);
+        : (isDark ? const Color(AppColors.scaffoldBg) : Colors.white);
+
     final textColor = isGold
         ? const Color(AppColors.goldText)
         : (isDark ? Colors.white : Colors.black);
+
     final borderColor = isGold
         ? const Color(AppColors.goldBorder)
         : (isDark ? Colors.white10 : Colors.black12);
@@ -393,35 +324,40 @@ class _QuranViewPageState extends State<QuranViewPage>
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: borderColor),
         ),
-        title: Text("تم التحميل بنجاح",
-            textAlign: TextAlign.center,
-            style: AppTextStyles.madB14(context, color: textColor)),
-        content: Text(
-          "تم حفظ الملف:\nسورة $surahName من $start إلى $end\n\nهل ترغب بمشاركته على واتساب؟",
+        title: Text(
+          "تم التحميل بنجاح",
           textAlign: TextAlign.center,
-          style: AppTextStyles.madReg12(context,
-              color: isGold
-                  ? const Color(AppColors.goldText)
-                  : (isDark ? Colors.white70 : Colors.black87)),
+          style: AppTextStyles.madB14(context, color: textColor),
+        ),
+        content: Text(
+          "تم حفظ الملف:\nسورة $surahName من $start إلى $end\n\nهل ترغب بمشاركته؟",
+          textAlign: TextAlign.center,
+          style: AppTextStyles.madReg12(
+            context,
+            color: isGold ? const Color(AppColors.goldText) : (isDark ? Colors.white70 : Colors.black87),
+          ),
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
             style: TextButton.styleFrom(
-              backgroundColor:
-              isGold ? const Color(0xFFE6C87A) : Colors.grey.shade200,
+              backgroundColor: isGold ? const Color(0xFFE6C87A) : Colors.grey.shade200,
               foregroundColor: textColor,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(ctx),
-            child: Text("إغلاق",
-                style: AppTextStyles.madReg14(context, color: textColor)),
+            child: Text(
+              "إغلاق",
+              style: AppTextStyles.madReg14(context, color: textColor),
+            ),
           ),
           TextButton.icon(
             icon: const Icon(Icons.share, size: 18, color: Colors.white),
-            label: Text("واتساب",
-                style: AppTextStyles.madReg14(context, color: Colors.white)),
+            label: Text(
+              "مشاركة",
+              style: AppTextStyles.madReg14(context, color: Colors.white),
+            ),
             style: TextButton.styleFrom(
               backgroundColor: const Color(0xFF25D366),
               foregroundColor: Colors.white,
@@ -450,20 +386,29 @@ class _QuranViewPageState extends State<QuranViewPage>
     );
   }
 
-  void _startHighlightAnimation() {
-    Timer.periodic(const Duration(milliseconds: 400), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      final int? verseAsInt = int.tryParse(widget.highlightVerse?.toString() ?? '');
-      highlightVerseNotifier.value =
-      highlightVerseNotifier.value == null ? verseAsInt : null;
-      if (timer.tick >= 7) {
-        highlightVerseNotifier.value = null;
-        timer.cancel();
-      }
-    });
+
+  double getMushafLineHeight({
+    required double availableHeight,
+    required double fontSize,
+  }) {
+    const mushafLines = 15;
+    return availableHeight / (mushafLines * fontSize);
+  }
+
+  Widget _buildPageWidget(int pageIndex) {
+    if (pageIndex <= 0) return const SizedBox();
+
+    final pageData = getPageData(pageIndex);
+    if (pageData.isEmpty) return const SizedBox();
+
+    return _OptimizedPageBuilder(
+      pageIndex: pageIndex,
+      pageData: pageData,
+      jsonData: widget.jsonData,
+      highlightVerseNotifier: highlightVerseNotifier,
+      onVerseAction: _handleVerseAction,
+      getMushafLineHeight: getMushafLineHeight,
+    );
   }
 
   Future<void> playSurahVersesSequentially(List pageData) async {
@@ -532,31 +477,6 @@ class _QuranViewPageState extends State<QuranViewPage>
     }
   }
 
-  double getMushafLineHeight({
-    required double availableHeight,
-    required double fontSize,
-  }) {
-    const mushafLines = 15;
-    return availableHeight / (mushafLines * fontSize);
-  }
-
-  // ✅ OPTIMIZED PAGE WIDGET BUILDER
-  Widget _buildPageWidget(int pageIndex) {
-    if (pageIndex <= 0) return const SizedBox();
-
-    final pageData = getPageData(pageIndex);
-    if (pageData.isEmpty) return const SizedBox();
-
-    return _OptimizedPageBuilder(
-      pageIndex: pageIndex,
-      pageData: pageData,
-      jsonData: widget.jsonData,
-      highlightVerseNotifier: highlightVerseNotifier,
-      onVerseAction: _handleVerseAction,
-      getMushafLineHeight: getMushafLineHeight,
-    );
-  }
-
   Future<void> _handleVerseAction(
       String action,
       int verseNumber,
@@ -603,7 +523,12 @@ class _QuranViewPageState extends State<QuranViewPage>
 
       case 'play':
         final player = AudioServices().player;
-        final url = quran.getAudioURLByVerse(surah, verseNumber, "ar.abdulbasitmurattal");
+        final url = quran.getAudioURLByVerse(
+          surah,
+          verseNumber,
+          "ar.abdulbasitmurattal",
+        );
+
         await player.setAudioSource(
           AudioSource.uri(
             Uri.parse(url),
@@ -617,12 +542,6 @@ class _QuranViewPageState extends State<QuranViewPage>
         );
         isPlaying.value = true;
         await player.play();
-        player.processingStateStream
-            .firstWhere((state) =>
-        state == ProcessingState.completed || !isPlaying.value)
-            .then((_) {
-          if (mounted) isPlaying.value = false;
-        });
         break;
 
       case 'select_start':
@@ -635,27 +554,44 @@ class _QuranViewPageState extends State<QuranViewPage>
           Fluttertoast.showToast(msg: "من فضلك اختر البداية اولاً");
           return;
         }
+
         setState(() => endVerse = verseNumber);
+
         Fluttertoast.showToast(msg: "تم تحديد نهاية المقطع عند الآية $verseNumber");
+
         if (startVerse != null && endVerse != null) {
-          _showDownloadDialog(surah, startVerse!, endVerse!, isDark);
+          // ✅ ensure correct ordering
+          final s = startVerse!;
+          final e = endVerse!;
+          final start = s <= e ? s : e;
+          final end = s <= e ? e : s;
+
+          // ✅ show dialog and download
+          await _showDownloadDialog(surah, start, end, isDark);
+
+          // optional reset after download dialog
+          // setState(() {
+          //   startVerse = null;
+          //   endVerse = null;
+          // });
         }
         break;
+
     }
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    _updateThemeColors();
 
-    final screenSize = MediaQuery.of(context).size;
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
     final gold = AppColors.isGoldMode;
 
     final borderClr = gold
         ? const Color(AppColors.goldBorder)
-        : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders);
+        : Color(isDark
+        ? AppColors.containerDarkBorders
+        : AppColors.containerLightBorders);
 
     final textClr = gold
         ? const Color(AppColors.goldText)
@@ -671,6 +607,15 @@ class _QuranViewPageState extends State<QuranViewPage>
             scrollDirection: Axis.horizontal,
             allowImplicitScrolling: true,
             onPageChanged: (a) async {
+              // ✅ page 0 is cover
+              if (a <= 0) return;
+
+              QuranFontManager.instance.requestPriority(page: a);
+
+              // preload neighbors cache
+              QuranFontManager.instance.requestBackground(page: a + 1);
+              QuranFontManager.instance.requestBackground(page: a - 1);
+
               if (widget.navigatedFromRecitation) {
                 if (a < minPage!) {
                   _pageController.jumpToPage(minPage!);
@@ -684,11 +629,8 @@ class _QuranViewPageState extends State<QuranViewPage>
                 }
               }
 
-              selectedSpan = "";
               index = a;
-              if (index <= 0) return;
 
-              // ✅ STOP AUDIO ASYNCHRONOUSLY
               Future.microtask(() async {
                 await AudioServices().player.stop();
                 isPlaying.value = false;
@@ -697,9 +639,6 @@ class _QuranViewPageState extends State<QuranViewPage>
               if (highlightVerseNotifier.value != null) {
                 highlightVerseNotifier.value = null;
               }
-
-              // _tryCacheAhead(index);
-              // _loadFontsAsync(index);
             },
             itemCount: totalPagesCount + 1,
             itemBuilder: (context, pageIndex) {
@@ -713,6 +652,9 @@ class _QuranViewPageState extends State<QuranViewPage>
                 );
               }
 
+              // ✅ VERY IMPORTANT: request font for this page early
+              QuranFontManager.instance.requestPriority(page: pageIndex);
+
               return Stack(
                 children: [
                   Positioned(
@@ -721,7 +663,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                     left: 0,
                     child: Image.asset(
                       "assets/images/quran_bg.png",
-                      color: AppColors.isGoldMode ? Color(AppColors.goldPrimary) : null,
+                      color: gold ? Color(AppColors.goldPrimary) : null,
                     ),
                   ),
                   Positioned(
@@ -732,7 +674,8 @@ class _QuranViewPageState extends State<QuranViewPage>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          TextQuranCubit.get(context).convertToArabic(pageIndex.toString()),
+                          TextQuranCubit.get(context)
+                              .convertToArabic(pageIndex.toString()),
                           style: AppTextStyles.madMd14(context, color: Colors.white),
                         ),
                       ],
@@ -763,15 +706,10 @@ class _QuranViewPageState extends State<QuranViewPage>
                                   ),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: borderClr,
-                                    ),
+                                    border: Border.all(color: borderClr),
                                   ),
                                   child: FittedBox(
-                                    child: Icon(
-                                      Icons.arrow_back_ios,
-                                      color: textClr,
-                                    ),
+                                    child: Icon(Icons.arrow_back_ios, color: textClr),
                                   ),
                                 ),
                               ),
@@ -791,7 +729,9 @@ class _QuranViewPageState extends State<QuranViewPage>
                                       await playSurahVersesSequentially(pageData);
                                     },
                                     child: Icon(
-                                      playing ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
+                                      playing
+                                          ? FontAwesomeIcons.pause
+                                          : FontAwesomeIcons.play,
                                       size: 20.w,
                                       color: gold
                                           ? const Color(AppColors.goldPrimary)
@@ -812,10 +752,14 @@ class _QuranViewPageState extends State<QuranViewPage>
                                 width: double.infinity,
                                 child: BlocBuilder<TextQuranCubit, TextQuranStates>(
                                   builder: (context, state) {
-                                    final cubit = TextQuranCubit.get(context);
-                                    return Skeletonizer(
-                                        enabled: !cubit.isPageReady(pageIndex),
-                                    child: _buildPageWidget(pageIndex),
+                                   return ValueListenableBuilder<int>(
+                                      valueListenable: QuranFontManager.instance.fontsVersion,
+                                      builder: (context, _, __) {
+                                        return Skeletonizer(
+                                          enabled: !QuranFontManager.instance.isLoaded(pageIndex),
+                                          child: _buildPageWidget(pageIndex),
+                                        );
+                                      },
                                     );
                                   },
                                 ),
@@ -836,13 +780,13 @@ class _QuranViewPageState extends State<QuranViewPage>
   }
 }
 
-// ✅ EXTRACTED OPTIMIZED PAGE BUILDER (PREVENTS REBUILDS)
 class _OptimizedPageBuilder extends StatelessWidget {
   final int pageIndex;
   final List pageData;
   final dynamic jsonData;
   final ValueNotifier<dynamic> highlightVerseNotifier;
-  final Future<void> Function(String, int, int, int, Map<String, dynamic>) onVerseAction;
+  final Future<void> Function(String, int, int, int, Map<String, dynamic>)
+  onVerseAction;
   final double Function({required double availableHeight, required double fontSize})
   getMushafLineHeight;
 
@@ -872,36 +816,31 @@ class _OptimizedPageBuilder extends StatelessWidget {
         ? const Color(AppColors.goldBorder)
         : const Color(0xffD6D6D6);
 
-    return BlocBuilder<TextQuranCubit, TextQuranStates>(
-      builder: (context, state) {
-        return ValueListenableBuilder(
-          valueListenable: highlightVerseNotifier,
-          builder: (context, dynamic highlighted, _) {
-            // ✅ MEMOIZED SPANS BUILDING (ONLY REBUILD IF HIGHLIGHTED CHANGES)
-            final spans = _buildVerseSpans(
-              context,
-              pageData,
-              isDark,
-              gold,
-              highlighted,
-              popupBg,
-              popupText,
-              popupBorder,
-              onVerseAction,
-            );
+    return ValueListenableBuilder(
+      valueListenable: highlightVerseNotifier,
+      builder: (context, dynamic highlighted, _) {
+        final spans = _buildVerseSpans(
+          context,
+          pageData,
+          isDark,
+          gold,
+          highlighted,
+          popupBg,
+          popupText,
+          popupBorder,
+          onVerseAction,
+          getMushafLineHeight,
+        );
 
-            return RichText(
-              textDirection: m.TextDirection.rtl,
-              textAlign: TextAlign.center,
-              text: TextSpan(children: spans),
-            );
-          },
+        return RichText(
+          textDirection: m.TextDirection.rtl,
+          textAlign: TextAlign.center,
+          text: TextSpan(children: spans),
         );
       },
     );
   }
 
-  // ✅ EXTRACTED SPAN BUILDING (MEMOIZED)
   List<InlineSpan> _buildVerseSpans(
       BuildContext context,
       List pageData,
@@ -912,8 +851,31 @@ class _OptimizedPageBuilder extends StatelessWidget {
       Color popupText,
       Color popupBorder,
       Future<void> Function(String, int, int, int, Map<String, dynamic>) onVerseAction,
+      double Function({required double availableHeight, required double fontSize})
+      getMushafLineHeight,
       ) {
     final spans = <InlineSpan>[];
+
+    // ✅ compute line height once per page
+    final mq = MediaQuery.of(context);
+    final screenHeight = mq.size.height;
+
+    const headerHeight = 70.0;
+    const basmallahHeight = 40.0;
+    const topPadding = 20.0;
+    const bottomPadding = 70.0;
+
+    final availableHeight = screenHeight -
+        mq.padding.top -
+        headerHeight -
+        basmallahHeight -
+        topPadding -
+        bottomPadding;
+
+    final dynamicHeight = getMushafLineHeight(
+      availableHeight: availableHeight,
+      fontSize: 23.sp,
+    );
 
     for (var e in pageData) {
       for (var i = e["start"]; i <= e["end"]; i++) {
@@ -925,27 +887,6 @@ class _OptimizedPageBuilder extends StatelessWidget {
           spans.add(WidgetSpan(child: SizedBox(height: 10.h)));
         }
 
-        // ✅ COMPUTE LINE HEIGHT ONCE PER PAGE
-        final mq = MediaQuery.of(context);
-        final screenHeight = mq.size.height;
-        const headerHeight = 70.0;
-        const basmallahHeight = 40.0;
-        const topPadding = 20.0;
-        const bottomPadding = 70.0;
-
-        final availableHeight = screenHeight -
-            mq.padding.top -
-            headerHeight -
-            basmallahHeight -
-            topPadding -
-            bottomPadding;
-
-        final dynamicHeight = getMushafLineHeight(
-          availableHeight: availableHeight,
-          fontSize: 23.sp,
-        );
-
-        // ✅ OPTIMIZED TEXT SPAN (NO REPEATED CALCULATIONS)
         spans.add(
           TextSpan(
             recognizer: LongPressGestureRecognizer()

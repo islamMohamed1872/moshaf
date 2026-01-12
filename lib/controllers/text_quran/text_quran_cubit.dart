@@ -9,6 +9,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:moshaf/controllers/text_quran/quran_font_manager.dart';
 import 'package:moshaf/controllers/text_quran/text_quran_states.dart';
 import 'package:moshaf/network/dio_helper.dart';
 import 'package:quran/quran.dart' as quran1;
@@ -25,6 +26,11 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
 
   TextEditingController searchController = TextEditingController();
 
+  Future<void> warmUpFontsOnAppStart(int startPage) async {
+    QuranFontManager.instance.warmUpAllFonts(firstPage: startPage);
+  }
+
+
 
   final Set<String> _loadedFonts = {};
   bool fontsCached = false;
@@ -38,40 +44,15 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
   }
 
   bool isPageReady(int pageIndex) {
-    checkFontsCached();
-    loadQuranFontCached(pageIndex);
-    return isFontLoaded(pageIndex) && fontsCached;
+    return QuranFontManager.instance.isLoaded(pageIndex);
   }
+
 
   Future<void> loadQuranFontCached(int pageNumber) async {
-    emit(GetFontLoadingState());
-    final fontName = "QCF_P${pageNumber.toString().padLeft(3, "0")}";
-
-    // Don’t reload if already loaded
-    if (_loadedFonts.contains(fontName)) return;
-
-    final fontUrl =
-        "https://cdn.jsdelivr.net/gh/islamMohamed1872/qcf-fonts/QCF2${pageNumber.toString().padLeft(3, "0")}.ttf";
-
-    try {
-      final file = await DefaultCacheManager().getSingleFile(fontUrl);
-      final bytes = await file.readAsBytes();
-
-      final loader = FontLoader(fontName);
-      loader.addFont(Future.value(ByteData.view(bytes.buffer)));
-      await loader.load();
-
-      _loadedFonts.add(fontName); // mark as loaded
-      print(_loadedFonts.length);
-      emit(GetFontSuccessState());
-    } catch (e) {
-      debugPrint("Failed to load font $fontName: $e");
-      emit(GetFontErrorState());
-    }
+    await QuranFontManager.instance.ensureFontLoaded(pageNumber);
   }
   bool isFontLoaded(int pageNumber) {
-    final fontName = "QCF_P${pageNumber.toString().padLeft(3, "0")}";
-    return _loadedFonts.contains(fontName);
+    return QuranFontManager.instance.isLoaded(pageNumber);
   }
 
 
@@ -221,6 +202,7 @@ class TextQuranCubit extends Cubit<TextQuranStates>{
     CacheHelper.saveData(key: "page", value: page);
     CacheHelper.saveData(key: "verse", value: verse);
     CacheHelper.saveData(key: "sora", value: sora);
+    CacheHelper.saveData(key: "lastRead", value: DateTime.now().toString());
     getLastRead();
   }
 

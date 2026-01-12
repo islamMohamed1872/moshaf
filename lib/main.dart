@@ -512,7 +512,7 @@ class MyApp extends StatelessWidget {
         providers: [
           BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimesNoInternet()),
           BlocProvider(create: (context) => HomeCubit()..requestLocationOnce()..requestOverlay()..getFirstTime(),lazy: false,),
-          BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()),
+          BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()..warmUpFontsOnAppStart(1)),
           BlocProvider(create: (context) => SettingsCubit()..getNotificationsState()),
           BlocProvider(create: (context) => ThemeCubit()..getThemeMode(),lazy: false,),
           BlocProvider(create: (context) => QiblahCubit()),
