@@ -26,13 +26,16 @@ import 'package:quran/quran.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:share_plus/share_plus.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
+import '../../../components/cache_helper.dart';
 import '../../../components/const.dart';
 import '../../../controllers/recitation/recitation_cubit.dart';
 import '../../../controllers/text_quran/quran_font_manager.dart';
 import '../../../controllers/text_quran/text_quran_states.dart';
 import '../../../controllers/theme/theme_cubit.dart';
 import 'basmallah.dart';
+import 'coach_content.dart';
 import 'header_widget.dart';
 
 class QuranViewPage extends StatefulWidget {
@@ -69,6 +72,15 @@ class _QuranViewPageState extends State<QuranViewPage>
   int? maxPage;
   int? _currentVerseIndex;
 
+  TutorialCoachMark? _coach;
+  bool _tutorialStarted = false;
+
+  final GlobalKey _backKey = GlobalKey();
+  final GlobalKey _playKey = GlobalKey();
+  final GlobalKey _ayahAreaKey = GlobalKey();
+  final GlobalKey _pageNumberKey = GlobalKey();
+
+
   @override
   bool get wantKeepAlive => true;
 
@@ -103,7 +115,134 @@ class _QuranViewPageState extends State<QuranViewPage>
     if (widget.shouldHighlightText) {
       _startHighlightAnimation();
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _tryStartTutorial();
+    });
+
   }
+
+  Future<void> _tryStartTutorial() async {
+    if (_tutorialStarted) return;
+    _tutorialStarted = true;
+
+    final shown = await CacheHelper.getData(key: "quran_view_tutorial_shown") ?? false;
+    if (shown == true) return;
+
+    // wait for first build + fonts settle a bit
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+
+    _showTutorial();
+  }
+
+  void _showTutorial() {
+    final isDark = context.read<ThemeCubit>().isDark;
+    final gold = AppColors.isGoldMode;
+
+    final titleClr = gold ? const Color(AppColors.goldAccent) : Colors.white;
+    final descClr = Colors.white.withOpacity(0.9);
+
+    final targets = <TargetFocus>[
+      TargetFocus(
+        identify: "back",
+        keyTarget: _backKey,
+        shape: ShapeLightFocus.Circle,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            child: CoachContent(
+              title: "رجوع",
+              description: "اضغط هنا للعودة إلى قائمة السور.",
+              titleColor: titleClr,
+              descColor: descClr,
+            ),
+          ),
+        ],
+      ),
+
+      TargetFocus(
+        identify: "play",
+        keyTarget: _playKey,
+        shape: ShapeLightFocus.Circle,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            child: CoachContent(
+              title: "تشغيل التلاوة 🎧",
+              description: "تشغيل/إيقاف تلاوة آيات الصفحة الحالية بشكل متتابع.",
+              titleColor: titleClr,
+              descColor: descClr,
+            ),
+          ),
+        ],
+      ),
+
+      TargetFocus(
+        identify: "ayah_area",
+        keyTarget: _ayahAreaKey,
+        shape: ShapeLightFocus.RRect,
+        radius: 14,
+        contents: [
+          TargetContent(
+            align: ContentAlign.top,
+            child: CoachContent(
+              title: "تفاعل مع الآيات ✨",
+              description:
+              "اضغط مطولًا على أي آية لعرض الخيارات:\n"
+                  "• تفسير\n"
+                  "• حفظ\n"
+                  "• تشغيل\n"
+                  "• تحديد بداية/نهاية لتحميل المقطع\n"
+                  "• مشاركة كصورة",
+              titleColor: titleClr,
+              descColor: descClr,
+            ),
+          ),
+        ],
+      ),
+
+      TargetFocus(
+        identify: "page_number",
+        keyTarget: _pageNumberKey,
+        shape: ShapeLightFocus.RRect,
+        radius: 10,
+        contents: [
+          TargetContent(
+            align: ContentAlign.top,
+            child: CoachContent(
+              title: "رقم الصفحة",
+              description: "هنا يظهر رقم الصفحة داخل المصحف.",
+              titleColor: titleClr,
+              descColor: descClr,
+            ),
+          ),
+        ],
+      ),
+    ];
+
+    _coach?.finish();
+
+    _coach = TutorialCoachMark(
+      targets: targets,
+      colorShadow: Colors.black.withOpacity(0.85),
+      textSkip: "تخطي",
+      paddingFocus: 10,
+      opacityShadow: 0.85,
+      onFinish: () async {
+        await CacheHelper.saveData(key: "quran_view_tutorial_shown", value: true);
+        _coach = null;
+      },
+      onSkip: () {
+        CacheHelper.saveData(key: "quran_view_tutorial_shown", value: true);
+        _coach = null;
+        return true;
+      },
+    );
+
+    _coach!.show(context: context);
+  }
+
 
   @override
   void dispose() {
@@ -825,6 +964,8 @@ class _QuranViewPageState extends State<QuranViewPage>
             scrollDirection: Axis.horizontal,
             allowImplicitScrolling: true,
             onPageChanged: (a) async {
+              _coach?.finish();
+              _coach = null;
               // ✅ page 0 is cover
               if (a <= 0) return;
 
@@ -847,7 +988,9 @@ class _QuranViewPageState extends State<QuranViewPage>
                 }
               }
 
-              index = a;
+              setState(() {
+                index = a;
+              });
 
               Future.microtask(() async {
                 await AudioServices().player.stop();
@@ -891,10 +1034,13 @@ class _QuranViewPageState extends State<QuranViewPage>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          TextQuranCubit.get(context)
-                              .convertToArabic(pageIndex.toString()),
-                          style: AppTextStyles.madMd14(context, color: Colors.white),
+                        Container(
+                          key: (pageIndex == index) ? _pageNumberKey : null,
+                          child: Text(
+                            TextQuranCubit.get(context)
+                                .convertToArabic(pageIndex.toString()),
+                            style: AppTextStyles.madMd14(context, color: Colors.white),
+                          ),
                         ),
                       ],
                     ),
@@ -915,6 +1061,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                                   if (mounted) Navigator.pop(context);
                                 },
                                 child: Container(
+                                  key: (pageIndex == index) ? _backKey : null,
                                   width: 30.w,
                                   height: 30.w,
                                   padding: EdgeInsetsDirectional.only(
@@ -942,6 +1089,7 @@ class _QuranViewPageState extends State<QuranViewPage>
                                 valueListenable: isPlaying,
                                 builder: (context, playing, _) {
                                   return InkWell(
+                                    key: (pageIndex == index) ? _playKey : null,
                                     onTap: () async {
                                       final pageData = getPageData(index);
                                       await playSurahVersesSequentially(pageData);
@@ -966,7 +1114,8 @@ class _QuranViewPageState extends State<QuranViewPage>
                           child: Center(
                             child: Directionality(
                               textDirection: m.TextDirection.rtl,
-                              child: SizedBox(
+                              child: Container(
+                                key: (pageIndex == index) ? _ayahAreaKey : null,
                                 width: double.infinity,
                                 child: BlocBuilder<TextQuranCubit, TextQuranStates>(
                                   builder: (context, state) {

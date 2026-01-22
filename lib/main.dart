@@ -21,6 +21,7 @@ import 'package:moshaf/controllers/auth/auth_cubit.dart';
 import 'package:moshaf/controllers/daily_challenge/daily_challenge_cubit.dart';
 import 'package:moshaf/controllers/home/home_cubit.dart';
 import 'package:moshaf/controllers/leaderboard/leaderboard_cubit.dart';
+import 'package:moshaf/controllers/playlist/playlist_cubit.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
 import 'package:moshaf/controllers/settings/settings_cubit.dart';
 import 'package:moshaf/controllers/theme/theme_cubit.dart';
@@ -272,6 +273,7 @@ Duration _calculateInitialDelay(int targetHour, int targetMinute) {
 /// ================================================
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   final androidPlugin =
   flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
@@ -345,6 +347,8 @@ else if (Platform.isIOS) {
   HomeWidget.setAppGroupId('group.com.example.mostakeem');
 }
   DioHelper.init();
+// CacheHelper.deleteData(key: "isFirstTime2");
+// CacheHelper.deleteData(key: "quran_view_tutorial_shown");
   // Setup timezone info
   tz.initializeTimeZones();
   final String localTimeZone = tz.local.name;
@@ -517,6 +521,7 @@ class MyApp extends StatelessWidget {
           BlocProvider(create: (context) => ThemeCubit()..getThemeMode(),lazy: false,),
           BlocProvider(create: (context) => QiblahCubit()),
           BlocProvider(create: (context) => LeaderboardCubit()),
+          BlocProvider(create: (context) => PlaylistCubit()..loadPlaylists()),
           BlocProvider(create: (context) => DailyChallengeCubit()),
           BlocProvider(create: (context) => RecitationCubit()..initializeRecitation()..loadJsonAsset()),
           BlocProvider(create: (context) => AuthCubit()),

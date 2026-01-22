@@ -272,6 +272,7 @@ class AllQuranScreen extends StatelessWidget {
                         final surahNum = filteredSurahs[index];
 
                         return CustomSorahContainer(
+                          showPlayListIcon: false,
                           isDark: isDark,
                           placeOfRevelation:
                           quran.getPlaceOfRevelation(surahNum) == "Makkah"

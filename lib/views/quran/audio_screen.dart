@@ -10,6 +10,7 @@ import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
 import 'package:moshaf/controllers/quran_audio/audio_quran_states.dart';
 import 'package:moshaf/controllers/text_quran/text_quran_cubit.dart';
 import 'package:moshaf/views/azkar/widgets/azkar_header.dart';
+import 'package:moshaf/views/quran/playlist_screen.dart';
 import 'package:moshaf/views/quran/widgets/custom_sorah_container.dart';
 import 'package:quran/quran.dart';
 import 'package:quran/quran.dart' as quran;
@@ -48,6 +49,7 @@ class AudioScreen extends StatelessWidget {
 
     final dropdownBorderClr = gold ? const Color(AppColors.goldBorder) : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders);
     final dropdownTextClr = gold ? const Color(AppColors.goldText) : (isDark ? Colors.white : Colors.black);
+    final primary = AppColors.lbPrimary();
 
     return BlocConsumer<AudioQuranCubit, AudioQuranStates>(
       builder: (context, state) {
@@ -185,6 +187,7 @@ class AudioScreen extends StatelessWidget {
                   SizedBox(height: 30.h),
                   Expanded(
                     child: ListView.separated(
+                      padding: EdgeInsetsDirectional.only(bottom: 70),
                       itemBuilder: (context, index) {
                         final surahNumber = index + 1;
                         return CustomSorahContainer(
@@ -228,6 +231,31 @@ class AudioScreen extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PlaylistScreen(),
+                ),
+              );
+            },
+
+            backgroundColor: primary,
+
+            // ✅ important for contrast
+            foregroundColor: Colors.white,
+
+            icon: const Icon(Icons.playlist_play),
+            label: Text(
+              'قائمتي',
+              style: AppTextStyles.madReg12(context, color: Colors.white),
+            ),
+
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
         );

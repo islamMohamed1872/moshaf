@@ -19,3 +19,9 @@ class CurrentAyahChangedState extends AudioQuranStates {
   final String verseKey;
   CurrentAyahChangedState(this.verseKey);
 }
+class PlaylistPlayingState extends AudioQuranStates {
+  final String playlistName;
+  PlaylistPlayingState(this.playlistName);
+}
+
+class PlaylistFinishedState extends AudioQuranStates {}

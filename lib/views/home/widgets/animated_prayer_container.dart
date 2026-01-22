@@ -12,14 +12,17 @@ class AnimatedPrayerContainer extends StatefulWidget {
   final String dayName;
   final String hijriDate;
   final String date;
+  final Key? coachKey;
 
   const AnimatedPrayerContainer({
+    super.key,
     required this.isDark,
     required this.prayerName,
     required this.remainingTime,
     required this.dayName,
     required this.hijriDate,
     required this.date,
+    this.coachKey,
   });
 
   @override
@@ -41,14 +44,14 @@ class AnimatedPrayerContainerState extends State<AnimatedPrayerContainer>
       duration: const Duration(seconds: 10),
     )..forward();
 
-    Future.delayed(const Duration(seconds: 10), () {
-      if (mounted) {
-        setState(() {
-          _collapsed = true;
-          _visible = false;
-        });
-      }
-    });
+    // Future.delayed(const Duration(seconds: 10), () {
+    //   if (mounted) {
+    //     setState(() {
+    //       _collapsed = true;
+    //       _visible = false;
+    //     });
+    //   }
+    // });
   }
 
   @override
@@ -88,6 +91,7 @@ class AnimatedPrayerContainerState extends State<AnimatedPrayerContainer>
             animation: _controller,
             builder: (context, child) {
               return Container(
+                key: widget.coachKey,
                 width: double.infinity,
                 height: 55.h,
                 margin: EdgeInsets.only(bottom: 20.h),

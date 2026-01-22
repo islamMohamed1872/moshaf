@@ -9,9 +9,11 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:moshaf/constants/app_const.dart';
 import 'package:moshaf/controllers/quran_audio/audio_quran_states.dart';
+import 'package:quran/quran.dart' as quran;
 
 import '../../components/audio_service.dart';
 import '../../components/const.dart';
+import '../../models/playlist_model.dart';
 import '../../models/reciter_model.dart';
 import '../../services/mp3quran_service.dart';
 import '../../views/quran/widgets/ReciterPickerSheet.dart';
@@ -291,6 +293,22 @@ class AudioQuranCubit extends Cubit<AudioQuranStates> {
         emit(GetDataSuccessState());
       }
     });
+    player.processingStateStream.listen((state) async {
+      if (state == ProcessingState.completed) {
+        await player.stop();
+        await player.seek(Duration.zero);
+
+        // ✅ Check if playing from playlist
+        if (_currentPlaylistQueue.isNotEmpty) {
+          _currentQueueIndex++;
+          await _playNextInQueue();
+        } else {
+          updatePlayerState(PlayerState.stopped);
+          position = Duration.zero;
+          emit(GetDataSuccessState());
+        }
+      }
+    });
   }
 
   MediaItem _mediaItem() {
@@ -399,6 +417,181 @@ class AudioQuranCubit extends Cubit<AudioQuranStates> {
     position = Duration.zero;
     emit(AudioQuranStoppedState());
   }
+
+  List<PlaylistItem> _currentPlaylistQueue = [];
+  int _currentQueueIndex = 0;
+
+// ✅ Play a single playlist item with range
+  Future<void> playPlaylistItem(PlaylistItem item) async {
+    try {
+      sorahNumber = item.surah;
+
+      // Set queue with single item
+      _currentPlaylistQueue = [item];
+      _currentQueueIndex = 0;
+
+      emit(GetDataLoadingState());
+
+      final url = getAudioUrl();
+      final cache = DefaultCacheManager();
+
+      // Check URL availability
+      final exists = await _urlExists(url);
+      if (!exists) {
+        _handleAudioNotAvailable();
+        return;
+      }
+
+      // Get cache or stream
+      final fileInfo = await cache.getFileFromCache(url);
+
+      late AudioSource source;
+
+      if (fileInfo != null && fileInfo.file.existsSync()) {
+        source = AudioSource.uri(
+          Uri.file(fileInfo.file.path),
+          tag: _mediaItem(),
+        );
+      } else {
+        source = AudioSource.uri(
+          Uri.parse(url),
+          tag: _mediaItem(),
+        );
+        cache.downloadFile(url).catchError((_) {});
+      }
+
+      await player.setAudioSource(source);
+
+      // ✅ Seek to start verse if not 1
+      if (item.startVerse > 1) {
+        // Estimate position based on verse (rough calculation)
+        final estimatedDuration = duration.inSeconds;
+        final versePosition = (estimatedDuration * (item.startVerse - 1)) ~/
+            quran.getVerseCount(item.surah);
+
+        await player.seek(Duration(seconds: versePosition));
+      }
+
+      await player.play();
+      updatePlayerState(PlayerState.playing);
+      emit(GetDataSuccessState());
+
+    } catch (e, s) {
+      debugPrint("❌ Playlist item error: $e");
+      debugPrintStack(stackTrace: s);
+      _handleAudioNotAvailable();
+    }
+  }
+
+// ✅ Play entire playlist sequentially
+  Future<void> playPlaylist(Playlist playlist) async {
+    try {
+      if (playlist.items.isEmpty) {
+        Fluttertoast.showToast(msg: "القائمة فارغة");
+        return;
+      }
+
+      _currentPlaylistQueue = List.from(playlist.items);
+      _currentQueueIndex = 0;
+
+      emit(PlaylistPlayingState(playlist.name));
+      await _playNextInQueue();
+
+    } catch (e) {
+      debugPrint("❌ Playlist error: $e");
+      Fluttertoast.showToast(msg: "خطأ في تشغيل القائمة");
+    }
+  }
+
+// ✅ Internal: Play next item in playlist queue
+  Future<void> _playNextInQueue() async {
+    try {
+      if (_currentQueueIndex >= _currentPlaylistQueue.length) {
+        // Playlist finished
+        stop();
+        Fluttertoast.showToast(msg: "انتهت القائمة");
+        emit(PlaylistFinishedState());
+        return;
+      }
+
+      final currentItem = _currentPlaylistQueue[_currentQueueIndex];
+      sorahNumber = currentItem.surah;
+
+      emit(GetDataLoadingState());
+
+      final url = getAudioUrl();
+      final cache = DefaultCacheManager();
+
+      final exists = await _urlExists(url);
+      if (!exists) {
+        _currentQueueIndex++;
+        await _playNextInQueue(); // Skip to next
+        return;
+      }
+
+      final fileInfo = await cache.getFileFromCache(url);
+
+      late AudioSource source;
+      if (fileInfo != null && fileInfo.file.existsSync()) {
+        source = AudioSource.uri(
+          Uri.file(fileInfo.file.path),
+          tag: _mediaItem(),
+        );
+      } else {
+        source = AudioSource.uri(
+          Uri.parse(url),
+          tag: _mediaItem(),
+        );
+        cache.downloadFile(url).catchError((_) {});
+      }
+
+      await player.setAudioSource(source);
+
+      // Seek to start verse
+      if (currentItem.startVerse > 1) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        await player.seek(Duration(seconds:
+        (duration.inSeconds * (currentItem.startVerse - 1)) ~/
+            quran.getVerseCount(currentItem.surah)
+        ));
+      }
+
+      await player.play();
+      updatePlayerState(PlayerState.playing);
+      emit(GetDataSuccessState());
+
+    } catch (e) {
+      debugPrint("❌ Queue error: $e");
+      _currentQueueIndex++;
+      await _playNextInQueue();
+    }
+  }
+
+// ✅ Skip to next playlist item
+  void nextPlaylistItem() {
+    if (_currentPlaylistQueue.isEmpty) {
+      nextSurah();
+      return;
+    }
+
+    _currentQueueIndex++;
+    _playNextInQueue();
+  }
+
+// ✅ Skip to previous playlist item
+  void prevPlaylistItem() {
+    if (_currentPlaylistQueue.isEmpty) {
+      prevSurah();
+      return;
+    }
+
+    if (_currentQueueIndex > 0) {
+      _currentQueueIndex--;
+      _playNextInQueue();
+    }
+  }
+
+
 }
 
 // Add this enum for better state management
