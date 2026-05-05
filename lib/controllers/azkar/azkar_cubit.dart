@@ -66,7 +66,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
      await PrayerTimesCubit.get(context).fetchPrayerTimesNoInternet();
     }
 
-    // 🔹 1. Check if just after any prayer time
+    // 1. Check if just after any prayer time
     for (var entry in prayerTimes.entries) {
       final prayerTime = entry.value;
       final difference = now.difference(prayerTime).inMinutes;
@@ -85,7 +85,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
       }
     }
 
-    // 🔹 2. Morning (after Fajr until Shorouq)
+    // 2. Morning (after Fajr until Shorouq)
     if (now.isAfter(prayerTimes["الفجر"]!) && now.isBefore(prayerTimes["الشروق"]!)) {
       randomZekr = getRandomZekr(azkarSabah['azkar']);
       zekrCategory = azkarSabah['category'];
@@ -93,7 +93,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
       return;
     }
 
-    // 🔹 3. Evening (after Maghrib until Isha)
+    // 3. Evening (after Maghrib until Isha)
     if (now.isAfter(prayerTimes["المغرب"]!) && now.isBefore(prayerTimes["العشاء"]!)) {
       randomZekr = getRandomZekr(azkarMasaa['azkar']);
       zekrCategory = azkarMasaa['category'];
@@ -101,7 +101,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
       return;
     }
 
-    // 🔹 4. Otherwise
+    //  4. Otherwise
     randomZekr = getRandomZekr(azkarMotafareqa['azkar']);
     zekrCategory = azkarMotafareqa['category'];
     emit(GetZekrBasedOnTimeState());
@@ -124,11 +124,8 @@ class AzkarCubit extends Cubit<AzkarStates> {
     };
 
     final original = categories[category];
-    print(category);
-    print(original);
     if (original == null) return;
 
-    // ✅ DEEP COPY (critical)
     final Map<String, dynamic> selected = {
       ...original,
       'azkar': List<Map<String, dynamic>>.from(
@@ -137,7 +134,6 @@ class AzkarCubit extends Cubit<AzkarStates> {
     };
 
 
-    // ✅ now navigate safely
     navigateTo(
       context,
       ZekrScreen(
@@ -219,9 +215,9 @@ class AzkarCubit extends Cubit<AzkarStates> {
           .map((e) => e.key)
           .toList();
 
-      print('✅ Saved order for category: $categoryId');
+      print('Saved order for category: $categoryId');
     } catch (e) {
-      print('❌ Error saving azkar order: $e');
+      print('Error saving azkar order: $e');
     }
   }
 
@@ -234,7 +230,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
       final cached = await CacheHelper.getMap(key: 'azkar_order_$categoryId');
 
       if (cached == null || cached.isEmpty) {
-        print('ℹ️ No saved order found for: $categoryId');
+        print('No saved order found for: $categoryId');
         return originalItems;
       }
 
@@ -261,10 +257,10 @@ class AzkarCubit extends Cubit<AzkarStates> {
         }
       }
 
-      print('✅ Loaded saved order for category: $categoryId');
+      print('Loaded saved order for category: $categoryId');
       return reorderedItems;
     } catch (e) {
-      print('❌ Error loading azkar order: $e');
+      print(' Error loading azkar order: $e');
       return originalItems;
     }
   }
@@ -274,9 +270,9 @@ class AzkarCubit extends Cubit<AzkarStates> {
     try {
       await CacheHelper.deleteData(key: 'azkar_order_$categoryId');
       _azkarOrderCache.remove(categoryId);
-      print('✅ Cleared order for category: $categoryId');
+      print(' Cleared order for category: $categoryId');
     } catch (e) {
-      print('❌ Error clearing azkar order: $e');
+      print(' Error clearing azkar order: $e');
     }
   }
 
@@ -286,9 +282,9 @@ class AzkarCubit extends Cubit<AzkarStates> {
       for (final categoryId in _azkarOrderCache.keys.toList()) {
         await clearZekrOrder(categoryId);
       }
-      print('✅ Cleared all saved orders');
+      print(' Cleared all saved orders');
     } catch (e) {
-      print('❌ Error clearing all orders: $e');
+      print('Error clearing all orders: $e');
     }
   }
 

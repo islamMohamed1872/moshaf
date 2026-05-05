@@ -1,12 +1,12 @@
 class AppConstants{
-  /// Arabic mapping for countries and major cities in Egypt 🇪🇬 and Saudi Arabia 🇸🇦
+  /// Arabic mapping for countries and major cities in Egypt and Saudi Arabia
   static const Map<String, String> arabicLocationNames = {
     // ===== COUNTRIES =====
     'Egypt': 'مصر',
     'Saudi Arabia': 'المملكة العربية السعودية',
     'Kingdom of Saudi Arabia': 'المملكة العربية السعودية',
 
-    // ===== EGYPT 🇪🇬 =====
+    // ===== EGYPT =====
     'Cairo': 'القاهرة',
     'Giza': 'الجيزة',
     'Alexandria': 'الإسكندرية',
@@ -79,9 +79,6 @@ class AppConstants{
     'Thadiq': 'ثادق',
     'Shaqra': 'شقراء',
   };
-
-  static const String googleMapsAndroidKey = "AIzaSyBZ0Ck4x3f1b7djhMM_1nQVenOkk7vIroY";
-  static const String googleMapsIOSKey = "AIzaSyD5C7XFKILQSWuxOmESPVh03KIIxOPEX6Q";
 
   static const List<String> arabicAlphabet = [
     'ا','ب','ت','ث','ج','ح','خ',
