@@ -9,6 +9,7 @@ class Header extends StatelessWidget {
   final GestureTapCallback? onTap;
   final bool isDark;
   final Color? iconColor;
+  final Color? textColor;
 
   const Header({
     super.key,
@@ -16,6 +17,7 @@ class Header extends StatelessWidget {
     this.onTap,
     required this.isDark,
     this.iconColor,
+    this.textColor
   });
 
   @override
@@ -53,7 +55,7 @@ class Header extends StatelessWidget {
               title,
               style: AppTextStyles.madReg16(
                 context,
-                color: textColor,
+                color:this.textColor?? textColor,
               ),
             ),
           ),

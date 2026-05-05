@@ -63,7 +63,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '733056371061',
     projectId: 'mostakeem-a41d2',
     storageBucket: 'mostakeem-a41d2.firebasestorage.app',
+    androidClientId: '733056371061-8c2qb81bouk9vgph6351828nvvftseck.apps.googleusercontent.com',
     iosClientId: '733056371061-4eil2h7lseccn5o9hqu63o999lusllr2.apps.googleusercontent.com',
     iosBundleId: 'com.example.moshaf',
   );
+
 }

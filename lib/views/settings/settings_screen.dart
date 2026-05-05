@@ -33,7 +33,7 @@ class SettingsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Header(title: "الاعدادات",isDark: isDark,iconColor: isDark?Colors.white:Colors.black,),
+                  Header(title: "الاعدادات",textColor: isDark?Colors.white:Colors.black,isDark: isDark,iconColor: isDark?Colors.white:Colors.black,),
                   SizedBox(
                     height: 15.h,
                   ),

@@ -1,103 +1,39 @@
 // podcast_cubit.dart
 import 'package:bloc/bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moshaf/models/episode_model.dart';
 import '../../services/youtube_services.dart';
 import 'podcast_states.dart';
 
 enum PodcastCategory { all, deen, dunya }
+enum PodcastSort { none, newest, oldest }
 
 
 class PodcastCubit extends Cubit<PodcastStates> {
   final YouTubeService yt;
   PodcastCubit({required this.yt}) : super(PodcastInitial());
   static PodcastCubit get(context) => BlocProvider.of(context);
-  final List<Map<String, String>> originalList = [
-    {
-      "type": "playlist",
-      "title": "دين و طين",
-      "playlist": "PLp0HPxdzjjMhcFyOYQ6dvn7fkxiFnuQCg",
-      "image": "https://i.ytimg.com/vi/5qzKaozM8ks/hqdefault.jpg",
-      "category": "deen"
-    },
-    {
-      "type": "playlist",
-      "title": "إيه المشكلة",
-      "playlist": "PLlXQj2VGUTmdUP1KDQ9pkmKJU-KDNOkwt",
-      "image": "https://i.ytimg.com/vi/1XpFCr3yFSY/hqdefault.jpg",
-      "category": "deen"
-    },
-    {
-      "type": "playlist",
-      "title": "Podcast البودكاست",
-      "playlist": "PL5isa5XjlZ5pH8vT0TJO9qZrRiZcrWuDp",
-      "image": "https://i.ytimg.com/vi/scu4-irtB8k/hqdefault.jpg",
-      "category": "dunya"
-    },
-    {
-      "type": "playlist",
-      "title": "سلسلة نقض الإلحاد",
-      "playlist": "PLSFJcWy6euuA_Ux76wLLUwR7HPpKL9rd-",
-      "image": "https://i.ytimg.com/vi/FP_Uv4zq_X0/hqdefault.jpg",
-      "category": "deen"
-    },
-    {
-      "type": "playlist",
-      "title": "الموسم الرابع | فاهم بودكاست",
-      "playlist": "PLSFJcWy6euuDw9Ag0y0eGztNHlL1UwqUH",
-      "image": "https://i.ytimg.com/vi/zRvZtwTSM6Q/hqdefault.jpg",
-      "category": "deen"
-    },
-    {
-      "type": "playlist",
-      "title": "سلسلة لازم تتحرر",
-      "playlist": "PLSFJcWy6euuAZPTasEUJRSrKEp85h6HPY",
-      "image": "https://i.ytimg.com/vi/agFMbV32JIc/hqdefault.jpg",
-      "category": "dunya"
-    },
-    {
-      "type": "playlist",
-      "title": "الموسم الثالث | فاهم بودكاست",
-      "playlist": "PLSFJcWy6euuD3uH4KATSQPjwnph7wT2yY",
-      "image": "https://i.ytimg.com/vi/_iAaHmAdGBw/hqdefault.jpg",
-      "category": "deen"
-    },
-    {
-      "type": "playlist",
-      "title": "الموسم الثاني | فاهم بودكاست",
-      "playlist": "PLSFJcWy6euuA1fybGAh3MO-D2ODE_ccsB",
-      "image": "https://i.ytimg.com/vi/si994Z9BAr8/hqdefault.jpg",
-      "category": "deen"
-    },
-    {
-      "type": "playlist",
-      "title": "سلسلة تذوق العبادات",
-      "playlist": "PLSFJcWy6euuDj6XSqBM-MmKhCyrXK_ywv",
-      "image": "https://i.ytimg.com/vi/63_AOCldyXo/hqdefault.jpg",
-      "category": "deen"
-    },
-    {
-      "type": "playlist",
-      "title": "الموسم الأول | فاهم بودكاست",
-      "playlist": "PLSFJcWy6euuA1W3YoDriyB6O9_huT-BgQ",
-      "image": "https://i.ytimg.com/vi/q8EYrvWn4n0/hqdefault.jpg",
-      "category": "deen"
-    },
-    {
-      "type": "video",
-      "title": "كيف تنجح العلاقات مع ياسر الحزيمي | بودكاست فنجان",
-      "id": "pJ0auP7dbcY",
-      "image": "https://i.ytimg.com/vi/pJ0auP7dbcY/hq720.jpg",
-      "category": "dunya"
-    },
-  ];
+   List originalList = [];
+  List filteredList = [];
 
-  List<Map<String, String>> filteredList = [];
+  void getPodcasts(){
+    emit(GetPodcastsLoadingStates());
+    FirebaseFirestore.instance.collection("videos").doc("podcasts").get().then((value) {
+      originalList = value.data()!['data'];
+      getVisibleList();
+      emit(GetPodcastsSuccessStates());
+    }).catchError((error){
+      print(error);
+      emit(GetPodcastsErrorStates(error.toString()));
+    });
+  }
 
   /// ===============================
   /// CATEGORY STATE
   /// ===============================
   PodcastCategory selectedCategory = PodcastCategory.all;
+  PodcastSort selectedSort = PodcastSort.none;
 
   /// ===============================
   /// PUBLIC METHODS USED BY UI
@@ -106,20 +42,60 @@ class PodcastCubit extends Cubit<PodcastStates> {
   /// Called when user taps a chip
   void changeCategory(PodcastCategory category) {
     selectedCategory = category;
+    getVisibleList();
+    emit(PodcastFilterState());
+  }
+  void changeSort(PodcastSort sort) {
+    selectedSort = sort;
+    sortPodcasts();
     emit(PodcastFilterState());
   }
 
   /// Final visible list (category + search)
-  List<Map<String, String>> getVisibleList() {
-    List<Map<String, String>> list =
-    filteredList.isNotEmpty ? filteredList : originalList;
+  void getVisibleList() {
+    filteredList= List.from(originalList);
 
-    if (selectedCategory == PodcastCategory.all) return list;
+    if (selectedCategory == PodcastCategory.all) {
+      emit(PodcastFilterState());
+      return;
+    }
 
-    final cat = selectedCategory == PodcastCategory.deen ? "deen" : "dunya";
+      final cat = selectedCategory == PodcastCategory.deen ? "deen" : "dunya";
 
-    return list.where((p) => p['category'] == cat).toList();
+    filteredList =  filteredList.where((p) => p['category'] == cat).toList();
+    emit(PodcastFilterState());
   }
+
+  void sortPodcasts(){
+    filteredList  =List.from(originalList);
+    if (selectedSort == PodcastSort.none){
+      emit(PodcastFilterState());
+      return;
+    }
+    filteredList.sort((a, b) {
+      final aDate = _parseDate(a['created_at']);
+      final bDate = _parseDate(b['created_at']);
+      return selectedSort == PodcastSort.newest
+          ? bDate.compareTo(aDate)
+          : aDate.compareTo(bDate);
+    });
+    emit(PodcastFilterState());
+
+  }
+  DateTime _parseDate(dynamic value) {
+    if (value == null) return DateTime(0);
+
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime(0);
+    }
+
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+
+    return DateTime(0);
+  }
+
 
   /// ===============================
   /// SEARCH
@@ -128,7 +104,7 @@ class PodcastCubit extends Cubit<PodcastStates> {
     final q = normalizeArabic(query.toLowerCase());
 
     if (q.isEmpty) {
-      filteredList = [];
+      filteredList = List.from(originalList);
       emit(PodcastFilterState());
       return;
     }
@@ -206,5 +182,27 @@ class PodcastCubit extends Cubit<PodcastStates> {
         .replaceAll(RegExp(r'[^\u0600-\u06FF\s]'), '')
         .replaceAll(RegExp(r'[\u064B-\u0652]'), '')
         .trim();
+  }
+
+
+  Future<void> submitSuggestion({
+    required String url,
+    required String name,
+    required String note,
+  }) async
+  {
+    emit(SuggestPodcastLoadingState());
+    await FirebaseFirestore.instance.collection('suggestions').add({
+      'url':       url,
+      'name':      name,
+      'note':      note,
+      'createdAt': FieldValue.serverTimestamp(),
+    }).then((onValue){
+      print(onValue);
+      emit(SuggestPodcastSuccessState());
+    }).catchError((onError){
+      print(onError);
+      emit(SuggestPodcastErrorState());
+    });
   }
 }

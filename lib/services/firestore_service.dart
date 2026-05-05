@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../models/daily_challenge.dart';
+import '../models/leaderboard_row.dart';
 
 enum LeaderboardSortBy { totalCorrect, fastestAnswer, longestStreak }
 
@@ -34,7 +35,7 @@ class FirestoreService {
   }
 
   // -------------------------------------------------------
-  // 🔹 SUBMIT ANSWER
+  // 🔹 SUBMIT ANSWER (FULLY FIXED)
   // -------------------------------------------------------
   Future<void> submitAnswer({
     required String uid,
@@ -51,7 +52,7 @@ class FirestoreService {
       final userSnap = await tx.get(userRef);
       final answerSnap = await tx.get(answerRef);
 
-      // If the user already answered today → update answer only
+      // 🔁 If already answered today → overwrite answer only
       if (answerSnap.exists) {
         tx.set(answerRef, {
           'selected_index': selectedIndex,
@@ -62,10 +63,11 @@ class FirestoreService {
         return;
       }
 
-      // If first time answering today
+      // 🆕 FIRST EVER ANSWER
       if (!userSnap.exists) {
         tx.set(userRef, {
-          'displayName': FirebaseAuth.instance.currentUser==null?"User": FirebaseAuth.instance.currentUser!.displayName,
+          'displayName':
+          FirebaseAuth.instance.currentUser?.displayName ?? 'User',
           'photoUrl': '',
           'country': '',
           'city': '',
@@ -74,42 +76,47 @@ class FirestoreService {
           'daily_streak': 1,
           'last_answer_date': dateId,
           'best_fastest_ms': isCorrect ? responseMs : null,
+          if (isCorrect) 'first_correct_at': FieldValue.serverTimestamp(),
         });
       } else {
         final data = userSnap.data()!;
         final lastDate = data['last_answer_date'];
         final yesterday = _yesterday(dateId);
 
-        // STREAK
+        // 🔥 STREAK LOGIC
         int newStreak = 1;
         if (lastDate == dateId) {
-          newStreak = data['daily_streak'];
+          newStreak = data['daily_streak'] ?? 1;
         } else if (lastDate == yesterday) {
           newStreak = (data['daily_streak'] ?? 0) + 1;
         }
 
-        // FASTEST TIME
-        int bestFastest = data['best_fastest_ms'] ?? 99999999;
-        if (isCorrect && responseMs < bestFastest) {
-          bestFastest = responseMs;
+        final Map<String, dynamic> updates = {
+          'daily_streak': newStreak,
+          'last_answer_date': dateId,
+        };
+
+        if (isCorrect) {
+          updates['total_points'] = (data['total_points'] ?? 0) + 10;
+          updates['total_correct_answers'] =
+              (data['total_correct_answers'] ?? 0) + 1;
+
+          // 🥇 EARLIEST correct answer wins ties
+          if (!data.containsKey('first_correct_at')) {
+            updates['first_correct_at'] = FieldValue.serverTimestamp();
+          }
+
+          // optional: keep fastest time for UI
+          int bestFastest = data['best_fastest_ms'] ?? 99999999;
+          if (responseMs < bestFastest) {
+            updates['best_fastest_ms'] = responseMs;
+          }
         }
 
-        tx.set(
-          userRef,
-          {
-            'total_points':
-            (data['total_points'] ?? 0) + (isCorrect ? 10 : 0),
-            'total_correct_answers':
-            (data['total_correct_answers'] ?? 0) + (isCorrect ? 1 : 0),
-            'daily_streak': newStreak,
-            'last_answer_date': dateId,
-            'best_fastest_ms': bestFastest,
-          },
-          SetOptions(merge: true),
-        );
+        tx.set(userRef, updates, SetOptions(merge: true));
       }
 
-      // Write answer
+      // 📝 SAVE ANSWER
       tx.set(answerRef, {
         'selected_index': selectedIndex,
         'is_correct': isCorrect,
@@ -121,11 +128,12 @@ class FirestoreService {
 
   String _yesterday(String dateId) {
     final dt = DateTime.parse(dateId);
-    return DateFormat('yyyy-MM-dd').format(dt.subtract(const Duration(days: 1)));
+    return DateFormat('yyyy-MM-dd')
+        .format(dt.subtract(const Duration(days: 1)));
   }
 
   // -------------------------------------------------------
-  // 🔹 GET LEADERBOARD
+  // 🔹 GET LEADERBOARD (CORRECT ORDER)
   // -------------------------------------------------------
   Future<List<UserStats>> getLeaderboard({
     required int limit,
@@ -144,11 +152,16 @@ class FirestoreService {
 
     switch (sortBy) {
       case LeaderboardSortBy.totalCorrect:
-        q = q.orderBy('total_correct_answers', descending: true);
+      // 🥇 POINTS → EARLIER WINS
+
+        q = q
+            .orderBy('total_points', descending: true);
         break;
+
       case LeaderboardSortBy.fastestAnswer:
         q = q.orderBy('best_fastest_ms', descending: false);
         break;
+
       case LeaderboardSortBy.longestStreak:
         q = q.orderBy('daily_streak', descending: true);
         break;
@@ -161,27 +174,14 @@ class FirestoreService {
         .toList();
   }
 
-
-  Future<void> saveUserDailyAnswer({
-    required String uid,
-    required String challengeId,
-    required int selectedIndex,
-  }) async {
-    final doc = FirebaseFirestore.instance
-        .collection("daily_challenge_answers")
-        .doc(uid);
-
-    await doc.set({
-      challengeId: selectedIndex,
-    }, SetOptions(merge: true));
-  }
-
-
+  // -------------------------------------------------------
+  // 🔹 DAILY ANSWER CACHE
+  // -------------------------------------------------------
   Future<int?> loadUserDailyAnswer({
     required String uid,
     required String challengeId,
   }) async {
-    final doc = await FirebaseFirestore.instance
+    final doc = await _db
         .collection("user_answers")
         .doc(uid)
         .collection("answers")
@@ -189,16 +189,6 @@ class FirestoreService {
         .get();
 
     if (!doc.exists) return null;
-
-    final data = doc.data()!;
-
-    // Firestore uses snake_case
-    if (data.containsKey("selected_index")) {
-      return data["selected_index"];
-    }
-
-    return null;
+    return doc.data()?['selected_index'];
   }
-
-
 }

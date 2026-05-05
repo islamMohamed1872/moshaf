@@ -50,8 +50,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       : (isDark ? Colors.white : Colors.black),
                 ),
                 SizedBox(height: 20.h),
-                _buildFilters(isDark),
-                SizedBox(height: 15.h),
+                // _buildFilters(isDark),
+                // SizedBox(height: 15.h),
                 Expanded(
                   child: BlocBuilder<LeaderboardCubit, LeaderboardState>(
                     builder: (context, state) {
@@ -516,29 +516,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   ),
                 ),
 
-                // ✅ TIME IF FASTEST
-                if (u.bestFastestMs < 9999999)
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 6.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8.r),
-                      border: Border.all(
-                        color: Colors.blue.withOpacity(0.4),
-                      ),
-                    ),
-                    child: Text(
-                      "${(u.bestFastestMs / 1000).toStringAsFixed(1)}s",
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: Colors.blue.shade300,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
               ],
             ),
           );

@@ -16,3 +16,16 @@ class PodcastError extends PodcastStates {
 }
 
 class PodcastFilterState extends PodcastStates {}
+
+class GetPodcastsLoadingStates extends PodcastStates{}
+class GetPodcastsSuccessStates extends PodcastStates{}
+class GetPodcastsErrorStates extends PodcastStates{
+  final String error;
+  GetPodcastsErrorStates(this.error);
+}
+
+class SuggestPodcastLoadingState extends PodcastStates{}
+class SuggestPodcastSuccessState extends PodcastStates{}
+class SuggestPodcastErrorState extends PodcastStates{}
+
+

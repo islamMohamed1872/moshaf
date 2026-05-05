@@ -15,8 +15,8 @@ import 'package:moshaf/components/components.dart';
 import 'package:moshaf/controllers/home/home_states.dart';
 import 'package:moshaf/controllers/azkar/azkar_cubit.dart';
 import 'package:moshaf/views/admin/add_challenge.dart';
+import 'package:moshaf/views/hadith/hadith_screen.dart';
 import 'package:moshaf/views/azkar/prays_screen.dart';
-import 'package:moshaf/views/daily_challenge/daily_challenge_screen.dart';
 import 'package:moshaf/views/haj_and_omrah/omrah_screen.dart';
 import 'package:moshaf/views/leaderboard/leaderboard_screen.dart';
 import 'package:moshaf/views/mosque_location/mosque_location_screen.dart';
@@ -25,7 +25,9 @@ import 'package:moshaf/views/pray_teaching/pray_instructions_screen.dart';
 import 'package:moshaf/views/prayer_times/prayer_times_screen.dart';
 import 'package:moshaf/views/qiblah/qiblah_on_boarding_screen.dart';
 import 'package:moshaf/views/quran/all_quran_screen.dart';
+import 'package:moshaf/views/quran/quran_main_screen.dart';
 import 'package:moshaf/views/quran_radio/quran_radio_screen.dart';
+import 'package:moshaf/views/ramadan/ramadan_home.dart';
 import 'package:moshaf/views/ramadan/ramadan_screen.dart';
 import 'package:moshaf/views/recitation/recitation_screen.dart';
 import 'package:moshaf/views/search/search_screen.dart';
@@ -211,6 +213,7 @@ class HomeCubit extends Cubit<HomeStates> {
     {"image": "assets/images/quran.png", "title": "القرآن الكريم"},
     {"image": "assets/images/hadith.png", "title": "احاديث نبوية"},
     {"image": "assets/images/prays.png", "title": "ادعية واذكار"},
+    {"image": "assets/images/hadith2.png", "title": "احاديث"},
     {"image": "assets/images/wodoo.png", "title": "تعليم الوضوء"},
     {"image": "assets/images/pray_teaching.png", "title": "تعليم الصلاة"},
     {"image": "assets/images/qiblah.png", "title": "تحديد القبلة"},
@@ -220,9 +223,10 @@ class HomeCubit extends Cubit<HomeStates> {
     {"image": "assets/images/tasbeeh.png", "title": "السبحة"},
     {"image": "assets/images/zakah.png", "title": "حساب زكاة المال"},
     {"image": "assets/images/radio.png", "title": "اذاعة القرآن الكريم"},
-    {"image": "assets/images/search.png", "title": "بحث"},
+    // {"image": "assets/images/search.png", "title": "بحث"},
     {"image": "assets/images/podcast.png", "title": "مقاطع الفيديو"},
     {"image": "assets/images/holy.png", "title": "الوِرد"},
+    // {"image": "assets/images/podcast.png", "title": "admin"},
   ];
 
   void navigateToFeature(BuildContext context, int index, bool isDark) {
@@ -237,7 +241,7 @@ class HomeCubit extends Cubit<HomeStates> {
         navigateTo(context, PrayerTimesScreen());
         break;
       case 1:
-        navigateTo(context, AllQuranScreen());
+        navigateTo(context, QuranMainScreen());
         break;
       case 2:
         navigateTo(context, OnePrayScreen(
@@ -251,41 +255,48 @@ class HomeCubit extends Cubit<HomeStates> {
         navigateTo(context, AzkarScreen());
         break;
       case 4:
-        navigateTo(context, WodooInstructionsScreen());
+        navigateTo(context, HadithScreen());
         break;
       case 5:
-        navigateTo(context, PrayInstructionsScreen());
+        navigateTo(context, WodooInstructionsScreen());
         break;
       case 6:
-        navigateTo(context, QiblahOnBoardingScreen());
+        navigateTo(context, PrayInstructionsScreen());
         break;
       case 7:
-        navigateTo(context, MosqueLocationScreen());
+        navigateTo(context, QiblahOnBoardingScreen());
         break;
       case 8:
-        navigateTo(context, RamadanScreen());
+        navigateTo(context, MosqueLocationScreen());
         break;
       case 9:
-        navigateTo(context, OmrahScreen(isDark: isDark));
+        navigateTo(context, RamadanHome());
         break;
       case 10:
-        navigateTo(context, TasbeehScreen());
+        navigateTo(context, OmrahScreen(isDark: isDark));
         break;
       case 11:
-        navigateTo(context, ZakahCalculator());
+        navigateTo(context, TasbeehScreen());
         break;
       case 12:
-        navigateTo(context, QuranRadioScreen());
+        navigateTo(context, ZakahCalculator());
         break;
       case 13:
-        navigateTo(context, SearchScreen());
+        navigateTo(context, QuranRadioScreen());
         break;
+      // case 14:
+      //   navigateTo(context, SearchScreen());
+      //   break;
       case 14:
         navigateTo(context, PodcastsScreen());
         break;
       case 15:
         navigateTo(context, RecitationScreen());
         break;
+
+      // case 17:
+      //   navigateTo(context, AdminAddChallengeScreen());
+      //   break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('لم يتم إضافة هذه الميزة بعد')),
@@ -319,25 +330,6 @@ class HomeCubit extends Cubit<HomeStates> {
 
   Future<void> requestLocationOnce() async {
     try {
-      // Check if location already initialized
-      final bool isInitialized =
-          await CacheHelper.getData(key: "location_initialized") ?? false;
-
-      if (isInitialized) {
-        // ✅ Use cached location silently
-        final cachedLat = await CacheHelper.getData(key: 'cached_latitude');
-        final cachedLon = await CacheHelper.getData(key: 'cached_longitude');
-
-        if (cachedLat != null && cachedLon != null) {
-          print('📦 Using cached location: ($cachedLat, $cachedLon)');
-          return;
-        }
-
-        // Edge case: flag true but cache missing → reset
-        await CacheHelper.saveData(key: "location_initialized", value: false);
-      }
-
-      // 🚨 FIRST TIME ONLY — request permission
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         await Geolocator.openLocationSettings();

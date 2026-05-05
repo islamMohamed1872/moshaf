@@ -114,7 +114,7 @@
 
         <!-- ✅ REPLACE MAIN ACTIVITY WITH AudioServiceActivity -->
         <activity
-            android:name="com.ryanheise.audioservice.AudioServiceActivity"
+            android:name=".MyAudioServiceActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""

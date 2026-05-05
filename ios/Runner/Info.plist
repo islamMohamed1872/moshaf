@@ -2,7 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-
+    <key>GMSApiKey</key>
+    <string>AIzaSyBWiuuOH93eV4T8agl0VQszgdBjfIK--Ew</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>We need access to your photo library to select audio files for custom azan sounds.</string>
   <!-- 🧭 Location Permissions -->
   <key>NSLocationWhenInUseUsageDescription</key>
   <string>This app uses your location to show accurate prayer times and Qibla direction based on your city.</string>

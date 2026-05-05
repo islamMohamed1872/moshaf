@@ -19,10 +19,12 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/controllers/auth/auth_cubit.dart';
 import 'package:moshaf/controllers/daily_challenge/daily_challenge_cubit.dart';
+import 'package:moshaf/controllers/hadith/hadith_cubit.dart';
 import 'package:moshaf/controllers/home/home_cubit.dart';
 import 'package:moshaf/controllers/leaderboard/leaderboard_cubit.dart';
 import 'package:moshaf/controllers/playlist/playlist_cubit.dart';
 import 'package:moshaf/controllers/qiblah/qiblah_cubit.dart';
+import 'package:moshaf/controllers/ramadan/ramadan_cubit.dart';
 import 'package:moshaf/controllers/settings/settings_cubit.dart';
 import 'package:moshaf/controllers/theme/theme_cubit.dart';
 import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
@@ -32,6 +34,7 @@ import 'package:moshaf/controllers/text_quran/text_quran_cubit.dart';
 import 'package:moshaf/network/dio_helper.dart';
 import 'package:moshaf/views/home/home_screen.dart';
 import 'package:moshaf/views/landing/landing_screen.dart';
+import 'package:moshaf/views/ramadan/eid_al_fetr_screen.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:workmanager/workmanager.dart';
 import 'components/cache_helper.dart';
@@ -112,12 +115,23 @@ Future<void> callbackCheckQuranReminder() async {
 }
 
 Future<void> ensureLocationPermission() async {
+  try {
+    await Future.any([
+      _doLocationPermission(),
+      Future.delayed(const Duration(seconds: 8)),  // ← hard timeout
+    ]);
+  } catch (e) {
+    print('⚠️ Location permission skipped: $e');
+  }
+}
+Future<void> _doLocationPermission() async {
   LocationPermission permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied ||
       permission == LocationPermission.deniedForever) {
-    permission = await Geolocator.requestPermission();
+    await Geolocator.requestPermission();
   }
 }
+
 
 @pragma('vm:entry-point')
 void fetchPrayerTimesAlarm() async {
@@ -273,7 +287,6 @@ Duration _calculateInitialDelay(int targetHour, int targetMinute) {
 /// ================================================
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   final androidPlugin =
   flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
@@ -283,9 +296,8 @@ Future<void> main() async {
   await androidPlugin?.requestExactAlarmsPermission();
 
   await dotenv.load(fileName: ".env");
-  // print("📦 GOOGLE_MAPS_API_KEY = ${dotenv.env['GOOGLE_MAPS_API_KEY']}");
   await ensureLocationPermission();
-  callbackCheckQuranReminder();
+  unawaited(callbackCheckQuranReminder());
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -415,21 +427,25 @@ else if (Platform.isIOS) {
 /// ================================================
 Future<void> initializeService() async {
   try {
-    final service = FlutterBackgroundService();
-
-    await service.configure(
-      androidConfiguration: AndroidConfiguration(
-        onStart: onStart, // Function to run when service starts
-        isForegroundMode: false,
-        autoStart: true,
-      ),
-      iosConfiguration: IosConfiguration(),
-    );
-
-    service.startService();
+    await Future.any([
+      _startBackgroundService(),
+      Future.delayed(const Duration(seconds: 5)),  // ← hard timeout
+    ]);
   } catch (e) {
-    print('Background service error: $e');
+    print('Background service error (non-fatal): $e');
   }
+}
+Future<void> _startBackgroundService() async {
+  final service = FlutterBackgroundService();
+  await service.configure(
+    androidConfiguration: AndroidConfiguration(
+      onStart: onStart,
+      isForegroundMode: false,
+      autoStart: true,
+    ),
+    iosConfiguration: IosConfiguration(),
+  );
+  service.startService();
 }
 
 /// ================================================
@@ -520,12 +536,14 @@ class MyApp extends StatelessWidget {
           BlocProvider(create: (context) => SettingsCubit()..getNotificationsState()),
           BlocProvider(create: (context) => ThemeCubit()..getThemeMode(),lazy: false,),
           BlocProvider(create: (context) => QiblahCubit()),
+          BlocProvider(create: (context) => HadithCubit()),
           BlocProvider(create: (context) => LeaderboardCubit()),
           BlocProvider(create: (context) => PlaylistCubit()..loadPlaylists()),
           BlocProvider(create: (context) => DailyChallengeCubit()),
           BlocProvider(create: (context) => RecitationCubit()..initializeRecitation()..loadJsonAsset()),
           BlocProvider(create: (context) => AuthCubit()),
           BlocProvider(create: (context) => AzkarCubit()),
+          BlocProvider(create: (context) => RamadanCubit()),
           BlocProvider(create: (context) => AudioQuranCubit()..loadReciters()),
         ],
         child: BlocBuilder<ThemeCubit,ThemeMode>(
@@ -565,12 +583,29 @@ class MyApp extends StatelessWidget {
 
              ),
              // home: const AppLayout(),
-             home:FirebaseAuth.instance.currentUser==null? LandingScreen():HomeScreen(),
+             home: FirebaseAuth.instance.currentUser == null
+                 ? LandingScreen()
+                 : HomeScreen(),
            ),
         ),
       ),
     );
   }
+  Widget _resolveHome() {
+    const eidStart = (year: 2026, month: 3, day: 20);
+    const eidEnd   = (year: 2026, month: 3, day: 23);
 
+    final now      = DateTime.now();
+    final start    = DateTime(eidStart.year, eidStart.month, eidStart.day);
+    final end      = DateTime(eidEnd.year,   eidEnd.month,   eidEnd.day, 23, 59, 59);
+
+    final isEidPeriod = !now.isBefore(start) && !now.isAfter(end);
+
+    if (isEidPeriod) return const EidAlFitrScreen();
+
+    return FirebaseAuth.instance.currentUser == null
+        ? LandingScreen()
+        : HomeScreen();
+  }
 
 }

@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:bloc/bloc.dart';
@@ -23,6 +25,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../../components/cache_helper.dart';
 import '../../constants/app_const.dart';
 import '../../constants/azkar.dart';
+import '../settings/settings_cubit.dart';
 
 class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   PrayerTimesCubit() : super(PrayerTimesInitialStates());
@@ -648,7 +651,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
     final hijri = HijriCalendar.fromDate(datetime);
     final monthName = _arabicHijriMonths[hijri.hMonth - 1];
-    hijriDate = "${_toArabicDigits(hijri.hDay.toString())} $monthName ${_toArabicDigits(hijri.hYear.toString())}";
+    hijriDate = "${_toArabicDigits((hijri.hDay).toString())} $monthName ${_toArabicDigits(hijri.hYear.toString())}";
     // if you want Arabic digits inside hijriDate, wrap numbers using _toArabicDigits
   }
 
@@ -682,97 +685,89 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   }
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
   FlutterLocalNotificationsPlugin();
-  // Future<void> scheduleNextPrayer(Map<String, String> prayerTimes) async {
-  //   final now = DateTime.now();
-  //
-  //   // Sort prayers chronologically
-  //   final sorted = prayerTimes.entries
-  //       .map((e) => DateTime.parse(e.value))
-  //       .where((t) => t.isAfter(now))
-  //       .toList()
-  //     ..sort();
-  //
-  //   if (sorted.isEmpty) return; // no more prayers today
-  //
-  //   final nextPrayer = sorted.first;
-  //
-  //   // Schedule with flutter_local_notifications
-  //   final androidDetails = AndroidNotificationDetails(
-  //     'athan_channel',
-  //     'Athan Notifications',
-  //     sound: RawResourceAndroidNotificationSound('azan'),
-  //     importance: Importance.max,
-  //     priority: Priority.high,
-  //     playSound: true,
-  //   );
-  //   final details = NotificationDetails(android: androidDetails);
-  //
-  //   await flutterLocalNotificationsPlugin.zonedSchedule(
-  //     0,
-  //     'Prayer Time',
-  //     'It\'s time for prayer',
-  //     tz.TZDateTime.from(nextPrayer, tz.local),
-  //     details,
-  //     uiLocalNotificationDateInterpretation:
-  //     UILocalNotificationDateInterpretation.absoluteTime,
-  //       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle
-  //   );
-  // }
+
+  static const Map<String, String> _builtInAssetMap = {
+    "اذان الحرم المكي":      "azan",
+    "عبد الباسط عبد الصمد": "abdullbaset",
+    "ناصر القطامي":          "naser_alkatamy",
+    "صالح الجعفراوي":       "saleh_algafrawy",
+  };
 
   Future<void> scheduleAllPrayerNotifications() async {
-    final List skippedNotification = await CacheHelper.getData(key: "mutedNotifications")??[];
+    final List skippedNotification =
+        await CacheHelper.getData(key: "mutedNotifications") ?? [];
     print("📅 Scheduling prayer notifications...");
 
-    // 🔹 Cancel any existing scheduled notifications first
     await flutterLocalNotificationsPlugin.cancelAll();
     print("🗑️ Cleared all previously scheduled notifications.");
 
     final now = DateTime.now();
     int scheduledCount = 0;
 
+    // ── Resolve sound once outside the loop ───────────────────────────────────
+    String azanOption = "اذان الحرم المكي";
+    ({String channelId, AndroidNotificationSound sound})? resolved;
+
+    if (Platform.isAndroid) {
+      azanOption =
+          await CacheHelper.getData(key: "azanSound") ?? "اذان الحرم المكي";
+
+      // Load SettingsCubit to resolve the sound (handles both built-in & custom)
+      // We instantiate a temporary instance just to read the sound map —
+      // no BlocProvider needed here since this runs outside widget tree.
+      final settingsCubit = SettingsCubit();
+      await settingsCubit.loadCustomSounds();
+      resolved = settingsCubit.resolveAndroidSound(azanOption);
+      await settingsCubit.close();
+    }
+
+    // ── Schedule each prayer ──────────────────────────────────────────────────
     for (final entry in prayerTimes.entries) {
       final prayerName = entry.key;
       final time = entry.value;
-      if(prayerName == "الشروق"||prayerName == "منتصف الليل"||prayerName == "الثلث الاخير") continue;
-      // Skip prayers that already passed today
-      if (time.isBefore(now)||skippedNotification.contains("صلاة $prayerName")) {
-        print("⏭️ Skipping $prayerName - already passed");
+
+      if (prayerName == "الشروق" ||
+          prayerName == "منتصف الليل" ||
+          prayerName == "الثلث الاخير") continue;
+
+      if (time.isBefore(now) ||
+          skippedNotification.contains("صلاة $prayerName")) {
+        print("⏭️ Skipping $prayerName - already passed or muted");
         continue;
       }
-      if(Platform.isAndroid){
-        final azanOption = await CacheHelper.getData(key: "azanSound")??"اذان الحرم المكي";
-        String audioFileName = "";
 
-        switch(azanOption){
-          case "اذان الحرم المكي":
-            audioFileName = "azan";
-            break;
-          case "عبد الباسط عبد الصمد":
-            audioFileName = "abdullbaset";
-            break;
-          case "ناصر القطامي":
-            audioFileName = "naser_alkatamy";
-            break;
-          case "صالح الجعفراوي":
-            audioFileName = "saleh_algafrawy";
-            break;
-          default:
-            audioFileName = "azan";
-            break;
+      if (Platform.isAndroid) {
+        final isBuiltIn = _builtInAssetMap.containsKey(azanOption);
+        late AndroidNotificationDetails androidDetails;
+        if(isBuiltIn){
+          androidDetails = AndroidNotificationDetails(
+            resolved!.channelId,
+            'Prayer Times',
+            channelDescription: 'Prayer time notifications',
+            importance: Importance.max,
+            priority: Priority.max,
+            autoCancel: false,
+            playSound: true,
+            sound: resolved.sound,
+          );
+        }
+        else{
+          androidDetails = AndroidNotificationDetails(
+            resolved!.channelId,
+            'Prayer Times',
+            importance: Importance.max,
+            priority: Priority.max,
+            // autoCancel: true,
+            playSound: true,
+            sound: resolved.sound,
+            additionalFlags: Int32List.fromList([4]),
+            vibrationPattern: Int64List.fromList([0]),
+            enableVibration: false,
+            audioAttributesUsage: AudioAttributesUsage.notification,
+            onlyAlertOnce: true,
+          );
         }
 
-        final androidDetails = AndroidNotificationDetails(
-          'prayer_channel_$audioFileName',
-          'Prayer Times ($audioFileName)',
-          channelDescription: 'Prayer time notifications',
-          importance: Importance.max,
-          priority: Priority.max,
-          autoCancel: false,
-          playSound: true,
-          sound: RawResourceAndroidNotificationSound(audioFileName),
-        );
-
-        final notifDetails = NotificationDetails(android: androidDetails,);
 
         try {
           await flutterLocalNotificationsPlugin.zonedSchedule(
@@ -780,52 +775,46 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
             'وقت الصلاة',
             'حان الآن موعد صلاة $prayerName',
             tz.TZDateTime.from(time, tz.local),
-            notifDetails,
+            NotificationDetails(android: androidDetails),
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             matchDateTimeComponents: DateTimeComponents.time,
           );
           scheduledCount++;
-          print("✅ Scheduled notification for $prayerName at ${DateFormat('hh:mm a').format(time)}");
+          print(
+              "✅ Scheduled $prayerName at ${DateFormat('hh:mm a').format(time)} — sound: $azanOption");
         } catch (e) {
           print("❌ Error scheduling $prayerName: $e");
         }
-
-      }
-      else{
-       try{
-         final iosDetails = DarwinNotificationDetails(
-           presentAlert: true,  // show alert banner
-           presentBadge: true,  // update app icon badge
-           presentSound: true,  // play notification sound
-           interruptionLevel: InterruptionLevel.timeSensitive,
-         );
-         final notifDetails = NotificationDetails(iOS: iosDetails);
-
-         await flutterLocalNotificationsPlugin.zonedSchedule(
-           time.hashCode,
-           'وقت الصلاة',
-           'حان الآن موعد صلاة $prayerName',
-           tz.TZDateTime.from(time, tz.local),
-           notifDetails,
-           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-           matchDateTimeComponents: DateTimeComponents.time,
-         );
-         scheduledCount++;
-         print("✅ Scheduled notification for $prayerName at ${DateFormat('hh:mm a').format(time)}");
-       }catch (e) {
-         print("❌ Error scheduling $prayerName: $e");
-       }
+      } else {
+        // iOS — unchanged
+        try {
+          const iosDetails = DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+            interruptionLevel: InterruptionLevel.timeSensitive,
+          );
+          await flutterLocalNotificationsPlugin.zonedSchedule(
+            time.hashCode,
+            'وقت الصلاة',
+            'حان الآن موعد صلاة $prayerName',
+            tz.TZDateTime.from(time, tz.local),
+            const NotificationDetails(iOS: iosDetails),
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            matchDateTimeComponents: DateTimeComponents.time,
+          );
+          scheduledCount++;
+          print(
+              "✅ Scheduled $prayerName at ${DateFormat('hh:mm a').format(time)}");
+        } catch (e) {
+          print("❌ Error scheduling $prayerName: $e");
+        }
       }
     }
+
     print("📅 Scheduled $scheduledCount prayer notifications");
     await scheduleDoaaNotifications();
-    // // If no prayers left today, schedule tomorrow's prayers
-    // if (scheduledCount == 0) {
-    //   print("⚠️ No prayers left today, will fetch tomorrow's prayers");
-    //   await _scheduleTomorrowsPrayers();
-    // }
   }
-
   Future<bool> shouldFetchNewTimes() async {
     final lastUpdate =await CacheHelper.getData(key: 'last_prayer_update');
 

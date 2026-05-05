@@ -22,6 +22,22 @@
           }
         },
         {
+          "client_id": "733056371061-tbqqfisgum2cgicistuh8l6tga3nruav.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.afaqalspl.moshaf",
+            "certificate_hash": "a580f2206375ba2040564c4c70310c9b708cc367"
+          }
+        },
+        {
+          "client_id": "733056371061-un5a30njdmqn3flajc4v36f8icgav66k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.afaqalspl.moshaf",
+            "certificate_hash": "7a93045df22e21ddad7508c00b529ac8f56bac61"
+          }
+        },
+        {
           "client_id": "733056371061-b6gieovfqeh44d1qeac4962hkrcqk309.apps.googleusercontent.com",
           "client_type": 3
         }

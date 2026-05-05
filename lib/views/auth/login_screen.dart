@@ -8,6 +8,7 @@ import 'package:moshaf/constants/app_colors.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/controllers/auth/auth_cubit.dart';
 import 'package:moshaf/controllers/auth/auth_states.dart';
+import 'package:moshaf/services/fcm_service.dart';
 import 'package:moshaf/views/auth/forget_password_screen.dart';
 import 'package:moshaf/views/auth/register_screen.dart';
 import 'package:moshaf/views/home/home_screen.dart';
@@ -209,6 +210,7 @@ class LoginScreen extends StatelessWidget {
             state is AuthSignInWithGoogleSuccessState ||
             state is AuthSignInWithAppleSuccessState) {
           AuthCubit.get(context).clearControllers();
+          FcmService.init();
           navigateAndFinish(context, HomeScreen());
         }
 

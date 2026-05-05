@@ -732,54 +732,48 @@ class _QuranViewPageState extends State<QuranViewPage>
         Size size = const Size(1000, 1000),
       }) async {
     final repaintKey = GlobalKey();
+    Uint8List? resultBytes;
 
-    // ✅ SIMPLE: Just use WidgetsBinding to capture
-    late Uint8List bytes;
-
-    // Create widget that will be captured
-    final captureWidget = RepaintBoundary(
-      key: repaintKey,
-      child: SizedBox(
-        width: size.width,
-        height: size.height,
-        child: widget,
+    final captureWidget = Material(
+      color: Colors.transparent,
+      child: RepaintBoundary(
+        key: repaintKey,
+        child: SizedBox(
+          width: size.width,
+          height: size.height,
+          child: widget,
+        ),
       ),
     );
 
-    // ✅ Insert into overlay temporarily
-    final overlay = Overlay.of(context);
+    final overlay = Overlay.of(context, rootOverlay: true);
+    if (overlay == null) {
+      throw Exception("Overlay is null");
+    }
+
     late OverlayEntry entry;
 
     entry = OverlayEntry(
       builder: (_) => Positioned(
-        left: -10000, // far off-screen
+        left: -10000,
         top: -10000,
-        child: SizedBox(
-          width: size.width,
-          height: size.height,
-          child: captureWidget,
-        ),
+        child: captureWidget,
       ),
     );
 
     overlay.insert(entry);
 
-    // ✅ Wait for widget to be laid out and painted
-    await Future.delayed(const Duration(milliseconds: 300));
-
     try {
-      // Multiple attempts with increasing delays
-      for (int attempt = 0; attempt < 50; attempt++) {
-        final boundary = repaintKey.currentContext?.findRenderObject()
-        as RenderRepaintBoundary?;
+      // ✅ Force build & paint
+      await Future.delayed(const Duration(milliseconds: 30));
+      await WidgetsBinding.instance.endOfFrame;
+
+      for (int attempt = 0; attempt < 40; attempt++) {
+        final boundary =
+        repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
 
         if (boundary == null || boundary.size.isEmpty) {
-          await Future.delayed(const Duration(milliseconds: 50));
-          continue;
-        }
-
-        if (boundary.debugNeedsPaint) {
-          await Future.delayed(const Duration(milliseconds: 50));
+          await WidgetsBinding.instance.endOfFrame;
           continue;
         }
 
@@ -788,25 +782,25 @@ class _QuranViewPageState extends State<QuranViewPage>
           final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
           if (byteData != null) {
-            bytes = byteData.buffer.asUint8List();
-            print("✅ Captured at attempt $attempt");
+            resultBytes = byteData.buffer.asUint8List();
             break;
           }
-        } catch (e) {
-          print("⚠️ Attempt $attempt capture failed: $e");
-          await Future.delayed(const Duration(milliseconds: 50));
-          continue;
+        } catch (_) {
+          await WidgetsBinding.instance.endOfFrame;
         }
       }
-
+    } finally {
       entry.remove();
-      return bytes;
-    } catch (e) {
-      entry.remove();
-      print("❌ Capture failed: $e");
-      throw Exception("Failed to capture widget: $e");
     }
+
+    if (resultBytes == null) {
+      throw Exception("Failed to capture widget as PNG (no bytes produced)");
+    }
+
+    return resultBytes;
   }
+
+
 
   Future<void> shareAyahAsImage({
     required int surah,
@@ -814,10 +808,13 @@ class _QuranViewPageState extends State<QuranViewPage>
     required int pageIndex,
   }) async {
     try {
+      _coach?.finish();
+      _coach = null;
       Fluttertoast.showToast(msg: "⏳ جاري إنشاء الصورة...");
 
       // ✅ Ensure font is loaded
       await QuranFontManager.instance.ensureFontLoaded(pageIndex);
+      await WidgetsBinding.instance.endOfFrame;
       await Future.delayed(const Duration(milliseconds: 500));
 
       final isDark = context.read<ThemeCubit>().isDark;
@@ -840,32 +837,38 @@ class _QuranViewPageState extends State<QuranViewPage>
             color: bgColor,
           ),
           child: Stack(
+            alignment: Alignment.center,
             children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      getVerseQCF(surah, verse).replaceAll(' ', ''),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: "QCF_P${pageIndex.toString().padLeft(3, "0")}",
-                        fontSize: 60,
-                        height: 1.7,
-                        color: textColor,
+              Positioned(
+                right: 0,
+                left: 0,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        getVerseQCF(surah, verse).replaceAll(' ', ''),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: "QCF_P${pageIndex.toString().padLeft(3, "0")}",
+                          fontSize: 70,
+                          height: 1.7,
+                          color: textColor,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    "سورة ${quran.getSurahNameArabic(surah)} • آية $verse",
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: isDark ? Colors.white70 : Colors.black54,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 32),
+                    Text(
+                      "سورة ${quran.getSurahNameArabic(surah)} • آية $verse",
+                      style: TextStyle(
+                        fontSize: 26,
+                        color: isDark ? Colors.white70 : Colors.black54,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               Positioned(
                 bottom: 20,
@@ -923,8 +926,9 @@ class _QuranViewPageState extends State<QuranViewPage>
         msg: "⚠️ انتظر قليلاً ثم حاول مجددا",
         toastLength: Toast.LENGTH_LONG,
       );
-    } catch (e) {
+    } catch (e, st) {
       print("❌ Share ayah image error: $e");
+      debugPrint("STACKTRACE:\n$st");
       Fluttertoast.showToast(
         msg: "⚠️ حدث خطأ في مشاركة الآية",
         toastLength: Toast.LENGTH_LONG,
@@ -1226,7 +1230,7 @@ class _OptimizedPageBuilder extends StatelessWidget {
     // ✅ compute line height once per page
     final mq = MediaQuery.of(context);
     final screenHeight = mq.size.height;
-
+    bool firstVerseHandled = false;
     const headerHeight = 70.0;
     const basmallahHeight = 40.0;
     const topPadding = 20.0;
@@ -1254,107 +1258,120 @@ class _OptimizedPageBuilder extends StatelessWidget {
           spans.add(WidgetSpan(child: SizedBox(height: 10.h)));
         }
 
+        // In _buildVerseSpans method, replace the onLongPressStart section:
+
         spans.add(
           TextSpan(
             recognizer: LongPressGestureRecognizer()
               ..onLongPressStart = (LongPressStartDetails details) async {
                 highlightVerseNotifier.value = i;
+                if (!context.mounted) return;
+
                 final RenderBox overlay =
                 Overlay.of(context).context.findRenderObject() as RenderBox;
                 final Offset tapPosition = details.globalPosition;
 
-                final result = await showMenu<String>(
-                  context: context,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(color: popupBorder),
-                  ),
-                  color: popupBg,
-                  position: RelativeRect.fromLTRB(
-                    tapPosition.dx,
-                    tapPosition.dy,
-                    overlay.size.width - tapPosition.dx,
-                    overlay.size.height - tapPosition.dy,
-                  ),
-                  items: [
-                    PopupMenuItem<String>(
-                      value: 'tafseer',
-                      child: Row(
-                        children: [
-                          Icon(Icons.menu_book_outlined, color: popupText, size: 15),
-                          SizedBox(width: 6.w),
-                          Text('تفسير',
-                              style: AppTextStyles.madReg12(context, color: popupText)),
-                        ],
-                      ),
-                    ),
-                    PopupMenuDivider(height: 1, color: popupBorder),
-                    PopupMenuItem<String>(
-                      value: 'save',
-                      child: Row(
-                        children: [
-                          Icon(Icons.bookmark_border, color: popupText, size: 15),
-                          SizedBox(width: 6.w),
-                          Text('حفظ الآيه',
-                              style: AppTextStyles.madReg12(context, color: popupText)),
-                        ],
-                      ),
-                    ),
-                    PopupMenuDivider(height: 1, color: popupBorder),
-                    PopupMenuItem<String>(
-                      value: 'play',
-                      child: Row(
-                        children: [
-                          Icon(FontAwesomeIcons.circlePlay, color: popupText, size: 15),
-                          SizedBox(width: 6.w),
-                          Text('تشغيل',
-                              style: AppTextStyles.madReg12(context, color: popupText)),
-                        ],
-                      ),
-                    ),
-                    PopupMenuDivider(height: 1, color: popupBorder),
-                    PopupMenuItem<String>(
-                      value: 'select_start',
-                      child: Row(
-                        children: [
-                          Icon(Icons.arrow_upward, color: popupText, size: 15),
-                          SizedBox(width: 6.w),
-                          Text('تحديد كنقطة البداية',
-                              style: AppTextStyles.madReg12(context, color: popupText)),
-                        ],
-                      ),
-                    ),
-                    PopupMenuDivider(height: 1, color: popupBorder),
-                    PopupMenuItem<String>(
-                      value: 'select_end',
-                      child: Row(
-                        children: [
-                          Icon(Icons.arrow_downward, color: popupText, size: 15),
-                          SizedBox(width: 6.w),
-                          Text('تحديد كنقطة النهاية',
-                              style: AppTextStyles.madReg12(context, color: popupText)),
-                        ],
-                      ),
-                    ),
-                    PopupMenuDivider(height: 1, color: popupBorder),
-                    PopupMenuItem<String>(
-                      value: 'share_image',
-                      child: Row(
-                        children: [
-                          Icon(Icons.image_outlined, color: popupText, size: 15),
-                          SizedBox(width: 6.w),
-                          Text(
-                            'مشاركة كصورة',
-                            style: AppTextStyles.madReg12(context, color: popupText),
-                          ),
-                        ],
-                      ),
-                    ),
+                // ✅ Initialize result to null instead of late
+                String? result;
 
-                  ],
-                );
+                try {
+                  result = await showMenu<String>(
+                    context: context,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(color: popupBorder),
+                    ),
+                    color: popupBg,
+                    position: RelativeRect.fromLTRB(
+                      tapPosition.dx,
+                      tapPosition.dy,
+                      overlay.size.width - tapPosition.dx,
+                      overlay.size.height - tapPosition.dy,
+                    ),
+                    items: [
+                      PopupMenuItem<String>(
+                        value: 'tafseer',
+                        child: Row(
+                          children: [
+                            Icon(Icons.menu_book_outlined, color: popupText, size: 15),
+                            SizedBox(width: 6.w),
+                            Text('تفسير',
+                                style: AppTextStyles.madReg12(context, color: popupText)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuDivider(height: 1, color: popupBorder),
+                      PopupMenuItem<String>(
+                        value: 'save',
+                        child: Row(
+                          children: [
+                            Icon(Icons.bookmark_border, color: popupText, size: 15),
+                            SizedBox(width: 6.w),
+                            Text('حفظ الآيه',
+                                style: AppTextStyles.madReg12(context, color: popupText)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuDivider(height: 1, color: popupBorder),
+                      PopupMenuItem<String>(
+                        value: 'play',
+                        child: Row(
+                          children: [
+                            Icon(FontAwesomeIcons.circlePlay, color: popupText, size: 15),
+                            SizedBox(width: 6.w),
+                            Text('تشغيل',
+                                style: AppTextStyles.madReg12(context, color: popupText)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuDivider(height: 1, color: popupBorder),
+                      PopupMenuItem<String>(
+                        value: 'select_start',
+                        child: Row(
+                          children: [
+                            Icon(Icons.arrow_upward, color: popupText, size: 15),
+                            SizedBox(width: 6.w),
+                            Text('تحديد كنقطة البداية',
+                                style: AppTextStyles.madReg12(context, color: popupText)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuDivider(height: 1, color: popupBorder),
+                      PopupMenuItem<String>(
+                        value: 'select_end',
+                        child: Row(
+                          children: [
+                            Icon(Icons.arrow_downward, color: popupText, size: 15),
+                            SizedBox(width: 6.w),
+                            Text('تحديد كنقطة النهاية',
+                                style: AppTextStyles.madReg12(context, color: popupText)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuDivider(height: 1, color: popupBorder),
+                      PopupMenuItem<String>(
+                        value: 'share_image',
+                        child: Row(
+                          children: [
+                            Icon(Icons.image_outlined, color: popupText, size: 15),
+                            SizedBox(width: 6.w),
+                            Text(
+                              'مشاركة كصورة',
+                              style: AppTextStyles.madReg12(context, color: popupText),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                } catch (e, st) {
+                  debugPrint("❌ showMenu failed: $e");
+                  debugPrint("STACKTRACE:\n$st");
+                  result = null;
+                }
 
-                if (result != null) {
+                // ✅ Now result is always initialized
+                if (result != null && context.mounted) {
                   await onVerseAction(
                     result,
                     i,
@@ -1364,7 +1381,16 @@ class _OptimizedPageBuilder extends StatelessWidget {
                   );
                 }
               },
-            text: getVerseQCF(e["surah"], i).replaceAll(' ', ''),
+            text: () {
+              final raw = getVerseQCF(e["surah"], i).replaceAll(' ', '');
+
+              if (!firstVerseHandled) {
+                firstVerseHandled = true;
+                return _addSpaceAfterFirstWord(raw);
+              }
+
+              return raw;
+            }(),
             style: TextStyle(
               color: gold ? Color(AppColors.goldText) : (isDark ? Colors.white : Colors.black),
               backgroundColor: highlighted == i
@@ -1373,7 +1399,7 @@ class _OptimizedPageBuilder extends StatelessWidget {
               fontFamily: "QCF_P${pageIndex.toString().padLeft(3, "0")}",
               fontSize: 23.sp,
               height: dynamicHeight,
-              wordSpacing: 20,
+              // wordSpacing: 20,
             ),
           ),
         );
@@ -1381,5 +1407,15 @@ class _OptimizedPageBuilder extends StatelessWidget {
     }
 
     return spans;
+  }
+  String _addSpaceAfterFirstWord(String text) {
+    final match = RegExp(r'^(.+?)([^\u0600-\u06FF]*)').firstMatch(text);
+
+    if (match == null) return text;
+
+    final firstWord = match.group(1)!;
+    final rest = text.substring(firstWord.length);
+
+    return '$firstWord\u200A$rest';
   }
 }
