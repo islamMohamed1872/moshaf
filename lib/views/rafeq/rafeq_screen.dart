@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:moshaf/constants/app_colors.dart';
@@ -348,7 +349,7 @@ class _RafeqScreenState extends State<RafeqScreen> {
 
       /// TRY MODELS ONE BY ONE
       for (final model in _models) {
-
+        final apiKey = dotenv.env['OPENROUTER_API_KEY'];
         try {
 
           response = await http.post(
@@ -358,7 +359,7 @@ class _RafeqScreenState extends State<RafeqScreen> {
             headers: {
               'Content-Type': 'application/json',
               'Authorization':
-              'Bearer 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',
+              'Bearer $apiKey',
               'HTTP-Referer': 'https://yourapp.com',
               'X-Title': 'Mostakeem App',
             },
