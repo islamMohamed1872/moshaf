@@ -34,6 +34,7 @@ import 'package:moshaf/controllers/text_quran/text_quran_cubit.dart';
 import 'package:moshaf/network/dio_helper.dart';
 import 'package:moshaf/views/home/home_screen.dart';
 import 'package:moshaf/views/landing/landing_screen.dart';
+import 'package:moshaf/views/ramadan/eid_al_adha_screen.dart';
 import 'package:moshaf/views/ramadan/eid_al_fetr_screen.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:workmanager/workmanager.dart';
@@ -43,6 +44,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'controllers/habit/habit_cubit.dart';
 import 'controllers/recitation/recitation_cubit.dart';
 import 'firebase_options.dart';
 
@@ -531,7 +533,7 @@ class MyApp extends StatelessWidget {
       child: MultiBlocProvider(
         providers: [
           BlocProvider( create: (context) => PrayerTimesCubit()..fetchPrayerTimesNoInternet()),
-          BlocProvider(create: (context) => HomeCubit()..requestLocationOnce()..requestOverlay()..getFirstTime(),lazy: false,),
+          BlocProvider(create: (context) => HomeCubit()..requestLocationOnce()..requestOverlay()..getFirstTime()..getRandomAthkar()..loadRandomAllahName()..autoScroll(),lazy: false,),
           BlocProvider(create: (context) => TextQuranCubit()..loadJsonAsset()..getLastRead()..warmUpFontsOnAppStart(1)),
           BlocProvider(create: (context) => SettingsCubit()..getNotificationsState()),
           BlocProvider(create: (context) => ThemeCubit()..getThemeMode(),lazy: false,),
@@ -545,6 +547,8 @@ class MyApp extends StatelessWidget {
           BlocProvider(create: (context) => AzkarCubit()),
           BlocProvider(create: (context) => RamadanCubit()),
           BlocProvider(create: (context) => AudioQuranCubit()..loadReciters()),
+          BlocProvider(create: (context) => HabitCubit()..loadHabits(),),
+
         ],
         child: BlocBuilder<ThemeCubit,ThemeMode>(
            builder: (context, themeMode) => MaterialApp(
@@ -583,17 +587,15 @@ class MyApp extends StatelessWidget {
 
              ),
              // home: const AppLayout(),
-             home: FirebaseAuth.instance.currentUser == null
-                 ? LandingScreen()
-                 : HomeScreen(),
+             home: _resolveHome(),
            ),
         ),
       ),
     );
   }
   Widget _resolveHome() {
-    const eidStart = (year: 2026, month: 3, day: 20);
-    const eidEnd   = (year: 2026, month: 3, day: 23);
+    const eidStart = (year: 2026, month: 5, day: 26);
+    const eidEnd   = (year: 2026, month: 5, day: 30);
 
     final now      = DateTime.now();
     final start    = DateTime(eidStart.year, eidStart.month, eidStart.day);
@@ -601,7 +603,7 @@ class MyApp extends StatelessWidget {
 
     final isEidPeriod = !now.isBefore(start) && !now.isAfter(end);
 
-    if (isEidPeriod) return const EidAlFitrScreen();
+    if (isEidPeriod) return const EidAlAdhaScreen();
 
     return FirebaseAuth.instance.currentUser == null
         ? LandingScreen()

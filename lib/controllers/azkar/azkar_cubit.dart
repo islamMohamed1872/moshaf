@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:audio_service/audio_service.dart';
@@ -169,7 +170,7 @@ class AzkarCubit extends Cubit<AzkarStates> {
 
     final selected = categories[category];
     if (selected != null) {
-      navigateTo(context, OnePrayScreen(title: category, items: selected,isDark: isDark,));
+      navigateTo(context, OnePrayScreen(title: category, items: selected,));
     }
   }
 
@@ -287,6 +288,76 @@ class AzkarCubit extends Cubit<AzkarStates> {
       print('Error clearing all orders: $e');
     }
   }
+  String _customAzkarKey(String categoryId) => 'custom_azkar_$categoryId';
 
+  Future<List<Map<String, dynamic>>> loadCustomAzkar(String categoryId) async {
+    final cached = await CacheHelper.getData(key: _customAzkarKey(categoryId));
+
+    if (cached == null) return [];
+
+    try {
+      if (cached is String) {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) {
+          return decoded
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+        }
+      }
+
+      if (cached is List) {
+        return cached
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+      }
+    } catch (_) {}
+
+    return [];
+  }
+
+  Future<void> saveCustomAzkar(
+      String categoryId,
+      List<Map<String, dynamic>> customAzkar,
+      ) async {
+    await CacheHelper.saveData(
+      key: _customAzkarKey(categoryId),
+      value: jsonEncode(customAzkar),
+    );
+
+    emit(CustomZekrChanged());
+  }
+
+  Future<Map<String, dynamic>> addCustomZekr({
+    required String categoryId,
+    required String zekr,
+    int count = 1,
+  }) async {
+    final customAzkar = await loadCustomAzkar(categoryId);
+
+    final newItem = <String, dynamic>{
+      'id': '${categoryId}_custom_${DateTime.now().millisecondsSinceEpoch}',
+      'zekr': zekr.trim(),
+      'count': count,
+      'reference': 'ذكر مخصص',
+      'isCustom': true,
+    };
+
+    customAzkar.add(newItem);
+
+    await saveCustomAzkar(categoryId, customAzkar);
+
+    return newItem;
+  }
+
+  Future<void> deleteCustomZekr({
+    required String categoryId,
+    required String zekrId,
+  }) async {
+    final customAzkar = await loadCustomAzkar(categoryId);
+
+    customAzkar.removeWhere((item) => item['id'] == zekrId);
+
+    await saveCustomAzkar(categoryId, customAzkar);
+  }
 
 }

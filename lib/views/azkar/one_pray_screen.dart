@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moshaf/views/azkar/widgets/azkar_header.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_textstyles.dart';
+import '../../controllers/theme/theme_cubit.dart';
 
 class OnePrayScreen extends StatelessWidget {
   final String title;
   final Map items;
-  final bool isDark;
+  // final bool isDark;
 
   const OnePrayScreen({
     super.key,
     required this.title,
     required this.items,
-    required this.isDark,
+    // required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.select((ThemeCubit c) => c.isDark);
+
     final List azkarList = items["azkar"] ?? [];
 
     // 🔹 GOLD MODE
@@ -48,7 +52,6 @@ class OnePrayScreen extends StatelessWidget {
               title: title,
               isDark: isDark,
             ),
-
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.all(12),

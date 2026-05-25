@@ -40,7 +40,7 @@ class OverlayAthkarWidget extends StatelessWidget {
                 ],
               ),
               child: Text(
-                cubit.athkar,
+                cubit.currentZekr,
                 style: TextStyle(
                   color: Color(AppColors.mainGreen),
                   fontSize: 17,

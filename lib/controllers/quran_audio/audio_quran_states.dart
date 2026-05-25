@@ -25,3 +25,5 @@ class PlaylistPlayingState extends AudioQuranStates {
 }
 
 class PlaylistFinishedState extends AudioQuranStates {}
+class RepeatToggledState extends AudioQuranStates {}
+class SetRepeatRangeState extends AudioQuranStates {}

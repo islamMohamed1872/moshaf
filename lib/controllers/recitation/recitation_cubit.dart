@@ -14,20 +14,60 @@ class RecitationCubit extends Cubit<RecitationStates> {
   static RecitationCubit get(context) => BlocProvider.of(context);
 
   // ═══ DATA FIELDS ═══
-  int dailyPagesTarget = 5; // Default: 5 pages per day
-  int totalPages = 604; // Total Quran pages
-  int currentPage = 1; // Current page user is on
-  DateTime? startDate; // When user started
-  DateTime? lastReadDate; // Last time user read
-  int totalDaysToFinish = 0; // Total days needed
-  int daysCompleted = 0; // Days user has read
-  int daysLate = 0; // Days user missed
+  int dailyPagesTarget = 5;
+  int totalPages = 604;
+  int currentPage = 1;
+  DateTime? startDate;
+  DateTime? lastReadDate;
+  int totalDaysToFinish = 0;
+  int daysCompleted = 0;
+  int daysLate = 0;
   bool hasActiveGoal = false;
   var suraJsonData;
 
-  // Progress tracking
+  /// Pages read specifically today (resets each new calendar day)
+  int todayPagesRead = 0;
+
+  // ═══ COMPUTED GETTERS ═══
   double get progressPercentage => (currentPage / totalPages) * 100;
-  int get pagesRemaining => totalPages - currentPage + 1;
+
+  /// Total pages remaining in the entire Quran journey
+  int get totalPagesRemaining => totalPages - currentPage + 1;
+
+  /// Pages still needed TODAY to hit the daily target (0 if completed/over-achieved)
+  int get todayPagesRemaining =>
+      (dailyPagesTarget - todayPagesRead).clamp(0, dailyPagesTarget);
+
+  /// True once the user has read at least their daily target today
+  bool get isTodayCompleted => todayPagesRead >= dailyPagesTarget;
+
+  /// True when user has gone BEYOND their daily target today
+  bool get isOverAchieved => todayPagesRead > dailyPagesTarget;
+
+  int get extraPagesReadToday =>
+      isOverAchieved ? todayPagesRead - dailyPagesTarget : 0;
+
+  /// Returns the Rafeq image asset path based on current recitation status
+  String get rafeqImageAsset {
+    if (!hasActiveGoal) return 'assets/images/rafeq_reminder.png';
+    if (isTodayCompleted) return 'assets/images/rafeq_excited.png';
+    return 'assets/images/rafeq_sad.png';
+  }
+
+  /// Returns a context-aware message for the Rafeq widget
+  String get rafeqMessage {
+    if (!hasActiveGoal) {
+      return 'لم تحدد وردك اليومي بعد!\nابدأ رحلتك مع القرآن الآن';
+    }
+    if (isOverAchieved) {
+      return 'ممتاز! قرأت $todayPagesRead صفحة اليوم\nتجاوزت هدفك بـ $extraPagesReadToday صفحة!';
+    }
+    if (isTodayCompleted) {
+      return 'أحسنت! أتممت وردك اليوم\nاستمر على هذا النهج';
+    }
+    return 'لم تكمل وردك اليوم بعد\nتبقى لك $todayPagesRemaining صفحة، هيا!';
+  }
+
   int get expectedPage {
     if (startDate == null) return 1;
     final daysPassed = DateTime.now().difference(startDate!).inDays;
@@ -46,20 +86,39 @@ class RecitationCubit extends Cubit<RecitationStates> {
   Future<void> initializeRecitation() async {
     emit(RecitationLoadingState());
 
+    dailyPagesTarget =
+        await CacheHelper.getData(key: 'recitation_daily_pages') ?? 5;
+    currentPage =
+        await CacheHelper.getData(key: 'recitation_current_page') ?? 1;
+    hasActiveGoal =
+        await CacheHelper.getData(key: 'recitation_has_goal') ?? false;
 
-    // Load saved data
-    dailyPagesTarget = await CacheHelper.getData(key: 'recitation_daily_pages') ?? 5;
-    currentPage = await CacheHelper.getData(key: 'recitation_current_page') ?? 1;
-    hasActiveGoal = await CacheHelper.getData(key: 'recitation_has_goal') ?? false;
-
-    final startDateStr = await CacheHelper.getData(key: 'recitation_start_date');
+    final startDateStr =
+    await CacheHelper.getData(key: 'recitation_start_date');
     if (startDateStr != null) {
       startDate = DateTime.parse(startDateStr);
     }
 
-    final lastReadStr = await CacheHelper.getData(key: 'recitation_last_read');
+    final lastReadStr =
+    await CacheHelper.getData(key: 'recitation_last_read');
     if (lastReadStr != null) {
       lastReadDate = DateTime.parse(lastReadStr);
+    }
+
+    // ── Load today's pages only if lastReadDate is actually today ──
+    final now = DateTime.now();
+    final isLastReadToday = lastReadDate != null &&
+        lastReadDate!.year == now.year &&
+        lastReadDate!.month == now.month &&
+        lastReadDate!.day == now.day;
+
+    if (isLastReadToday) {
+      todayPagesRead =
+          await CacheHelper.getData(key: 'recitation_today_pages') ?? 0;
+    } else {
+      // New day — reset daily counter
+      todayPagesRead = 0;
+      await CacheHelper.saveData(key: 'recitation_today_pages', value: 0);
     }
 
     _calculateProgress();
@@ -74,32 +133,44 @@ class RecitationCubit extends Cubit<RecitationStates> {
     lastReadDate = null;
     hasActiveGoal = true;
     daysCompleted = 0;
+    todayPagesRead = 0;
     totalDaysToFinish = (totalPages / pagesPerDay).ceil();
 
-    // Save to cache
-    await CacheHelper.saveData(key: 'recitation_daily_pages', value: pagesPerDay);
+    await CacheHelper.saveData(
+        key: 'recitation_daily_pages', value: pagesPerDay);
     await CacheHelper.saveData(key: 'recitation_current_page', value: 1);
-    await CacheHelper.saveData(key: 'recitation_start_date', value: startDate!.toIso8601String());
+    await CacheHelper.saveData(
+        key: 'recitation_start_date', value: startDate!.toIso8601String());
     await CacheHelper.saveData(key: 'recitation_has_goal', value: true);
+    await CacheHelper.saveData(key: 'recitation_today_pages', value: 0);
 
     emit(RecitationUpdatedState());
   }
 
-  // ═══ MARK PAGE AS READ ═══
+  // ═══ MARK PAGES READ (supports over-achievement) ═══
   Future<void> markPagesRead(int pagesToRead) async {
-    if (!hasActiveGoal) return;
+    if (!hasActiveGoal || pagesToRead <= 0) return;
 
     currentPage += pagesToRead;
     if (currentPage > totalPages) currentPage = totalPages;
 
+    todayPagesRead += pagesToRead;
     lastReadDate = DateTime.now();
-    daysCompleted++;
 
-    // Save progress
-    await CacheHelper.saveData(key: 'recitation_current_page', value: currentPage);
-    await CacheHelper.saveData(key: 'recitation_last_read', value: lastReadDate!.toIso8601String());
+    // Only count daysCompleted on the day the target is first met
+    if (todayPagesRead >= dailyPagesTarget &&
+        todayPagesRead - pagesToRead < dailyPagesTarget) {
+      daysCompleted++;
+    }
 
-    // Check if finished
+    await CacheHelper.saveData(
+        key: 'recitation_current_page', value: currentPage);
+    await CacheHelper.saveData(
+        key: 'recitation_last_read',
+        value: lastReadDate!.toIso8601String());
+    await CacheHelper.saveData(
+        key: 'recitation_today_pages', value: todayPagesRead);
+
     if (currentPage >= totalPages) {
       await _completeRecitation();
     }
@@ -130,11 +201,13 @@ class RecitationCubit extends Cubit<RecitationStates> {
     hasActiveGoal = false;
     daysCompleted = 0;
     daysLate = 0;
+    todayPagesRead = 0;
 
     await CacheHelper.deleteData(key: 'recitation_current_page');
     await CacheHelper.deleteData(key: 'recitation_start_date');
     await CacheHelper.deleteData(key: 'recitation_last_read');
     await CacheHelper.deleteData(key: 'recitation_has_goal');
+    await CacheHelper.deleteData(key: 'recitation_today_pages');
 
     emit(RecitationUpdatedState());
   }
@@ -144,9 +217,9 @@ class RecitationCubit extends Cubit<RecitationStates> {
     hasActiveGoal = false;
     await CacheHelper.saveData(key: 'recitation_has_goal', value: false);
 
-    // Save to history
     final completionDate = DateTime.now().toIso8601String();
-    await CacheHelper.saveData(key: 'recitation_last_completion', value: completionDate);
+    await CacheHelper.saveData(
+        key: 'recitation_last_completion', value: completionDate);
   }
 
   // ═══ GET START/END VERSES FOR PAGE ═══
@@ -175,7 +248,8 @@ class RecitationCubit extends Cubit<RecitationStates> {
   // ═══ GET DAILY READING RANGE ═══
   Map<String, dynamic> getDailyReadingRange() {
     final startPage = currentPage;
-    final endPage = (currentPage + dailyPagesTarget - 1).clamp(1, totalPages);
+    final endPage =
+    (currentPage + dailyPagesTarget - 1).clamp(1, totalPages);
 
     final startInfo = getPageInfo(startPage);
     final endInfo = getPageInfo(endPage);
@@ -198,15 +272,10 @@ class RecitationCubit extends Cubit<RecitationStates> {
 
     autoChangeTimer = Timer.periodic(const Duration(milliseconds: 80), (_) {
       if (isIncrement) {
-        if (dailyPagesTarget < 302) {
-          dailyPagesTarget++;
-        }
+        if (dailyPagesTarget < 302) dailyPagesTarget++;
       } else {
-        if (dailyPagesTarget > 1) {
-          dailyPagesTarget--;
-        }
+        if (dailyPagesTarget > 1) dailyPagesTarget--;
       }
-
       emit(RecitationUpdateUIState());
     });
   }

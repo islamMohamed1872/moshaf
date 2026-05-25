@@ -549,7 +549,7 @@ class _HadithScreenState extends State<HadithScreen> {
             "category": cubit.selectedBookName,
             "azkar": [item],
           },
-          isDark: isDark,
+          // isDark: isDark,
         ),
       ),
       child: Container(

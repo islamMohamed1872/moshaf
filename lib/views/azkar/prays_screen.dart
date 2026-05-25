@@ -257,7 +257,7 @@ class PraysScreen extends StatelessWidget {
             OnePrayScreen(
               title: label,
               items: item,
-              isDark: isDark,
+              // isDark: isDark,
             ),
           );
         },
@@ -291,7 +291,7 @@ class PraysScreen extends StatelessWidget {
                   OnePrayScreen(
                     title: leftLabel,
                     items: leftItem,
-                    isDark: isDark,
+                    // isDark: isDark,
                   ),
                 );
               },
@@ -309,7 +309,7 @@ class PraysScreen extends StatelessWidget {
                   OnePrayScreen(
                     title: rightLabel,
                     items: rightItem,
-                    isDark: isDark,
+                    // isDark: isDark,
                   ),
                 );
               },

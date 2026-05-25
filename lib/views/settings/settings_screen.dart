@@ -13,6 +13,8 @@ import 'package:moshaf/views/settings/country_screen.dart';
 import 'package:moshaf/views/settings/notifications_control_screen.dart';
 import 'package:moshaf/views/settings/widgets/custom_switch.dart';
 import 'package:moshaf/views/widgets/header.dart';
+import '../../controllers/home/home_cubit.dart';
+import '../../controllers/home/home_states.dart';
 import '../../controllers/settings/settings_cubit.dart';
 import '../../controllers/settings/settings_states.dart';
 import '../../controllers/theme/theme_cubit.dart';
@@ -205,6 +207,20 @@ class SettingsScreen extends StatelessWidget {
                             navigateTo(context, CountryScreen());
                           },
                         ),
+
+                        _divider(isDark),
+                        _settingsItemWithSwitch(
+                          context,
+                          // imagePath: 'assets/images/rafeq_floating.png',
+                          label: 'رفيق العائم',
+                          subText: 'عرض مساعد رفيق على الشاشة',
+                          isDark: isDark,
+                          value: HomeCubit.get(context).showFloatingRafeq,
+                          onChanged: () {
+                            HomeCubit.get(context).toggleRafeqVisibility();
+                          },
+                        ),
+
                         _divider(isDark),
 
 
@@ -356,4 +372,86 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _settingsItemWithSwitch(
+    BuildContext context, {
+      required String label,
+      required bool isDark,
+      required bool value,
+      required VoidCallback onChanged,
+      String? subText,
+    }) {
+  final textClr = isDark ? Colors.white : Colors.black;
+  final subClr  = isDark ? Colors.white54 : Colors.black45;
+
+  return BlocBuilder<HomeCubit, HomeStates>(
+    buildWhen: (p, c) => c is RafeqVisibilityChanged,
+    builder: (context, _) {
+      final cubit = HomeCubit.get(context);
+
+      return Row(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            transitionBuilder: (child, animation) {
+              return ScaleTransition(
+                scale: animation,
+                child: FadeTransition(
+                  opacity: animation,
+                  child: child,
+                ),
+              );
+            },
+            child: SizedBox(
+              key: ValueKey(cubit.showFloatingRafeq),
+              width: 50.w,
+              height: 50.w,
+              child: Image.asset(
+                cubit.showFloatingRafeq
+                    ? 'assets/images/rafeq_active.png'
+                    : 'assets/images/rafeq_disabled.png',
+              ),
+            ),
+          ),
+
+          SizedBox(width: 11.w),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTextStyles.madMd16(
+                    context,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+
+                if (subText != null)
+                  Text(
+                    subText,
+                    style: AppTextStyles.madReg12(
+                      context,
+                      color: isDark
+                          ? Colors.white54
+                          : Colors.black45,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          Switch.adaptive(
+            value: cubit.showFloatingRafeq,
+            onChanged: (_) => cubit.toggleRafeqVisibility(),
+            activeColor: AppColors.isGoldMode
+                ? const Color(AppColors.goldPrimary)
+                : const Color(AppColors.mainGreen),
+          ),
+        ],
+      );
+    },
+  );
 }

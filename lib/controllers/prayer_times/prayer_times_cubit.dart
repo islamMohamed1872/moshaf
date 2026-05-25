@@ -161,7 +161,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           altitudeAccuracy: 0.0,
           headingAccuracy: 0.0,
         );
-        debugPrint("✅ Using cached location: ($cachedLat, $cachedLon)");
+        // debugPrint("✅ Using cached location: ($cachedLat, $cachedLon)");
       } else
       {
         // Request permission
@@ -186,7 +186,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         await CacheHelper.saveData(key: 'cached_latitude', value: position.latitude);
         await CacheHelper.saveData(key: 'cached_longitude', value: position.longitude);
 
-        debugPrint("📍 Got live location: (${position.latitude}, ${position.longitude})");
+        // debugPrint("📍 Got live location: (${position.latitude}, ${position.longitude})");
       }
 
       // 🌍 Get city and country using reverse geocoding
@@ -200,7 +200,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           final place = placemarks.first;
           city = place.locality ?? place.subAdministrativeArea ?? "";
           country = place.country ?? "";
-          debugPrint("🏙️ City: $city — 🇺🇳 Country: $country");
+          // debugPrint("🏙️ City: $city — 🇺🇳 Country: $country");
         }
       } catch (geoError) {
         debugPrint("⚠️ Error during reverse geocoding: $geoError");
@@ -405,7 +405,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       await CacheHelper.saveData(key: 'cached_longitude', value: pos.longitude);
       await CacheHelper.saveData(key: "location_initialized", value: true);
 
-      print('✅ Location cached: (${pos.latitude}, ${pos.longitude})');
+      // print('✅ Location cached: (${pos.latitude}, ${pos.longitude})');
     } catch (e) {
       print('⚠️ Location init failed: $e');
 
@@ -414,7 +414,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       final cachedLon = await CacheHelper.getData(key: 'cached_longitude');
 
       if (cachedLat != null && cachedLon != null) {
-        print('📦 Fallback cached location: ($cachedLat, $cachedLon)');
+        // print('📦 Fallback cached location: ($cachedLat, $cachedLon)');
       } else {
         print('❌ No cached location available');
       }
@@ -432,11 +432,11 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         date: DateTime.now(),
       );
 
-      print("🔵 الفجر ${times['الفجر']}");
-      print("🟡 الظهر ${times['الظهر']}");
-      print("🟠 العصر ${times['العصر']}");
-      print("🔴 المغرب ${times['المغرب']}");
-      print("⚫ العشاء ${times['العشاء']}");
+      // print("🔵 الفجر ${times['الفجر']}");
+      // print("🟡 الظهر ${times['الظهر']}");
+      // print("🟠 العصر ${times['العصر']}");
+      // print("🔴 المغرب ${times['المغرب']}");
+      // print("⚫ العشاء ${times['العشاء']}");
 
 
       if (times.isNotEmpty) {
@@ -696,10 +696,10 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   Future<void> scheduleAllPrayerNotifications() async {
     final List skippedNotification =
         await CacheHelper.getData(key: "mutedNotifications") ?? [];
-    print("📅 Scheduling prayer notifications...");
+    // print("📅 Scheduling prayer notifications...");
 
     await flutterLocalNotificationsPlugin.cancelAll();
-    print("🗑️ Cleared all previously scheduled notifications.");
+    // print("🗑️ Cleared all previously scheduled notifications.");
 
     final now = DateTime.now();
     int scheduledCount = 0;
@@ -732,7 +732,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
       if (time.isBefore(now) ||
           skippedNotification.contains("صلاة $prayerName")) {
-        print("⏭️ Skipping $prayerName - already passed or muted");
+        // print("⏭️ Skipping $prayerName - already passed or muted");
         continue;
       }
 
@@ -780,8 +780,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
             matchDateTimeComponents: DateTimeComponents.time,
           );
           scheduledCount++;
-          print(
-              "✅ Scheduled $prayerName at ${DateFormat('hh:mm a').format(time)} — sound: $azanOption");
+          // print(
+          //     "✅ Scheduled $prayerName at ${DateFormat('hh:mm a').format(time)} — sound: $azanOption");
         } catch (e) {
           print("❌ Error scheduling $prayerName: $e");
         }
@@ -804,15 +804,15 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
             matchDateTimeComponents: DateTimeComponents.time,
           );
           scheduledCount++;
-          print(
-              "✅ Scheduled $prayerName at ${DateFormat('hh:mm a').format(time)}");
+          // print(
+          //     "✅ Scheduled $prayerName at ${DateFormat('hh:mm a').format(time)}");
         } catch (e) {
           print("❌ Error scheduling $prayerName: $e");
         }
       }
     }
 
-    print("📅 Scheduled $scheduledCount prayer notifications");
+    // print("📅 Scheduled $scheduledCount prayer notifications");
     await scheduleDoaaNotifications();
   }
   Future<bool> shouldFetchNewTimes() async {
@@ -849,7 +849,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     await flutterLocalNotificationsPlugin.cancel(0);
     final List skippedNotification = await CacheHelper.getData(key: "mutedNotifications")??[];
     if(skippedNotification.contains("ادعية")) return;
-    print("📅 Scheduling Doaa notifications...");
+    // print("📅 Scheduling Doaa notifications...");
     final now = DateTime.now();
     final scheduledDate = DateTime(now.year, now.month, now.day, 15, 0);
     if(scheduledDate.isBefore(now)){
@@ -858,8 +858,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
     final String category = getRandomDoaa()['category'];
     final String zekr = getRandomDoaa()['zekr'];
-    print(zekr);
-    print(category);
+    // print(zekr);
+    // print(category);
 
     if(Platform.isAndroid){
       final androidDetails = AndroidNotificationDetails(
@@ -884,7 +884,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-      print("✅ Scheduled daily Doaa at ${DateFormat('hh:mm a').format(scheduledDate)} (local)");
+      // print("✅ Scheduled daily Doaa at ${DateFormat('hh:mm a').format(scheduledDate)} (local)");
     }
     else if(Platform.isIOS){
       final iosDetails = DarwinNotificationDetails(
@@ -906,15 +906,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       );
     }
     final pending = await flutterLocalNotificationsPlugin.pendingNotificationRequests();
-
-    // Check if our notification ID (0) exists
-    final exists = pending.any((notif) => notif.id == 0);
-
-    if (exists) {
-      print("✅ Doaa notification is scheduled successfully!");
-    } else {
-      print("⚠️ Doaa notification was NOT scheduled.");
-    }
   }
 
   Future<void> pushInstantNotification()async{
@@ -928,7 +919,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final notifDetails = NotificationDetails(iOS: iosDetails);
 
     await flutterLocalNotificationsPlugin.show(7000, "category", "zekr", notifDetails);
-    print("done");
+    // print("done");
   }
 
   Map getRandomDoaa(){
@@ -956,7 +947,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     // 🔹 If muted or no last-read surah → don't send
     if (skippedNotification?.contains("تذكير بالمصحف") ?? false || lastRead == null) return;
 
-    print("🚀 Sending immediate Quran reminder notification...");
+    // print("🚀 Sending immediate Quran reminder notification...");
 
     String sorahName = quran.getSurahNameArabic(lastRead!);
 
@@ -980,7 +971,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       notifDetails,
     );
 
-    print("✅ Immediate Quran reminder notification sent successfully!");
+    // print("✅ Immediate Quran reminder notification sent successfully!");
   }
 
 
@@ -996,7 +987,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
       // 2️⃣ Compute target day based on offset
       final targetDay = DateTime.now().add(Duration(days: prayerDayOffset));
-      print("📅 Fetching prayers for offset $prayerDayOffset → $targetDay");
+      // print("📅 Fetching prayers for offset $prayerDayOffset → $targetDay");
 
       final timestamp = (targetDay.millisecondsSinceEpoch ~/ 1000);
 
@@ -1187,7 +1178,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       ..sort((a, b) => a.value.compareTo(b.value));
 
     if (upcoming.isEmpty) {
-      print("⚠️ No upcoming prayers today, scheduling for tomorrow");
+      // print("⚠️ No upcoming prayers today, scheduling for tomorrow");
       // Schedule for first prayer tomorrow
       final tomorrow = now.add(Duration(days: 1));
       final firstPrayerTomorrow = DateTime(
@@ -1205,7 +1196,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         exact: true,
         wakeup: true,
       );
-      debugPrint('⏰ Scheduled widget update for tomorrow at ${firstPrayerTomorrow}');
+      // debugPrint('⏰ Scheduled widget update for tomorrow at ${firstPrayerTomorrow}');
       return;
     }
 
@@ -1230,7 +1221,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       wakeup: true,
     );
 
-    debugPrint('⏰ Scheduled widget auto-update for ${nextPrayer.key} at ${nextPrayer.value}');
+    // debugPrint('⏰ Scheduled widget auto-update for ${nextPrayer.key} at ${nextPrayer.value}');
   }
 
 
@@ -1241,7 +1232,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
 @pragma('vm:entry-point')
 void updatePrayerWidgetCallback() async {
-  print("🔔 Widget update callback triggered!");
+  // print("🔔 Widget update callback triggered!");
   await initializeDateFormatting('ar');
   try {
     // 1️⃣ Load cached prayer data
@@ -1280,9 +1271,9 @@ void updatePrayerWidgetCallback() async {
     if (upcoming.isNotEmpty) {
       upcomingPrayer = upcoming.first.key;
       upcomingTime = upcoming.first.value;
-      print("✅ Next prayer: $upcomingPrayer at $upcomingTime");
+      // print("✅ Next prayer: $upcomingPrayer at $upcomingTime");
     } else {
-      print("⚠️ No more prayers today, using cached upcoming");
+      // print("⚠️ No more prayers today, using cached upcoming");
       upcomingPrayer = cachedUpcoming['upComingPrayer'] ?? 'الفجر';
       upcomingTime = allPrayers[upcomingPrayer];
     }
@@ -1323,7 +1314,7 @@ void updatePrayerWidgetCallback() async {
     await HomeWidget.updateWidget(name: 'HomeWidgetSmallProvider');
     await HomeWidget.updateWidget(name: 'HomeWidgetLargeProvider');
 
-    print("✅ Widget updated successfully!");
+    // print("✅ Widget updated successfully!");
 
     // 6️⃣ Schedule next update
     // Create a temporary cubit instance to schedule the next alarm

@@ -27,6 +27,177 @@ class _ZekrScreenState extends State<ZekrScreen> {
   late Map<String, dynamic> _localItems;
   late String _categoryId;
 
+  Future<void> _showAddZekrDialog() async {
+    final textController = TextEditingController();
+    final countController = TextEditingController(text: '1');
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) {
+        final isDark = context.read<ThemeCubit>().isDark;
+        final gold = AppColors.isGoldMode;
+
+        final bgColor = gold
+            ? const Color(AppColors.goldBackground)
+            : isDark
+            ? const Color(0xFF1C1C1E)
+            : Colors.white;
+
+        final textClr = gold
+            ? const Color(AppColors.goldText)
+            : isDark
+            ? Colors.white
+            : Colors.black;
+
+        final accentClr = gold
+            ? const Color(AppColors.goldPrimary)
+            : Color(AppColors.mainGreen);
+
+        final borderClr = gold
+            ? const Color(AppColors.goldBorder)
+            : Color(
+          isDark
+              ? AppColors.containerDarkBorders
+              : AppColors.containerLightBorders,
+        );
+
+        return AlertDialog(
+          backgroundColor: bgColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: borderClr),
+          ),
+          title: Text(
+            'إضافة ذكر مخصص',
+            style: AppTextStyles.madB16(context, color: textClr),
+            textAlign: TextAlign.right,
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: textController,
+                  maxLines: 5,
+                  textDirection: TextDirection.rtl,
+                  textAlign: TextAlign.right,
+                  style: AppTextStyles.madReg14(context, color: textClr),
+                  decoration: InputDecoration(
+                    hintText: 'اكتب الذكر هنا...',
+                    hintStyle: AppTextStyles.madReg12(
+                      context,
+                      color: textClr.withOpacity(0.45),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: borderClr),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: accentClr),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                TextField(
+                  controller: countController,
+                  keyboardType: TextInputType.number,
+                  textDirection: TextDirection.rtl,
+                  textAlign: TextAlign.right,
+                  style: AppTextStyles.madReg14(context, color: textClr),
+                  decoration: InputDecoration(
+                    hintText: 'عدد المرات',
+                    hintStyle: AppTextStyles.madReg12(
+                      context,
+                      color: textClr.withOpacity(0.45),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: borderClr),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: accentClr),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                'إلغاء',
+                style: AppTextStyles.madReg14(context, color: textClr),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accentClr,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                final zekr = textController.text.trim();
+                final count = int.tryParse(countController.text.trim()) ?? 1;
+
+                if (zekr.isEmpty) return;
+
+                Navigator.pop(dialogContext, {
+                  'zekr': zekr,
+                  'count': count <= 0 ? 1 : count,
+                  "originalCount": count <= 0 ? 1 : count,
+                });
+              },
+              child: Text(
+                'حفظ',
+                style: AppTextStyles.madB14(context, color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == null) return;
+    if (!mounted) return;
+
+    final cubit = AzkarCubit.get(context);
+
+    final newItem = await cubit.addCustomZekr(
+      categoryId: _categoryId,
+      zekr: result['zekr'],
+      count: result['count'],
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      (_localItems['azkar'] as List).add(newItem);
+    });
+
+    await cubit.saveZekrOrder(
+      _categoryId,
+      (_localItems['azkar'] as List).cast<Map<String, dynamic>>(),
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'تمت إضافة الذكر بنجاح',
+          style: AppTextStyles.madReg14(context, color: Colors.white),
+        ),
+        backgroundColor: Color(AppColors.mainGreen),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -41,7 +212,7 @@ class _ZekrScreenState extends State<ZekrScreen> {
 
     _categoryId = _localItems['id'] ?? widget.title.replaceAll(' ', '_');
     _ensureZekrIds(_localItems['azkar'], _categoryId);
-    _restoreZekrOrder(); // ✅ Load saved order on init
+    _loadCustomAzkarThenRestoreOrder(); // ✅ Load saved order on init
   }
 
   void _ensureZekrIds(List azkarList, String categoryId) {
@@ -55,12 +226,30 @@ class _ZekrScreenState extends State<ZekrScreen> {
   }
 
   /// ✅ NEW: Restore saved order
-  Future<void> _restoreZekrOrder() async {
+  Future<void> _loadCustomAzkarThenRestoreOrder() async {
     final cubit = AzkarCubit.get(context);
+
+    final customAzkar = await cubit.loadCustomAzkar(_categoryId);
+
+    final baseAzkar = List<Map<String, dynamic>>.from(
+      (_localItems['azkar'] as List).map(
+            (e) => Map<String, dynamic>.from(e),
+      ),
+    );
+
+    final mergedAzkar = [
+      ...baseAzkar,
+      ...customAzkar,
+    ];
+
+    _ensureZekrIds(mergedAzkar, _categoryId);
+
     final reorderedAzkar = await cubit.loadZekrOrder(
       _categoryId,
-      _localItems['azkar'] as List<Map<String, dynamic>>,
+      mergedAzkar,
     );
+
+    if (!mounted) return;
 
     setState(() {
       _localItems['azkar'] = reorderedAzkar;
@@ -105,6 +294,13 @@ class _ZekrScreenState extends State<ZekrScreen> {
                           iconColor: textClr,
                           showBorder: !gold,
                         ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.add_circle_outline_rounded,
+                          color: iconClr,
+                        ),
+                        onPressed: _showAddZekrDialog,
                       ),
                       IconButton(
                         icon: Icon(
@@ -176,6 +372,23 @@ class _ZekrScreenState extends State<ZekrScreen> {
             iconClr: iconClr,
             gold: gold,
             enableDrag: true,
+            onDelete: item['isCustom'] == true
+                ? () async {
+              await cubit.deleteCustomZekr(
+                categoryId: _categoryId,
+                zekrId: item['id'],
+              );
+
+              setState(() {
+                azkarList.removeWhere((e) => e['id'] == item['id']);
+              });
+
+              await cubit.saveZekrOrder(
+                _categoryId,
+                azkarList.cast<Map<String, dynamic>>(),
+              );
+            }
+                : null,
           ),
         );
       },
@@ -289,6 +502,7 @@ class _ZekrRow extends StatelessWidget {
   final Color iconClr;
   final bool gold;
   final bool enableDrag;
+  final VoidCallback? onDelete;
 
   const _ZekrRow({
     required this.index,
@@ -298,6 +512,7 @@ class _ZekrRow extends StatelessWidget {
     required this.iconClr,
     required this.gold,
     required this.enableDrag,
+    this.onDelete,
   });
 
   @override
@@ -363,11 +578,33 @@ class _ZekrRow extends StatelessWidget {
                 color: gold ? const Color(AppColors.goldBackground) : null,
               ),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    item['zekr'] ?? '',
-                    style: AppTextStyles.madReg14(context, color: textClr),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item['zekr'] ?? '',
+                          style: AppTextStyles.madReg14(context, color: textClr),
+                        ),
+                      ),
+                      if (item['isCustom'] == true && onDelete != null) ...[
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: GestureDetector(
+                            onTap: onDelete,
+                            child: Icon(
+                              Icons.delete_outline_rounded,
+                              color: Colors.red.withOpacity(0.85),
+                              size: 25.w,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
+
                 ],
               ),
             ),

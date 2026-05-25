@@ -14,3 +14,4 @@ class GetRandomDuaa extends AzkarStates {}
 class ChangeViewModeState extends AzkarStates {}
 class ChangeSwipeIndexState extends AzkarStates {}
 
+class CustomZekrChanged extends AzkarStates {}

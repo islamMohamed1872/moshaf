@@ -210,7 +210,13 @@ class AppTextStyles {
 
   static TextStyle arsura17(BuildContext context, {Color? color}) => TextStyle(
     fontFamily: "arsura",
-    fontSize: 20.sp,
+    fontSize: 17.sp,
+    color: color ?? _getTextColor(context),
+  );
+
+  static TextStyle arsura14(BuildContext context, {Color? color}) => TextStyle(
+    fontFamily: "arsura",
+    fontSize: 14.sp,
     color: color ?? _getTextColor(context),
   );
 

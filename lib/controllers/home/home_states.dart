@@ -12,3 +12,18 @@ class HomeTutorialStepRequested extends HomeStates {
   final int index;
   HomeTutorialStepRequested(this.index);
 }
+
+class ZekrLoadingState extends HomeStates {}
+class ZekrLoadedState extends HomeStates {}
+
+class AllahNameLoadingState extends HomeStates {}
+class AllahNameLoadedState   extends HomeStates {}
+class RafeqVisibilityChanged extends HomeStates {}
+
+class DailyAyahLoadingState extends HomeStates {}
+
+class DailyAyahLoadedState extends HomeStates {}
+
+class DailyHadithLoadingState extends HomeStates {}
+
+class DailyHadithLoadedState extends HomeStates {}

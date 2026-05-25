@@ -1,18 +1,23 @@
-// lib/views/quran/widgets/playlist_screen.dart
+// lib/views/quran/playlist_screen.dart
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:quran/quran.dart';
 import 'package:moshaf/controllers/quran_audio/audio_quran_cubit.dart';
 import 'package:moshaf/constants/app_textstyles.dart';
 import 'package:moshaf/constants/app_colors.dart';
 
+import '../../components/audio_service.dart';
+import '../../components/components.dart';
 import '../../controllers/playlist/playlist_cubit.dart';
 import '../../controllers/playlist/playlist_state.dart';
+import '../../controllers/text_quran/text_quran_cubit.dart';
 import '../../controllers/theme/theme_cubit.dart';
 import '../../models/playlist_model.dart';
+import 'widgets/quran_page.dart';
 
 class PlaylistScreen extends StatefulWidget {
   const PlaylistScreen({super.key});
@@ -33,25 +38,17 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
-    final gold = AppColors.isGoldMode;
+    final gold   = AppColors.isGoldMode;
 
-    final borderClr = gold
-        ? const Color(AppColors.goldBorder)
-        : Color(isDark
-        ? AppColors.containerDarkBorders
-        : AppColors.containerLightBorders);
-
-    final textClr = gold
-        ? const Color(AppColors.goldText)
-        : (isDark ? Colors.white : Colors.black);
-
+    final borderClr  = gold ? const Color(AppColors.goldBorder) : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders);
+    final textClr    = gold ? const Color(AppColors.goldText)   : (isDark ? Colors.white : Colors.black);
     final backIconClr = gold ? const Color(AppColors.goldAccent) : Colors.white;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // ░░░░░░ HEADER like AllQuranScreen ░░░░░░
+            // ░░░░░░ HEADER ░░░░░░
             Stack(
               alignment: Alignment.center,
               children: [
@@ -61,8 +58,6 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                   width: double.infinity,
                   fit: BoxFit.cover,
                 ),
-
-                // Gradient overlay
                 Container(
                   width: double.infinity,
                   height: 220.h,
@@ -72,27 +67,21 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.black.withOpacity(0),
-                        gold
-                            ? const Color(AppColors.goldBackground)
+                        gold ? const Color(AppColors.goldBackground)
                             : (isDark ? const Color(0xFF151515) : Colors.white),
                       ],
                     ),
                   ),
                 ),
-
-                // Top Row: add - title - back
                 Positioned(
-                  top: 0,
-                  right: 0,
-                  left: 0,
+                  top: 0, right: 0, left: 0,
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Add playlist
                         InkWell(
-                          onTap: () => _showCreatePlaylistDialog(context,isDark),
+                          onTap: () => _showCreatePlaylistDialog(context, isDark),
                           child: Container(
                             width: 35.w,
                             height: 35.w,
@@ -100,25 +89,14 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                               shape: BoxShape.circle,
                               border: Border.all(color: backIconClr),
                             ),
-                            child: Icon(
-                              Icons.add,
-                              color: backIconClr,
-                              size: 18.w,
-                            ),
+                            child: Icon(Icons.add, color: backIconClr, size: 18.w),
                           ),
                         ),
-
                         Text(
                           "قوائم التشغيل",
-                          style: AppTextStyles.arsura24(
-                            context,
-                            color: gold
-                                ? const Color(AppColors.goldAccent)
-                                : Colors.white,
-                          ),
+                          style: AppTextStyles.arsura24(context,
+                              color: gold ? const Color(AppColors.goldAccent) : Colors.white),
                         ),
-
-                        // Back
                         InkWell(
                           onTap: () => Navigator.pop(context),
                           child: Container(
@@ -126,8 +104,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                             height: 30.w,
                             padding: EdgeInsetsDirectional.only(
                               start: context.locale.languageCode == "ar" ? 0 : 7.w,
-                              top: 5,
-                              bottom: 5,
+                              top: 5, bottom: 5,
                             ),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
@@ -147,27 +124,19 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                     ),
                   ),
                 ),
-
                 Positioned(
                   bottom: 20,
                   child: Text(
                     "اختر قائمة تشغيل أو أنشئ واحدة جديدة",
-                    style: AppTextStyles.madReg12(
-                      context,
-                      color: Colors.white.withOpacity(0.85),
-                    ),
+                    style: AppTextStyles.madReg12(context,
+                        color: Colors.white.withOpacity(0.85)),
                     textAlign: TextAlign.center,
                   ),
                 ),
               ],
             ),
 
-            // Divider
-            Container(
-              width: double.infinity,
-              height: 1,
-              color: borderClr,
-            ),
+            Container(width: double.infinity, height: 1, color: borderClr),
 
             // ░░░░░░ BODY ░░░░░░
             Expanded(
@@ -178,8 +147,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                   if (state is PlaylistLoading) {
                     return Center(
                       child: CircularProgressIndicator(
-                        color: gold
-                            ? const Color(AppColors.goldPrimary)
+                        color: gold ? const Color(AppColors.goldPrimary)
                             : const Color(AppColors.mainGreen),
                       ),
                     );
@@ -190,19 +158,15 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.playlist_play,
-                            size: 70,
-                            color: textClr.withOpacity(0.5),
-                          ),
+                          Icon(Icons.playlist_play,
+                              size: 70, color: textClr.withOpacity(0.5)),
                           SizedBox(height: 12.h),
-                          Text(
-                            'لا توجد قوائم تشغيل',
-                            style: AppTextStyles.madReg14(context, color: textClr),
-                          ),
+                          Text('لا توجد قوائم تشغيل',
+                              style: AppTextStyles.madReg14(context, color: textClr)),
                           SizedBox(height: 16.h),
                           InkWell(
-                            onTap: () => _showCreatePlaylistDialog(context,isDark),
+                            onTap: () =>
+                                _showCreatePlaylistDialog(context, isDark),
                             child: Container(
                               padding: EdgeInsets.symmetric(
                                   horizontal: 18.w, vertical: 10.h),
@@ -212,36 +176,34 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                                     ? const Color(AppColors.goldPrimary)
                                     : const Color(AppColors.mainGreen),
                               ),
-                              child: Text(
-                                "إنشاء قائمة",
-                                style: AppTextStyles.madB14(
-                                  context,
-                                  color: Colors.white,
-                                ),
-                              ),
+                              child: Text("إنشاء قائمة",
+                                  style: AppTextStyles.madB14(context,
+                                      color: Colors.white)),
                             ),
-                          )
+                          ),
                         ],
                       ),
                     );
                   }
 
                   return Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 15.w, vertical: 12.h),
                     child: ListView.separated(
                       itemCount: cubit.playlists.length,
                       separatorBuilder: (_, __) => SizedBox(height: 8.h),
                       itemBuilder: (context, index) {
                         final playlist = cubit.playlists[index];
-
                         return _PlaylistTileAllQuranStyle(
                           playlist: playlist,
                           isDark: isDark,
                           borderClr: borderClr,
                           textClr: textClr,
                           gold: gold,
-                          onTap: () => _openPlaylistDetails(context, playlist, cubit),
-                          onDelete: () => _showDeleteConfirmation(context, cubit, playlist,isDark),
+                          onTap: () =>
+                              _openPlaylistDetails(context, playlist, cubit),
+                          onDelete: () => _showDeleteConfirmation(
+                              context, cubit, playlist, isDark),
                         );
                       },
                     ),
@@ -255,24 +217,14 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     );
   }
 
-  void _showCreatePlaylistDialog(BuildContext context,bool isDark) {
+  // ── dialogs ────────────────────────────────────────────────────────────────
+  void _showCreatePlaylistDialog(BuildContext context, bool isDark) {
     final controller = TextEditingController();
-
     final gold = AppColors.isGoldMode;
 
-    final bgColor = gold
-        ? const Color(AppColors.goldBackground)
-        : (isDark ? const Color(0xFF151515) : Colors.white);
-
-    final textColor = gold
-        ? const Color(AppColors.goldText)
-        : (isDark ? Colors.white : Colors.black);
-
-    final borderColor = gold
-        ? const Color(AppColors.goldBorder)
-        : Color(isDark
-        ? AppColors.containerDarkBorders
-        : AppColors.containerLightBorders);
+    final bgColor    = gold ? const Color(AppColors.goldBackground) : (isDark ? const Color(0xFF151515) : Colors.white);
+    final textColor  = gold ? const Color(AppColors.goldText)       : (isDark ? Colors.white : Colors.black);
+    final borderColor = gold ? const Color(AppColors.goldBorder)    : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders);
 
     showDialog(
       context: context,
@@ -282,10 +234,8 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(color: borderColor),
         ),
-        title: Text(
-          'إنشاء قائمة جديدة',
-          style: AppTextStyles.madB14(context, color: textColor),
-        ),
+        title: Text('إنشاء قائمة جديدة',
+            style: AppTextStyles.madB14(context, color: textColor)),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -294,22 +244,21 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
             hintText: 'اسم القائمة',
             hintStyle: TextStyle(color: textColor.withOpacity(0.6)),
             filled: true,
-            fillColor:
-            gold ? const Color(0xffFFF7E6) : Colors.grey.withOpacity(0.1),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            fillColor: gold
+                ? const Color(0xffFFF7E6)
+                : Colors.grey.withOpacity(0.1),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10)),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: borderColor),
-            ),
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: borderColor)),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(
-                color: gold
-                    ? const Color(AppColors.goldPrimary)
-                    : const Color(AppColors.mainGreen),
-                width: 1.2,
-              ),
-            ),
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                    color: gold
+                        ? const Color(AppColors.goldPrimary)
+                        : const Color(AppColors.mainGreen),
+                    width: 1.2)),
           ),
         ),
         actions: [
@@ -327,10 +276,9 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
             child: Text(
               'إنشاء',
               style: TextStyle(
-                color: gold
-                    ? const Color(AppColors.goldPrimary)
-                    : const Color(AppColors.mainGreen),
-              ),
+                  color: gold
+                      ? const Color(AppColors.goldPrimary)
+                      : const Color(AppColors.mainGreen)),
             ),
           ),
         ],
@@ -338,11 +286,8 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     );
   }
 
-  void _openPlaylistDetails(
-      BuildContext context,
-      Playlist playlist,
-      PlaylistCubit cubit,
-      ) {
+  void _openPlaylistDetails(BuildContext context, Playlist playlist,
+      PlaylistCubit cubit) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -354,27 +299,12 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     );
   }
 
-  void _showDeleteConfirmation(
-      BuildContext context,
-      PlaylistCubit cubit,
-      Playlist playlist,
-      bool isDark
-      ) {
-    final gold = AppColors.isGoldMode;
-
-    final bgColor = gold
-        ? const Color(AppColors.goldBackground)
-        : (isDark ? const Color(0xFF151515) : Colors.white);
-
-    final textColor = gold
-        ? const Color(AppColors.goldText)
-        : (isDark ? Colors.white : Colors.black);
-
-    final borderColor = gold
-        ? const Color(AppColors.goldBorder)
-        : Color(isDark
-        ? AppColors.containerDarkBorders
-        : AppColors.containerLightBorders);
+  void _showDeleteConfirmation(BuildContext context, PlaylistCubit cubit,
+      Playlist playlist, bool isDark) {
+    final gold       = AppColors.isGoldMode;
+    final bgColor    = gold ? const Color(AppColors.goldBackground) : (isDark ? const Color(0xFF151515) : Colors.white);
+    final textColor  = gold ? const Color(AppColors.goldText)       : (isDark ? Colors.white : Colors.black);
+    final borderColor = gold ? const Color(AppColors.goldBorder)    : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders);
 
     showDialog(
       context: context,
@@ -384,14 +314,10 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(color: borderColor),
         ),
-        title: Text(
-          'حذف القائمة',
-          style: AppTextStyles.madB14(context, color: textColor),
-        ),
-        content: Text(
-          'هل أنت متأكد من حذف "${playlist.name}"؟',
-          style: AppTextStyles.madReg12(context, color: textColor),
-        ),
+        title: Text('حذف القائمة',
+            style: AppTextStyles.madB14(context, color: textColor)),
+        content: Text('هل أنت متأكد من حذف "${playlist.name}"؟',
+            style: AppTextStyles.madReg12(context, color: textColor)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -402,10 +328,8 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
               cubit.deletePlaylist(playlist.id);
               Navigator.pop(ctx);
             },
-            child: const Text(
-              'حذف',
-              style: TextStyle(color: Colors.red),
-            ),
+            child:
+            const Text('حذف', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -413,7 +337,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   }
 }
 
-/// ✅ New tile style similar to AllQuranScreen list style
+// ── Playlist tile ──────────────────────────────────────────────────────────────
 class _PlaylistTileAllQuranStyle extends StatelessWidget {
   final Playlist playlist;
   final bool isDark;
@@ -443,7 +367,8 @@ class _PlaylistTileAllQuranStyle extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+        padding:
+        EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(14),
@@ -451,14 +376,12 @@ class _PlaylistTileAllQuranStyle extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Icon circle
             Container(
               width: 45.w,
               height: 45.w,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: borderClr),
-              ),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: borderClr)),
               child: Icon(
                 Icons.playlist_play,
                 color: gold
@@ -466,10 +389,7 @@ class _PlaylistTileAllQuranStyle extends StatelessWidget {
                     : const Color(AppColors.mainGreen),
               ),
             ),
-
             SizedBox(width: 12.w),
-
-            // Text
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -483,16 +403,12 @@ class _PlaylistTileAllQuranStyle extends StatelessWidget {
                   SizedBox(height: 3.h),
                   Text(
                     "${playlist.items.length} عنصر",
-                    style: AppTextStyles.madReg10(
-                      context,
-                      color: textClr.withOpacity(0.65),
-                    ),
+                    style: AppTextStyles.madReg10(context,
+                        color: textClr.withOpacity(0.65)),
                   ),
                 ],
               ),
             ),
-
-            // delete
             IconButton(
               onPressed: onDelete,
               icon: const Icon(Icons.delete, color: Colors.red),
@@ -504,8 +420,7 @@ class _PlaylistTileAllQuranStyle extends StatelessWidget {
   }
 }
 
-
-// ✅ PLAYLIST DETAILS SCREEN
+// ── Playlist details screen ────────────────────────────────────────────────────
 class PlaylistDetailsScreen extends StatelessWidget {
   final Playlist playlist;
   final PlaylistCubit cubit;
@@ -519,27 +434,25 @@ class PlaylistDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = context.select((ThemeCubit cubit) => cubit.isDark);
-    final gold = AppColors.isGoldMode;
+    final gold   = AppColors.isGoldMode;
 
-    final borderClr = gold
-        ? const Color(AppColors.goldBorder)
-        : Color(isDark
-        ? AppColors.containerDarkBorders
-        : AppColors.containerLightBorders);
-
-    final textClr = gold
-        ? const Color(AppColors.goldText)
-        : (isDark ? Colors.white : Colors.black);
-
+    final borderClr   = gold ? const Color(AppColors.goldBorder) : Color(isDark ? AppColors.containerDarkBorders : AppColors.containerLightBorders);
+    final textClr     = gold ? const Color(AppColors.goldText)   : (isDark ? Colors.white : Colors.black);
     final backIconClr = gold ? const Color(AppColors.goldAccent) : Colors.white;
 
     return Scaffold(
       body: SafeArea(
-        child: BlocBuilder<PlaylistCubit,PlaylistState>(
-          builder: (context,state) {
+        child: BlocBuilder<PlaylistCubit, PlaylistState>(
+          builder: (context, state) {
+            // keep a fresh reference in case the playlist was mutated
+            final freshPlaylist = PlaylistCubit.get(context)
+                .playlists
+                .firstWhere((p) => p.id == playlist.id,
+                orElse: () => playlist);
+
             return Column(
               children: [
-                // ░░░░░░ HEADER like AllQuranScreen ░░░░░░
+                // ── header ──────────────────────────────────────────────
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -549,8 +462,6 @@ class PlaylistDetailsScreen extends StatelessWidget {
                       width: double.infinity,
                       fit: BoxFit.cover,
                     ),
-
-                    // Gradient overlay
                     Container(
                       width: double.infinity,
                       height: 220.h,
@@ -562,25 +473,23 @@ class PlaylistDetailsScreen extends StatelessWidget {
                             Colors.black.withOpacity(0),
                             gold
                                 ? const Color(AppColors.goldBackground)
-                                : (isDark ? const Color(0xFF151515) : Colors.white),
+                                : (isDark
+                                ? const Color(0xFF151515)
+                                : Colors.white),
                           ],
                         ),
                       ),
                     ),
-
-                    // Top Row: play all - title - back
                     Positioned(
-                      top: 0,
-                      right: 0,
-                      left: 0,
+                      top: 0, right: 0, left: 0,
                       child: Padding(
                         padding: const EdgeInsets.all(20.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Play all
+                            // play all
                             InkWell(
-                              onTap: () => _playPlaylist(context),
+                              onTap: () => _playPlaylist(context, freshPlaylist),
                               child: Icon(
                                 Icons.play_circle_fill,
                                 size: 26.w,
@@ -589,36 +498,31 @@ class PlaylistDetailsScreen extends StatelessWidget {
                                     : Colors.white,
                               ),
                             ),
-
-                            // Title
                             Expanded(
                               child: Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 12.w),
                                 child: Text(
-                                  playlist.name,
+                                  freshPlaylist.name,
                                   textAlign: TextAlign.center,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.arsura24(
-                                    context,
-                                    color: gold
-                                        ? const Color(AppColors.goldAccent)
-                                        : Colors.white,
-                                  ),
+                                  style: AppTextStyles.arsura24(context,
+                                      color: gold
+                                          ? const Color(AppColors.goldAccent)
+                                          : Colors.white),
                                 ),
                               ),
                             ),
-
-                            // Back
                             InkWell(
                               onTap: () => Navigator.pop(context),
                               child: Container(
                                 width: 30.w,
                                 height: 30.w,
                                 padding: EdgeInsetsDirectional.only(
-                                  start: context.locale.languageCode == "ar" ? 0 : 7.w,
-                                  top: 5,
-                                  bottom: 5,
+                                  start: context.locale.languageCode == "ar"
+                                      ? 0
+                                      : 7.w,
+                                  top: 5, bottom: 5,
                                 ),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
@@ -638,45 +542,38 @@ class PlaylistDetailsScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-
-                    // Subtitle: playlist items count
                     Positioned(
                       bottom: 15,
                       child: Text(
-                        "${playlist.items.length} عنصر",
-                        style: AppTextStyles.madReg12(
-                          context,
-                          color: Colors.white.withOpacity(0.85),
-                        ),
+                        "${freshPlaylist.items.length} عنصر",
+                        style: AppTextStyles.madReg12(context,
+                            color: Colors.white.withOpacity(0.85)),
                       ),
                     ),
                   ],
                 ),
 
-                // DIVIDER
-                Container(
-                  width: double.infinity,
-                  height: 1,
-                  color: borderClr,
-                ),
+                Container(width: double.infinity, height: 1, color: borderClr),
 
-                // ░░░░░░ CONTENT ░░░░░░
+                // ── content ─────────────────────────────────────────────
                 Expanded(
-                  child: playlist.items.isEmpty
+                  child: freshPlaylist.items.isEmpty
                       ? Center(
-                    child: Text(
-                      'لا توجد عناصر في القائمة',
-                      style: AppTextStyles.madReg14(context, color: textClr),
-                    ),
+                    child: Text('لا توجد عناصر في القائمة',
+                        style: AppTextStyles.madReg14(context,
+                            color: textClr)),
                   )
                       : Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 15.w, vertical: 12.h),
                     child: ListView.separated(
-                      itemCount: playlist.items.length,
-                      separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                      itemCount: freshPlaylist.items.length,
+                      separatorBuilder: (_, __) =>
+                          SizedBox(height: 8.h),
                       itemBuilder: (context, index) {
-                        final item = playlist.items[index];
-                        final surahName = quran.getSurahNameArabic(item.surah);
+                        final item = freshPlaylist.items[index];
+                        final surahName =
+                        quran.getSurahNameArabic(item.surah);
 
                         return _PlaylistItemTileAllQuranStyle(
                           index: index,
@@ -686,8 +583,31 @@ class PlaylistDetailsScreen extends StatelessWidget {
                           gold: gold,
                           borderClr: borderClr,
                           textClr: textClr,
-                          onPlay: () => _playItem(context, item),
-                          onDelete: () => cubit.removeItemFromPlaylist(playlist.id, index),
+                          onPlay: () =>
+                              _playItem(context, item),
+                          // ✅ NEW: read navigation
+                          onRead: () async {
+                            AudioQuranCubit.get(context).stop();
+                            await AudioServices()
+                                .player
+                                .clearAudioSources();
+                            TextQuranCubit.get(context).soraNumber =
+                                item.surah;
+                            navigateTo(
+                              context,
+                              QuranViewPage(
+                                navigatedFromRecitation: false,
+                                shouldHighlightText: false,
+                                highlightVerse: "",
+                                jsonData: TextQuranCubit.get(context)
+                                    .suraJsonData,
+                                pageNumber: getPageNumber(
+                                    item.surah, item.startVerse),
+                              ),
+                            );
+                          },
+                          onDelete: () => cubit.removeItemFromPlaylist(
+                              freshPlaylist.id, index),
                         );
                       },
                     ),
@@ -695,7 +615,7 @@ class PlaylistDetailsScreen extends StatelessWidget {
                 ),
               ],
             );
-          }
+          },
         ),
       ),
     );
@@ -704,29 +624,24 @@ class PlaylistDetailsScreen extends StatelessWidget {
   void _playItem(BuildContext context, PlaylistItem item) {
     AudioQuranCubit.get(context).playPlaylistItem(item);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'جاري التشغيل: ${quran.getSurahNameArabic(item.surah)} (${item.startVerse}-${item.endVerse})',
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+          'جاري التشغيل: ${quran.getSurahNameArabic(item.surah)} (${item.startVerse}-${item.endVerse})'),
+      duration: const Duration(seconds: 2),
+    ));
   }
 
-  void _playPlaylist(BuildContext context) {
-    AudioQuranCubit.get(context).playPlaylist(playlist);
+  void _playPlaylist(BuildContext context, Playlist p) {
+    AudioQuranCubit.get(context).playPlaylist(p);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('جاري تشغيل قائمة: ${playlist.name}'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('جاري تشغيل قائمة: ${p.name}'),
+      duration: const Duration(seconds: 2),
+    ));
   }
 }
 
-/// ✅ Tile item matches AllQuranScreen list styling
+// ── playlist item tile (updated with read button) ──────────────────────────────
 class _PlaylistItemTileAllQuranStyle extends StatelessWidget {
   final int index;
   final String surahName;
@@ -738,6 +653,7 @@ class _PlaylistItemTileAllQuranStyle extends StatelessWidget {
   final Color textClr;
 
   final VoidCallback onPlay;
+  final VoidCallback onRead;   // ✅ new
   final VoidCallback onDelete;
 
   const _PlaylistItemTileAllQuranStyle({
@@ -749,6 +665,7 @@ class _PlaylistItemTileAllQuranStyle extends StatelessWidget {
     required this.borderClr,
     required this.textClr,
     required this.onPlay,
+    required this.onRead,
     required this.onDelete,
   });
 
@@ -776,9 +693,8 @@ class _PlaylistItemTileAllQuranStyle extends StatelessWidget {
             width: 42.w,
             height: 42.w,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: borderClr),
-            ),
+                shape: BoxShape.circle,
+                border: Border.all(color: borderClr)),
             child: Center(
               child: Text(
                 (index + 1).toString(),
@@ -803,21 +719,30 @@ class _PlaylistItemTileAllQuranStyle extends StatelessWidget {
                 SizedBox(height: 4.h),
                 Text(
                   'الآية ${item.startVerse} إلى ${item.endVerse}',
-                  style: AppTextStyles.madReg10(
-                    context,
-                    color: textClr.withOpacity(0.65),
-                  ),
+                  style: AppTextStyles.madReg10(context,
+                      color: textClr.withOpacity(0.65)),
                 ),
               ],
             ),
           ),
 
-          // actions
+          // ✅ read icon
           IconButton(
+            tooltip: 'قراءة',
+            icon: Icon(Icons.menu_book_outlined, color: primary, size: 20),
+            onPressed: onRead,
+          ),
+
+          // play icon
+          IconButton(
+            tooltip: 'تشغيل',
             icon: Icon(Icons.play_arrow, color: primary),
             onPressed: onPlay,
           ),
+
+          // delete icon
           IconButton(
+            tooltip: 'حذف',
             icon: const Icon(Icons.delete, color: Colors.red),
             onPressed: onDelete,
           ),
